@@ -18,7 +18,7 @@
       "output": "dist"
     },
     "mac": {
-      "target": "pkg",
+      "target": "dmg",
       "icon": "src/assets/icon.png",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
@@ -28,12 +28,6 @@
         "NSMicrophoneUsageDescription": "VARS needs access to your microphone to transcribe audio and provide AI assistance.",
         "NSCameraUsageDescription": "VARS does not use the camera."
       }
-    },
-    "pkg": {
-      "scripts": "build/pkg-scripts",
-      "installLocation": "/Applications",
-      "allowAnywhere": true,
-      "isRelocatable": false
     },
     "win": {
       "target": "nsis",

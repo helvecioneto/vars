@@ -107,9 +107,9 @@ jobs:
       - name: Rename artifact for clarity
         run: |
           cd dist
-          for f in *.pkg; do
+          for f in *.dmg; do
             if [[ ! "$f" =~ arm64 ]]; then
-              mv "$f" "${f%.pkg}-arm64.pkg"
+              mv "$f" "${f%.dmg}-arm64.dmg"
             fi
           done
 
@@ -117,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64-build
-          path: dist/*.pkg
+          path: dist/*.dmg
           retention-days: 1
 
   # ==========================================
@@ -151,9 +151,9 @@ jobs:
       - name: Rename artifact for clarity
         run: |
           cd dist
-          for f in *.pkg; do
+          for f in *.dmg; do
             if [[ ! "$f" =~ x64 ]]; then
-              mv "$f" "${f%.pkg}-x64.pkg"
+              mv "$f" "${f%.dmg}-x64.dmg"
             fi
           done
 
@@ -161,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-x64-build
-          path: dist/*.pkg
+          path: dist/*.dmg
           retention-days: 1
 
   # ==========================================
@@ -186,8 +186,8 @@ jobs:
           files: |
             artifacts/windows-build/*.exe
             artifacts/linux-build/*.AppImage
-            artifacts/macos-arm64-build/*.pkg
-            artifacts/macos-x64-build/*.pkg
+            artifacts/macos-arm64-build/*.dmg
+            artifacts/macos-x64-build/*.dmg
           generate_release_notes: true
           draft: false
           prerelease: false
