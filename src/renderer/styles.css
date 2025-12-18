@@ -1,0 +1,527 @@
+/* ==========================================
+   Hearing Agent - Horizontal Toolbar Style
+   ========================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-toolbar: rgba(40, 40, 40, 0.95);
+  --bg-input: rgba(60, 60, 60, 0.8);
+  --bg-hover: rgba(80, 80, 80, 0.6);
+  --accent: #8b5cf6;
+  --accent-light: #a78bfa;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --border: rgba(255, 255, 255, 0.1);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --radius: 24px;
+  --radius-sm: 12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--bg-toolbar);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+/* Main Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.toolbar-center {
+  flex: 1;
+  -webkit-app-region: no-drag;
+}
+
+/* Icon Buttons */
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.icon-btn .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn .icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.icon-btn:hover .icon svg {
+  stroke: var(--accent-light);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* Active/pressed state (for toggleable buttons like settings) */
+.icon-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.icon-btn.active:hover .icon svg {
+  stroke: white;
+}
+
+/* AI Main Button - with gradient */
+.ai-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.ai-btn .icon {
+  font-size: 20px;
+}
+
+.ai-btn:hover {
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.ai-btn.recording {
+  animation: pulse-ai 1.2s infinite;
+}
+
+@keyframes pulse-ai {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+}
+
+/* Close button */
+.close-btn:hover {
+  background: var(--error);
+  color: white;
+}
+
+/* Drag Handle Button */
+.drag-btn {
+  -webkit-app-region: drag;
+  cursor: grab;
+}
+
+.drag-btn:active {
+  cursor: grabbing;
+}
+
+/* Mode button */
+.mode-btn .icon {
+  font-size: 14px;
+}
+
+/* Mic Button States */
+.mic-btn.recording {
+  background: var(--error);
+  animation: pulse-mic 1s infinite;
+}
+
+@keyframes pulse-mic {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+/* Input Field */
+.input-field {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+/* Content Area */
+.content-area {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  animation: slide-down 0.2s ease;
+}
+
+.content-area.hidden {
+  display: none;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.status-bar.recording .status-dot {
+  background: var(--error);
+  animation: pulse-dot 1s infinite;
+}
+
+.status-bar.processing .status-dot {
+  background: var(--warning);
+  animation: pulse-dot 0.5s infinite;
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Content Sections */
+.content-section {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  animation: fade-in 0.2s ease;
+}
+
+.content-section.hidden {
+  display: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-wrap: break-word;
+}
+
+.transcription .content-text {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.response {
+  border-left: 3px solid var(--accent);
+}
+
+/* Settings Mode Title in toolbar */
+.settings-mode-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-mode-title.hidden {
+  display: none;
+}
+
+/* Settings Panel - full focus mode */
+.settings-panel {
+  display: none;
+  background: var(--bg-toolbar);
+  border-top: 1px solid var(--border);
+  animation: expand-down 0.2s ease;
+  width: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.settings-panel.visible {
+  display: block;
+}
+
+@keyframes expand-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.settings-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-content {
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Settings Sections */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 140px;
+  flex: 1;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.settings-section.full-width {
+  flex: 100%;
+  min-width: 100%;
+}
+
+/* Disabled button state */
+.icon-btn.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+  border-color: var(--text-muted);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 50px;
+}
+
+.file-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.file-list {
+  padding: 8px;
+  background: var(--bg-input);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-height: 30px;
+}
+
+.file-list .placeholder {
+  opacity: 0.6;
+}
+
+.btn-add-file {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+
+.btn-add-file:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Utility */
+.hidden {
+  display: none !important;
+}

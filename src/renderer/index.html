@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Hearing Agent</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="app-container" id="app-container">
+    <!-- Main Toolbar -->
+    <!-- Main Toolbar -->
+    <div class="toolbar" id="toolbar">
+      <!-- Left: AI Logo + Record -->
+      <div class="toolbar-left">
+        <button class="icon-btn ai-btn" id="rec-btn" title="CTRL+Space to record">
+          <span class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+              </path>
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- Center: Input or Settings Title -->
+      <div class="toolbar-center">
+        <input type="text" class="input-field" id="input-field" placeholder="Ask me anything..." autocomplete="off">
+        <span class="settings-mode-title hidden" id="settings-mode-title">Settings</span>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="toolbar-right">
+        <button class="icon-btn mode-btn" id="mode-btn" title="CTRL+M: Switch mode">
+          <span id="mode-icon" class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </span>
+        </button>
+        <button class="icon-btn" id="history-btn" title="History">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </span>
+        </button>
+        <button class="icon-btn" id="settings-btn" title="Settings">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </span>
+        </button>
+        <button class="icon-btn drag-btn" id="drag-btn" title="Drag to move (Right-click for menu)">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="12" r="1"></circle>
+              <circle cx="9" cy="5" r="1"></circle>
+              <circle cx="9" cy="19" r="1"></circle>
+              <circle cx="15" cy="12" r="1"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <circle cx="15" cy="19" r="1"></circle>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Expandable Content Area (hidden by default) -->
+    <div class="content-area hidden" id="content-area">
+      <!-- Status indicator -->
+      <div class="status-bar" id="status-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Ready</span>
+      </div>
+
+      <!-- Transcription -->
+      <div class="content-section transcription hidden" id="transcription-section">
+        <div class="content-text" id="transcription-content"></div>
+      </div>
+
+      <!-- AI Response -->
+      <div class="content-section response hidden" id="response-section">
+        <div class="content-text" id="response-content"></div>
+      </div>
+    </div>
+
+    <!-- Settings Panel (expands below) -->
+    <div class="settings-panel" id="settings-panel">
+      <!-- Settings Header with Drag Button -->
+
+      <div class="settings-content">
+        <!-- API Section -->
+        <div class="settings-section">
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <select id="model-select">
+              <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+              <option value="gpt-4o">GPT-4o (Balanced)</option>
+              <option value="gpt-4-turbo">GPT-4 Turbo (Best)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Language</label>
+            <select id="language-select">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="pt-br">Português (BR)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Prompt Section -->
+        <div class="settings-section full-width">
+          <div class="form-group">
+            <label>System Prompt</label>
+            <textarea id="system-prompt" rows="2" placeholder="Optional instructions for the AI..."></textarea>
+          </div>
+          <div class="form-group checkbox-group"
+            style="flex-direction: row; align-items: center; gap: 10px; margin-top: 5px;">
+            <input type="checkbox" id="brief-mode" style="width: auto;">
+            <label for="brief-mode" style="margin-bottom: 0; cursor: pointer;">Respostas Curtas e Diretas (Brief
+              Mode)</label>
+          </div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="settings-section">
+          <label>Knowledge Base Files</label>
+          <div id="file-list" class="file-list">
+            <!-- Files will be added here -->
+            <p class="placeholder">No files added</p>
+          </div>
+          <input type="file" id="file-input" multiple accept=".pdf,.txt,.docx,.md" style="display: none;">
+          <button id="add-file-btn" class="secondary-btn">+ Add Files</button>
+
+          <div class="kb-actions" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="train-btn" class="primary-btn" style="flex: 1; background-color: var(--success);">
+              ⚡ Extract/Train Base
+            </button>
+            <button id="reset-kb-btn" class="secondary-btn"
+              style="flex: 1; border-color: var(--error); color: var(--error);">
+              🗑️ Clear Base
+            </button>
+          </div>
+          <p id="kb-status" style="font-size: 0.8em; margin-top: 5px; opacity: 0.7; min-height: 1.2em;"></p>
+        </div>
+      </div>
+
+      <!-- Audio Section -->
+      <div class="settings-section">
+        <div class="form-group">
+          <label>Input Device</label>
+          <select id="input-device">
+            <option value="default">Default Microphone</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Output Device</label>
+          <select id="output-device">
+            <option value="default">Default Speaker</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden elements for state management -->
+  <div class="hidden" id="recording-section"></div>
+  <div class="hidden" id="recording-indicator"></div>
+  <div class="hidden" id="recording-text"></div>
+  <div class="hidden" id="keyboard-input-section"></div>
+  <textarea class="hidden" id="keyboard-input"></textarea>
+  <button class="hidden" id="submit-keyboard-btn"></button>
+  <button class="hidden" id="minimize-btn"></button>
+  <span class="hidden" id="mode-text"></span>
+  <div class="hidden" id="mode-badge"></div>
+  <div class="hidden" id="empty-state"></div>
+  <div class="hidden" id="status-indicator"><span class="status-dot"></span><span class="status-text"></span></div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+
+</html>
