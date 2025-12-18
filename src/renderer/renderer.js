@@ -1139,12 +1139,19 @@ async function populateDevices() {
 // ==========================================
 
 // Model labels for UI display
-const MODEL_LABELS = {
-    'gpt-4o-mini': 'GPT-4o Mini (Fast)',
-    'gpt-4o': 'GPT-4o (Balanced)',
-    'gpt-4-turbo': 'GPT-4 Turbo (Best)',
-    'gpt-3.5-turbo': 'GPT-3.5 Turbo (Legacy)'
-};
+// Helper to generate dynamic model labels
+function getModelLabel(model) {
+    if (model.includes('mini') || model.includes('nano') || model.includes('instant') || model.includes('fast')) {
+        return `${model} (Fast)`;
+    }
+    if (model.includes('thinking') || model.startsWith('o1') || model.includes('reasoning')) {
+        return `${model} (Thinking)`;
+    }
+    if (model.includes('legacy')) {
+        return `${model} (Legacy)`;
+    }
+    return `${model} (Balanced)`;
+}
 
 async function populateModelOptions() {
     try {
@@ -1156,7 +1163,7 @@ async function populateModelOptions() {
             modelsConfig.chat.options.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model;
-                option.textContent = MODEL_LABELS[model] || model;
+                option.textContent = getModelLabel(model);
                 elements.modelSelect.appendChild(option);
             });
         }

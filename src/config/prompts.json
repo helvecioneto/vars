@@ -21,9 +21,9 @@
             "es": "Tienes acceso a una Base de Conocimiento que contiene los siguientes archivos: [{fileList}].\n\nDEBES buscar en estos archivos para responder la solicitud del usuario. Si la respuesta se encuentra en los archivos, úsala. Si no, declara explícitamente que no está en la base de conocimiento antes de responder con conocimiento general."
         },
         "briefMode": {
-            "en": "\n\nCRITICAL INSTRUCTION: KEEP RESPONSE EXTREMELY SHORT AND DIRECT. MAXIMUM 2-3 SENTENCES. NO FLUFF. NO 'I found this in the file'. JUST THE FACT.",
-            "pt-br": "\n\nINSTRUÇÃO CRÍTICA: MANTENHA A RESPOSTA EXTREMAMENTE CURTA E DIRETA. MÁXIMO 2-3 FRASES. SEM ENROLAÇÃO. SEM 'Encontrei isso no arquivo'. APENAS O FATO.",
-            "es": "\n\nINSTRUCCIÓN CRÍTICA: MANTÉN LA RESPUESTA EXTREMADAMENTE CORTA Y DIRECTA. MÁXIMO 2-3 ORACIONES. SIN RODEOS. SIN 'Encontré esto en el archivo'. SOLO EL HECHO."
+            "en": "\n\nSUPREME INSTRUCTION: Be telegraphic. Answer in 1-2 sentences max. DO NOT explain that information is missing from files. DO NOT give warnings or limitations. JUST ANSWER THE QUESTION DIRECTLY.",
+            "pt-br": "\n\nINSTRUÇÃO SUPREMA: Seja telegráfico. Responda em no máximo 1-2 frases. NÃO explique que a informação não está nos arquivos. NÃO dê avisos ou limitações. NÃO peça desculpas. APENAS RESPONDA A PERGUNTA DIRETAMENTE.",
+            "es": "\n\nINSTRUCCIÓN SUPREMA: Sé telegráfico. Responde en 1-2 oraciones máximo. NO expliques que falta información en los archivos. NO des advertencias. SOLO RESPONDE LA PREGUNTA DIRECTAMENTE."
         }
     },
     "language": {

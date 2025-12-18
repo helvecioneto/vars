@@ -1,26 +1,33 @@
 {
     "chat": {
-        "default": "gpt-4o-mini",
+        "default": "gpt-4o",
         "options": [
-            "gpt-4o-mini",
-            "gpt-4o",
-            "gpt-4-turbo",
-            "gpt-3.5-turbo"
+            "gpt-5-nano",
+            "gpt-5.2-chat-latest",
+            "gpt-4o"
         ]
     },
     "transcription": {
         "default": "gpt-4o-mini-transcribe",
         "options": [
             "gpt-4o-mini-transcribe",
+            "gpt-4o-transcribe",
             "whisper-1"
         ]
     },
     "assistant": {
-        "default": "gpt-4o",
+        "default": "text-embedding-3-small",
         "description": "Model for Assistants API (requires tool support)"
     },
     "realtime": {
         "transcription": "gpt-4o-transcribe",
         "description": "Model for Realtime API transcription sessions"
-    }
+    },
+    "assistant_unsupported_models": [
+        "gpt-5.2-chat-latest",
+        "gpt-5-mini",
+        "o1",
+        "o1-pro",
+        "gpt-5-nano"
+    ]
 }

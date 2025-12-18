@@ -208,7 +208,12 @@ async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, 
     };
 
     // Override model if provided (and valid for Assistants)
-    if (model) {
+    // NOTE: Some models are not fully supported in Assistants API (e.g. specialized, instant, very new reasoning models)
+    // We check against the configuration to skip overriding them, falling back to the Assistant's configured model.
+    const models = getModels();
+    const unsupportedAssistantModels = models.assistant_unsupported_models || [];
+
+    if (model && !unsupportedAssistantModels.includes(model)) {
         runOptions.model = model;
     }
 
@@ -301,12 +306,21 @@ async function getChatCompletionResponse(transcription, apiKey, model, systemPro
         }
     ];
 
-    const completion = await openai.chat.completions.create({
+    const params = {
         model: model,
-        messages: messages,
-        max_tokens: 1000,
-        temperature: 0.7
-    });
+        messages: messages
+    };
+
+    // Newer models (GPT-5+, o1) use max_completion_tokens and default temperature
+    if (model.startsWith('gpt-5') || model.startsWith('o1') || model.includes('thinking')) {
+        params.max_completion_tokens = 1000;
+        params.temperature = 1;
+    } else {
+        params.max_tokens = 1000;
+        params.temperature = 0.7;
+    }
+
+    const completion = await openai.chat.completions.create(params);
 
     return completion.choices[0].message.content;
 }
