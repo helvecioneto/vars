@@ -112,6 +112,9 @@ async function init() {
     updateModelDisplay();
     await populateDevices();
 
+    // Update button tooltips based on OS
+    updateButtonTooltips();
+
     // Setup event listeners
     setupEventListeners();
 
@@ -135,6 +138,50 @@ async function init() {
     startBoundsTracking();
 
     console.log('VARS initialized');
+}
+
+/**
+ * Updates button tooltips with OS-appropriate keyboard shortcuts
+ * Uses native title attribute for browser tooltips
+ * macOS uses ⌥ (Option) for shortcuts
+ * Windows/Linux uses Ctrl for shortcuts
+ */
+function updateButtonTooltips() {
+    const isMac = window.electronAPI.platform === 'darwin';
+    // Shortcuts: macOS uses Option (⌥), others use Ctrl
+    const mod = isMac ? '⌥' : 'Ctrl';
+
+    // Record button (global shortcut)
+    if (elements.recBtn) {
+        elements.recBtn.title = `${mod}+Space: Record`;
+    }
+
+    // Mode switch button (handled by updateInputModeUI for dynamic text)
+
+    // History button (uses same modifier as other shortcuts)
+    if (elements.historyBtn) {
+        elements.historyBtn.title = `${mod}+↑/↓: History`;
+    }
+
+    // Settings button
+    if (elements.settingsBtn) {
+        elements.settingsBtn.title = 'Settings';
+    }
+
+    // Drag button
+    if (elements.dragBtn) {
+        elements.dragBtn.title = 'Move / Right-click: Menu';
+    }
+
+    // Knowledge Base buttons (in settings)
+    const addFileBtn = document.getElementById('add-file-btn');
+    if (addFileBtn) addFileBtn.title = 'Add Files';
+
+    const trainBtn = document.getElementById('train-btn');
+    if (trainBtn) trainBtn.title = 'Train KB';
+
+    const resetKbBtn = document.getElementById('reset-kb-btn');
+    if (resetKbBtn) resetKbBtn.title = 'Clear KB';
 }
 
 function startBoundsTracking() {
@@ -1031,12 +1078,15 @@ function handleInputModeChange(mode) {
 
 function updateInputModeUI() {
     const modeConfig = INPUT_MODES[currentInputMode];
+    const isMac = window.electronAPI.platform === 'darwin';
+    // Global shortcuts: macOS uses Option (⌥), others use Ctrl
+    const globalMod = isMac ? '⌥' : 'Ctrl';
 
     if (elements.modeIcon) {
         elements.modeIcon.innerHTML = modeConfig.icon;
     }
     if (elements.modeBtn) {
-        elements.modeBtn.title = `CTRL + M: ${modeConfig.text}`;
+        elements.modeBtn.title = `${globalMod}+M: ${modeConfig.text}`;
     }
     if (elements.modeBadge) {
         elements.modeBadge.style.borderColor = modeConfig.color;
