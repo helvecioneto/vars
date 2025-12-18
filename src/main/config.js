@@ -2,7 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
-const CONFIG_DIR = path.join(os.homedir(), '.hearing-agent');
+const CONFIG_DIR = path.join(os.homedir(), '.vars');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 function getDefaultConfig() {

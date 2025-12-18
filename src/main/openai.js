@@ -18,7 +18,7 @@ async function transcribeAudio(audioBuffer, apiKey, model = 'gpt-4o-mini-transcr
 
     // Write buffer to a temporary file
     const tempDir = os.tmpdir();
-    const tempFile = path.join(tempDir, `hearing-agent-${Date.now()}.webm`);
+    const tempFile = path.join(tempDir, `vars-${Date.now()}.webm`);
 
     try {
         const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
@@ -62,7 +62,7 @@ async function initializeAssistant(apiKey, currentAssistantId) {
 
     // Create new assistant if needed
     assistant = await openai.beta.assistants.create({
-        name: "Hearing Agent Knowledge Base",
+        name: "VARS Knowledge Base",
         instructions: "You are a helpful assistant. Use the provided knowledge base to answer questions. If the answer is not in the knowledge base, state that you don't have that information but try to answer with your general knowledge if appropriate.",
         model: "gpt-4o", // Must be a model that supports tools
         tools: [{ type: "file_search" }]
@@ -86,7 +86,7 @@ async function createKnowledgeBase(apiKey, filePaths, existingVectorStoreId) {
 
     if (!vectorStore) {
         vectorStore = await openai.beta.vectorStores.create({
-            name: "Hearing Agent Documents"
+            name: "VARS Documents"
         });
     }
 

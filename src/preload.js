@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webFrame } = require('electron');
+const { contextBridge, ipcRenderer, webFrame, shell } = require('electron');
 
 // Zoom state
 let currentZoomFactor = 1.0;
@@ -14,6 +14,8 @@ function setZoom(factor) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    platform: process.platform,
+    openExternal: (url) => shell.openExternal(url),
     // Configuration
     getConfig: () => ipcRenderer.invoke('get-config'),
     saveConfig: (config) => ipcRenderer.invoke('save-config', config),

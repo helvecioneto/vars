@@ -1,5 +1,5 @@
 // ==========================================
-// Hearing Agent - Renderer Process
+// VARS - Renderer Process
 // ==========================================
 
 // State
@@ -130,7 +130,7 @@ async function init() {
     // Start bounds tracking for click-through
     startBoundsTracking();
 
-    console.log('Hearing Agent initialized');
+    console.log('VARS initialized');
 }
 
 function startBoundsTracking() {
@@ -185,6 +185,26 @@ function setupEventListeners() {
     // Settings toggle (click to open/close)
     elements.settingsBtn.addEventListener('click', toggleSettings);
 
+    // API Key help link
+    const apiKeyHelp = document.getElementById('api-key-help');
+    if (apiKeyHelp) {
+        apiKeyHelp.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Opening OpenAI API Key page...');
+            window.electronAPI.openExternal('https://platform.openai.com/api-keys');
+        });
+    }
+
+    // GitHub link in footer
+    const githubLink = document.getElementById('github-link');
+    if (githubLink) {
+        githubLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Opening GitHub profile...');
+            window.electronAPI.openExternal('https://github.com/helvecioneto/');
+        });
+    }
+
     // Auto-save on setting changes
     setupAutoSave();
 
@@ -210,7 +230,10 @@ function setupEventListeners() {
 
     if (elements.keyboardInput) {
         elements.keyboardInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
+            const isMac = window.electronAPI.platform === 'darwin';
+            const modifierKey = isMac ? e.altKey : e.ctrlKey;
+
+            if (e.key === 'Enter' && modifierKey) {
                 handleKeyboardSubmit();
             }
         });
@@ -284,7 +307,11 @@ function setupEventListeners() {
 
     // Keyboard shortcuts for zoom (Restored with safety check)
     document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey || e.metaKey) {
+        const isMac = window.electronAPI.platform === 'darwin';
+        // macOS: Option, Others: Ctrl/Meta
+        const modifierKey = isMac ? e.altKey : (e.ctrlKey || e.metaKey);
+
+        if (modifierKey) {
             if (e.key === '=' || e.key === '+' || e.key === 'Add') {
                 e.preventDefault();
                 zoomIn();
@@ -298,9 +325,12 @@ function setupEventListeners() {
         }
     });
 
-    // History Navigation Shortcuts (CTRL + UP/DOWN)
+    // History Navigation Shortcuts
     document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey) {
+        const isMac = window.electronAPI.platform === 'darwin';
+        const modifierKey = isMac ? e.altKey : e.ctrlKey;
+
+        if (modifierKey) {
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 navigateHistory('up');

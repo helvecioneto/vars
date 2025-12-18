@@ -11,6 +11,13 @@ const {
 } = require('./openai');
 const { RealtimeTranscription } = require('./realtime');
 
+
+// Set App Name explicitly for dev mode
+app.setName('VARS');
+if (process.platform === 'win32') {
+    app.setAppUserModelId('com.vars.app');
+}
+
 let mainWindow = null;
 let tray = null;
 let isRecording = false;
@@ -21,6 +28,7 @@ function createWindow() {
     const windowOptions = {
         width: 450,
         height: 60,  // Start small, will expand when settings/content opens
+        title: 'VARS',
         frame: false,
         transparent: true,
         alwaysOnTop: true,
@@ -34,7 +42,8 @@ function createWindow() {
             preload: path.join(__dirname, '..', 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
-        }
+        },
+        icon: path.join(__dirname, '..', 'assets', 'icon.png')
     };
 
     mainWindow = new BrowserWindow(windowOptions);
@@ -50,7 +59,10 @@ function createWindow() {
 
     // Prevent default Electron zoom shortcuts and let preload handle them via IPC
     mainWindow.webContents.on('before-input-event', (event, input) => {
-        if ((input.control || input.meta) &&
+        const isMac = process.platform === 'darwin';
+        const modifierKey = isMac ? input.alt : (input.control || input.meta);
+
+        if (modifierKey &&
             (input.key === '+' || input.key === '=' || input.key === '-' || input.key === '0')) {
             // Don't prevent - let it bubble to renderer's keydown listener
         }
@@ -109,7 +121,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('Hearing Agent - CTRL+Space to record');
+    tray.setToolTip('Bluetooth');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {
@@ -140,8 +152,12 @@ const INPUT_MODES = ['system', 'microphone'];
 let currentInputMode = 'system';
 
 function registerGlobalShortcut() {
-    // CTRL+Space - Start/Stop recording
-    const recRet = globalShortcut.register('CommandOrControl+Space', () => {
+    const isMac = process.platform === 'darwin';
+    // macOS: Option+Space, Others: CTRL+Space
+    const shortcutKey = isMac ? 'Alt+Space' : 'CommandOrControl+Space';
+
+    // Start/Stop recording
+    const recRet = globalShortcut.register(shortcutKey, () => {
         toggleRecordingState();
     });
 
@@ -149,8 +165,11 @@ function registerGlobalShortcut() {
         console.error('Failed to register global shortcut CTRL+Space');
     }
 
-    // CTRL+M - Switch input mode
-    const modeRet = globalShortcut.register('CommandOrControl+M', () => {
+    // Switch input mode
+    // macOS: Option+M, Others: CTRL+M
+    const modeKey = isMac ? 'Alt+M' : 'CommandOrControl+M';
+
+    const modeRet = globalShortcut.register(modeKey, () => {
         // Cycle through input modes
         const currentIndex = INPUT_MODES.indexOf(currentInputMode);
         const nextIndex = (currentIndex + 1) % INPUT_MODES.length;

@@ -1,5 +1,5 @@
 /* ==========================================
-   Hearing Agent - Horizontal Toolbar Style
+   VARS - Horizontal Toolbar Style
    ========================================== */
 
 * {
@@ -117,6 +117,18 @@ html {
   transform: scale(0.95);
 }
 
+/* Button with Icon and Text */
+.icon-text-btn {
+  width: auto;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.icon-text-btn span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* Active/pressed state (for toggleable buttons like settings) */
 .icon-btn.active {
   background: var(--accent);
@@ -129,8 +141,7 @@ html {
 
 /* AI Main Button - with gradient */
 .ai-btn {
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  color: white;
+  /* Inherit standard icon-btn styles by removing custom background/color */
   width: 38px;
   height: 38px;
   border-radius: 12px;
@@ -141,8 +152,9 @@ html {
 }
 
 .ai-btn:hover {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  /* Use standard hover background but keep the shadow if desired, or remove it to match others completely? */
+  /* User said "pattern of colors should be the same", so standard hover is safer. */
+  transform: translateY(-1px);
 }
 
 .ai-btn.recording {
@@ -428,6 +440,46 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 500;
+}
+
+.help-link {
+  font-size: 10px;
+  color: var(--accent-light);
+  text-decoration: none;
+  margin-left: 8px;
+  text-transform: none;
+  font-weight: normal;
+  display: inline-block;
+}
+
+.help-link:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+/* Settings Footer */
+.settings-footer {
+  padding: 12px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.settings-footer p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.footer-link {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+  color: var(--accent);
 }
 
 .form-group input,

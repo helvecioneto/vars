@@ -1,4 +1,4 @@
-# Hearing Agent
+# VARS (Virtual Agent for Real-time Support)
 
 AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing.
 

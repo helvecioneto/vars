@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-  <title>Hearing Agent</title>
+  <title>VARS</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -21,7 +21,8 @@
           <span class="icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+              <path
+                d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z M20 16L21 19L24 20L21 21L20 24L19 21L16 20L19 19L20 16Z">
               </path>
             </svg>
           </span>
@@ -109,7 +110,7 @@
         <!-- API Section -->
         <div class="settings-section">
           <div class="form-group">
-            <label>API Key</label>
+            <label>API Key <a href="#" id="api-key-help" class="help-link">💡: Get API Key from OpenAI</a></label>
             <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
           </div>
           <div class="form-group">
@@ -139,8 +140,7 @@
           <div class="form-group checkbox-group"
             style="flex-direction: row; align-items: center; gap: 10px; margin-top: 5px;">
             <input type="checkbox" id="brief-mode" style="width: auto;">
-            <label for="brief-mode" style="margin-bottom: 0; cursor: pointer;">Respostas Curtas e Diretas (Brief
-              Mode)</label>
+            <label for="brief-mode" style="margin-bottom: 0; cursor: pointer;">Brief Mode (Short Answers)</label>
           </div>
         </div>
 
@@ -152,15 +152,38 @@
             <p class="placeholder">No files added</p>
           </div>
           <input type="file" id="file-input" multiple accept=".pdf,.txt,.docx,.md" style="display: none;">
-          <button id="add-file-btn" class="secondary-btn">+ Add Files</button>
-
-          <div class="kb-actions" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="train-btn" class="primary-btn" style="flex: 1; background-color: var(--success);">
-              ⚡ Extract/Train Base
+          <div class="kb-toolbar" style="display: flex; gap: 8px; margin-top: 10px;">
+            <button id="add-file-btn" class="icon-btn icon-text-btn" title="Add Files to Knowledge Base">
+              <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="11" x2="12" y2="17"></line>
+                  <line x1="9" y1="14" x2="15" y2="14"></line>
+                </svg>
+              </span>
+              <span>Add Files</span>
             </button>
-            <button id="reset-kb-btn" class="secondary-btn"
-              style="flex: 1; border-color: var(--error); color: var(--error);">
-              🗑️ Clear Base
+
+            <button id="train-btn" class="icon-btn icon-text-btn" title="Extract/Train Knowledge Base">
+              <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </span>
+              <span>Fit</span>
+            </button>
+            <button id="reset-kb-btn" class="icon-btn icon-text-btn" title="Clear Knowledge Base">
+              <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </span>
+              <span>Clear</span>
             </button>
           </div>
           <p id="kb-status" style="font-size: 0.8em; margin-top: 5px; opacity: 0.7; min-height: 1.2em;"></p>
@@ -181,6 +204,11 @@
             <option value="default">Default Speaker</option>
           </select>
         </div>
+      </div>
+
+      <!-- Settings Footer -->
+      <div class="settings-footer">
+        <p>Developed by Helvecio Neto | <a href="#" id="github-link" class="footer-link">GitHub</a></p>
       </div>
     </div>
   </div>

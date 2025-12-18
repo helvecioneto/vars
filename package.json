@@ -1,11 +1,35 @@
 {
-  "name": "hearing-agent",
+  "name": "vars",
   "version": "1.0.0",
-  "description": "AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing",
+  "description": "VARS (Virtual Agent for Real-time Support) - AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.vars.app",
+    "productName": "VARS",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
   },
   "keywords": [
     "electron",
@@ -17,7 +41,8 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
   },
   "dependencies": {
     "openai": "^4.52.0",
