@@ -19,7 +19,7 @@ Thumbs.db
 .idea/
 
 # Package lock
-package-lock.json
+
 
 # Config (contains API key)
 # Note: The actual config is stored in ~/.hearing-agent/
