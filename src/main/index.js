@@ -95,13 +95,21 @@ function createTray() {
         icon = nativeImage.createFromPath(iconPath);
         if (icon.isEmpty()) {
             // Create a simple colored icon if file doesn't exist
-            icon = nativeImage.createEmpty();
+            icon = createDefaultIcon();
+        } else {
+            // Resize to 16x16 for tray (macOS standard)
+            icon = icon.resize({ width: 16, height: 16 });
+
+            // Enable template mode for macOS (adapts to light/dark mode)
+            if (process.platform === 'darwin') {
+                icon.setTemplateImage(true);
+            }
         }
     } catch (e) {
-        icon = nativeImage.createEmpty();
+        icon = createDefaultIcon();
     }
 
-    tray = new Tray(icon.isEmpty() ? createDefaultIcon() : icon);
+    tray = new Tray(icon);
 
     const contextMenu = Menu.buildFromTemplate([
         {
@@ -121,7 +129,7 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('Bluetooth');
+    tray.setToolTip('VARS');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {

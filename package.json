@@ -19,15 +19,15 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "assets/icon.png"
+      "icon": "src/assets/icon.png"
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.png"
+      "icon": "src/assets/icon.png"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icon.png",
+      "icon": "src/assets/icon.png",
       "category": "Utility"
     }
   },
