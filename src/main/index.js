@@ -459,16 +459,20 @@ function setupIPC() {
 // App lifecycle
 app.whenReady().then(async () => {
     // Set up permission handler to automatically grant media access
-    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        const allowedPermissions = ['media', 'audioCapture', 'microphone'];
-        if (allowedPermissions.includes(permission)) {
-            console.log(`Granting permission: ${permission}`);
-            callback(true);
-        } else {
-            console.log(`Permission requested: ${permission}`);
-            callback(true); // Grant all permissions for simplicity
-        }
-    });
+    // Note: On macOS, we let the system handle permissions natively using entitlements
+    // to avoid conflicts with the native permission dialogs
+    if (process.platform !== 'darwin') {
+        session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+            const allowedPermissions = ['media', 'audioCapture', 'microphone'];
+            if (allowedPermissions.includes(permission)) {
+                console.log(`Granting permission: ${permission}`);
+                callback(true);
+            } else {
+                console.log(`Permission requested: ${permission}`);
+                callback(true); // Grant all permissions for simplicity
+            }
+        });
+    }
 
     // Load config
     config = await loadConfig();
