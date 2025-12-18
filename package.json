@@ -19,7 +19,15 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "src/assets/icon.png"
+      "icon": "src/assets/icon.png",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "VARS needs access to your microphone to transcribe audio and provide AI assistance.",
+        "NSCameraUsageDescription": "VARS does not use the camera."
+      }
     },
     "win": {
       "target": "nsis",
