@@ -16,8 +16,8 @@
         ]
     },
     "assistant": {
-        "default": "text-embedding-3-small",
-        "description": "Model for Assistants API (requires tool support)"
+        "default": "gpt-4o-mini",
+        "description": "Model for Assistants API (requires tool support like file_search)"
     },
     "realtime": {
         "transcription": "gpt-4o-transcribe",
