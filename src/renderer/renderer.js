@@ -506,13 +506,8 @@ async function startRecording() {
     }
 
     try {
-        // Request microphone access from system (important for macOS)
-        const hasAccess = await window.electronAPI.requestMicrophoneAccess();
-        if (!hasAccess) {
-            updateStatus('Microphone access denied', 'error');
-            showResponse('Please grant microphone access in System Preferences → Security & Privacy → Privacy → Microphone');
-            return;
-        }
+        // Permission is now requested at app startup, so we just check if it was granted
+        // No need to call requestMicrophoneAccess again as it may trigger duplicate prompts
 
         // Get device ID from config
         const deviceId = config.inputDeviceId !== 'default' ? config.inputDeviceId : undefined;
