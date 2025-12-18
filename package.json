@@ -33,7 +33,6 @@
       "scripts": "build/pkg-scripts",
       "installLocation": "/Applications",
       "allowAnywhere": true,
-      "allowCTIPreset": true,
       "isRelocatable": false
     },
     "win": {
