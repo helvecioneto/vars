@@ -1,6 +1,6 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
 const path = require('path');
-const { loadConfig, saveConfig, getDefaultConfig } = require('./config');
+const { loadConfig, saveConfig, getDefaultConfig, getModels } = require('./config');
 const {
     transcribeAudio,
     getSmartAIResponse,
@@ -235,6 +235,11 @@ function setupIPC() {
         config = { ...config, ...newConfig };
         await saveConfig(config);
         return config;
+    });
+
+    // Get models configuration
+    ipcMain.handle('get-models', async () => {
+        return getModels();
     });
 
     // Transcribe audio

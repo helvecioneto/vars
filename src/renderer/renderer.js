@@ -38,6 +38,7 @@ const elements = {
     statusBar: document.getElementById('status-bar'),
     statusDot: document.getElementById('status-dot'),
     statusText: document.getElementById('status-text'),
+    statusModel: document.getElementById('status-model'),
 
     // Content sections
     transcriptionSection: document.getElementById('transcription-section'),
@@ -59,7 +60,6 @@ const elements = {
     systemPromptInput: document.getElementById('system-prompt'),
     fileList: document.getElementById('file-list'),
     inputDeviceSelect: document.getElementById('input-device'),
-    outputDeviceSelect: document.getElementById('output-device'),
     trainBtn: document.getElementById('train-btn'),
     resetKbBtn: document.getElementById('reset-kb-btn'),
     kbStatus: document.getElementById('kb-status'),
@@ -104,8 +104,12 @@ async function init() {
     config = await window.electronAPI.getConfig();
     currentInputMode = config.inputMode || 'system';
 
+    // Populate model options from config
+    await populateModelOptions();
+
     applyConfigToUI();
     updateInputModeUI();
+    updateModelDisplay();
     await populateDevices();
 
     // Setup event listeners
@@ -793,6 +797,7 @@ function applyConfigToUI() {
     }
 
     updateFileList();
+    updateModelDisplay();
 }
 
 function updateFileList() {
@@ -939,8 +944,7 @@ function setupAutoSave() {
         elements.modelSelect,
         elements.languageSelect,
         elements.systemPromptInput,
-        elements.inputDeviceSelect,
-        elements.outputDeviceSelect
+        elements.inputDeviceSelect
     ];
 
     inputs.forEach(input => {
@@ -964,15 +968,13 @@ async function autoSaveConfig() {
     config.language = elements.languageSelect?.value || 'en';
     config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
-    config.outputDeviceId = elements.outputDeviceSelect?.value || 'default';
-    config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
-    config.outputDeviceId = elements.outputDeviceSelect?.value || 'default';
     config.inputMode = currentInputMode;
     // conversationHistory is already in config, preserved automatically
 
 
     try {
         await window.electronAPI.saveConfig(config);
+        updateModelDisplay();
         console.log('Settings auto-saved');
     } catch (error) {
         console.error('Failed to auto-save settings:', error);
@@ -1061,7 +1063,6 @@ async function populateDevices() {
         const devices = await navigator.mediaDevices.enumerateDevices();
 
         const audioInputs = devices.filter(d => d.kind === 'audioinput');
-        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
 
         // Populate input devices
         if (elements.inputDeviceSelect) {
@@ -1078,23 +1079,54 @@ async function populateDevices() {
             }
         }
 
-        // Populate output devices
-        if (elements.outputDeviceSelect) {
-            elements.outputDeviceSelect.innerHTML = '<option value="default">Default</option>';
-            audioOutputs.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.textContent = device.label || `Speaker ${device.deviceId.slice(0, 8)}`;
-                elements.outputDeviceSelect.appendChild(option);
-            });
-
-            if (config.outputDeviceId) {
-                elements.outputDeviceSelect.value = config.outputDeviceId;
-            }
-        }
-
     } catch (error) {
         console.error('Failed to enumerate devices:', error);
+    }
+}
+
+// ==========================================
+// Model Selection
+// ==========================================
+
+// Model labels for UI display
+const MODEL_LABELS = {
+    'gpt-4o-mini': 'GPT-4o Mini (Fast)',
+    'gpt-4o': 'GPT-4o (Balanced)',
+    'gpt-4-turbo': 'GPT-4 Turbo (Best)',
+    'gpt-3.5-turbo': 'GPT-3.5 Turbo (Legacy)'
+};
+
+async function populateModelOptions() {
+    try {
+        // Get models configuration from main process
+        const modelsConfig = await window.electronAPI.getModels();
+
+        if (elements.modelSelect && modelsConfig?.chat?.options) {
+            elements.modelSelect.innerHTML = '';
+            modelsConfig.chat.options.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = MODEL_LABELS[model] || model;
+                elements.modelSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load models configuration:', error);
+        // Fallback to default options
+        if (elements.modelSelect) {
+            elements.modelSelect.innerHTML = `
+                <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                <option value="gpt-4o">GPT-4o (Balanced)</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo (Best)</option>
+            `;
+        }
+    }
+}
+
+function updateModelDisplay() {
+    const currentModel = config.model || 'gpt-4o-mini';
+    if (elements.statusModel) {
+        elements.statusModel.textContent = currentModel;
     }
 }
 

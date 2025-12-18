@@ -1,0 +1,26 @@
+{
+    "chat": {
+        "default": "gpt-4o-mini",
+        "options": [
+            "gpt-4o-mini",
+            "gpt-4o",
+            "gpt-4-turbo",
+            "gpt-3.5-turbo"
+        ]
+    },
+    "transcription": {
+        "default": "gpt-4o-mini-transcribe",
+        "options": [
+            "gpt-4o-mini-transcribe",
+            "whisper-1"
+        ]
+    },
+    "assistant": {
+        "default": "gpt-4o",
+        "description": "Model for Assistants API (requires tool support)"
+    },
+    "realtime": {
+        "transcription": "gpt-4o-transcribe",
+        "description": "Model for Realtime API transcription sessions"
+    }
+}

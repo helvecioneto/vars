@@ -89,6 +89,7 @@
       <div class="status-bar" id="status-bar">
         <span class="status-dot" id="status-dot"></span>
         <span class="status-text" id="status-text">Ready</span>
+        <span class="status-model" id="status-model">gpt-4o-mini</span>
       </div>
 
       <!-- Transcription -->
@@ -116,9 +117,7 @@
           <div class="form-group">
             <label>Model</label>
             <select id="model-select">
-              <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
-              <option value="gpt-4o">GPT-4o (Balanced)</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo (Best)</option>
+              <!-- Options populated dynamically from models.json -->
             </select>
           </div>
           <div class="form-group">
@@ -193,15 +192,9 @@
       <!-- Audio Section -->
       <div class="settings-section">
         <div class="form-group">
-          <label>Input Device</label>
+          <label>Audio Input Source</label>
           <select id="input-device">
             <option value="default">Default Microphone</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Output Device</label>
-          <select id="output-device">
-            <option value="default">Default Speaker</option>
           </select>
         </div>
       </div>

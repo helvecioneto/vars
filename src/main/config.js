@@ -2,24 +2,51 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
+// Load centralized configuration files
+const models = require('../config/models.json');
+const prompts = require('../config/prompts.json');
+
 const CONFIG_DIR = path.join(os.homedir(), '.vars');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
+// Helper functions to access models and prompts
+function getModels() {
+    return models;
+}
+
+function getPrompts() {
+    return prompts;
+}
+
+function getPromptForLanguage(promptPath, language = 'en') {
+    // Navigate the prompt path (e.g., 'defaults.systemPrompt')
+    const parts = promptPath.split('.');
+    let current = prompts;
+    for (const part of parts) {
+        if (current[part] === undefined) {
+            console.warn(`Prompt path not found: ${promptPath}`);
+            return '';
+        }
+        current = current[part];
+    }
+    // Return the language-specific prompt, fallback to English
+    return current[language] || current['en'] || '';
+}
+
 function getDefaultConfig() {
+    const defaultLanguage = 'en';
     return {
         apiKey: '',
-        model: 'gpt-4o-mini',
-        whisperModel: 'gpt-4o-mini-transcribe',
-        systemPrompt: 'You are a helpful assistant that answers questions based on the provided knowledge base. Be concise and direct in your answers. If the question is not related to the knowledge base, answer based on your general knowledge but mention that.',
+        model: models.chat.default,
+        whisperModel: models.transcription.default,
+        systemPrompt: getPromptForLanguage('defaults.systemPrompt', defaultLanguage),
         knowledgeBasePaths: [],
         // Language for AI responses: 'en', 'es', 'pt-br'
-        language: 'en',
+        language: defaultLanguage,
         // Input mode: 'system', 'microphone', or 'keyboard'
         inputMode: 'system',
-        // Device settings
+        // Audio input source
         inputDeviceId: 'default',
-        inputDeviceId: 'default',
-        outputDeviceId: 'default',
         conversationHistory: [], // Array of { role, content } pairs
         // Assistants API settings
         assistantId: null,
@@ -58,6 +85,9 @@ module.exports = {
     loadConfig,
     saveConfig,
     getDefaultConfig,
+    getModels,
+    getPrompts,
+    getPromptForLanguage,
     CONFIG_DIR,
     CONFIG_FILE
 };

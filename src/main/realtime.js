@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const { getModels, getPrompts } = require('./config');
 
 class RealtimeTranscription {
     constructor(apiKey) {
@@ -12,8 +13,11 @@ class RealtimeTranscription {
 
     async connect() {
         return new Promise((resolve, reject) => {
-            // Use gpt-4o-transcribe for transcription-only sessions
-            const url = 'wss://api.openai.com/v1/realtime?model=gpt-4o-transcribe';
+            const models = getModels();
+            const prompts = getPrompts();
+            // Use model from centralized config
+            const realtimeModel = models.realtime.transcription;
+            const url = `wss://api.openai.com/v1/realtime?model=${realtimeModel}`;
 
             this.ws = new WebSocket(url, {
                 headers: {
@@ -28,6 +32,7 @@ class RealtimeTranscription {
 
                 // Configure TRANSCRIPTION session (different from conversation session!)
                 // Using the correct structure from the documentation
+                const transcriptionLanguage = prompts.realtime.transcriptionLanguage;
                 this.ws.send(JSON.stringify({
                     type: 'session.update',
                     session: {
@@ -39,8 +44,8 @@ class RealtimeTranscription {
                                     rate: 24000
                                 },
                                 transcription: {
-                                    model: 'gpt-4o-transcribe',
-                                    language: 'pt'
+                                    model: realtimeModel,
+                                    language: transcriptionLanguage
                                 },
                                 turn_detection: {
                                     type: 'server_vad',

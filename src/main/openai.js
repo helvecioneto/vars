@@ -3,6 +3,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const os = require('os');
+const { getModels, getPrompts, getPromptForLanguage } = require('./config');
 
 // Helper to get initialized client
 function getClient(apiKey) {
@@ -61,10 +62,12 @@ async function initializeAssistant(apiKey, currentAssistantId) {
     }
 
     // Create new assistant if needed
+    const prompts = getPrompts();
+    const models = getModels();
     assistant = await openai.beta.assistants.create({
-        name: "VARS Knowledge Base",
-        instructions: "You are a helpful assistant. Use the provided knowledge base to answer questions. If the answer is not in the knowledge base, state that you don't have that information but try to answer with your general knowledge if appropriate.",
-        model: "gpt-4o", // Must be a model that supports tools
+        name: prompts.assistant.name,
+        instructions: prompts.assistant.instructions['en'], // Default to English for assistant creation
+        model: models.assistant.default, // Must be a model that supports tools
         tools: [{ type: "file_search" }]
     });
 
@@ -171,7 +174,7 @@ async function resetKnowledgeBase(apiKey, vectorStoreId) {
 // Assistants API Response (Thread/Run)
 // ==========================================
 
-async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, model, systemPrompt, filePaths = [], briefMode = false) {
+async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, model, systemPrompt, filePaths = [], briefMode = false, language = 'en') {
     const openai = getClient(apiKey);
     let thread;
 
@@ -218,11 +221,13 @@ async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, 
         ? filePaths.map(p => path.basename(p)).join(', ')
         : "No specific files listed.";
 
-    let baseInstruction = `You have access to a Knowledge Base containing the following files: [${fileList}].\n\nYou MUST search these files to answer the user's request. If the answer is found in the files, use it. If not, explicitly state that it's not in the knowledge base before answering with general knowledge.`;
+    // Get localized prompts from configuration
+    let baseInstruction = getPromptForLanguage('knowledgeBase.baseInstruction', language)
+        .replace('{fileList}', fileList);
 
     // BRIEF MODE ENFORCEMENT
     if (briefMode) {
-        baseInstruction += "\n\nCRITICAL INSTRUCTION: KEEP RESPONSE EXTREMELY SHORT AND DIRECT. MAXIMUM 2-3 SENTENCES. NO FLUFF. NO 'I found this in the file'. JUST THE FACT.";
+        baseInstruction += getPromptForLanguage('knowledgeBase.briefMode', language);
     }
 
     if (systemPrompt) {
@@ -281,12 +286,8 @@ async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, 
 async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = []) {
     const openai = getClient(apiKey);
 
-    const languageNames = {
-        'pt-br': 'Brazilian Portuguese',
-        'en': 'English',
-        'es': 'Spanish'
-    };
-    const langInstructions = `\n\nIMPORTANT: Respond in ${languageNames[language] || 'English'}.`;
+    // Get language instruction from configuration
+    const langInstructions = getPromptForLanguage('language.responseInstruction', language);
 
     const messages = [
         {
@@ -323,7 +324,7 @@ async function getSmartAIResponse({
 
     if (assistantId && vectorStoreId) {
         console.log('[DEBUG] Using Assistant API');
-        return await getAssistantResponse(apiKey, assistantId, threadId, transcription, model, systemPrompt, knowledgeBasePaths, briefMode);
+        return await getAssistantResponse(apiKey, assistantId, threadId, transcription, model, systemPrompt, knowledgeBasePaths, briefMode, language);
     } else {
         console.log('[DEBUG] Using Chat Completion API');
         // Fallback to standard chat completion
