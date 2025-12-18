@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Build Windows
-        run: npm run build:win
+        run: npm run build:win -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -65,7 +65,7 @@ jobs:
         run: npm ci
 
       - name: Build Linux
-        run: npm run build:linux
+        run: npm run build:linux -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,7 +95,7 @@ jobs:
         run: npm ci
 
       - name: Build macOS ARM64
-        run: npx electron-builder --mac --arm64
+        run: npx electron-builder --mac --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Optional: Apple notarization (requires secrets)
@@ -139,7 +139,7 @@ jobs:
         run: npm ci
 
       - name: Build macOS x64
-        run: npx electron-builder --mac --x64
+        run: npx electron-builder --mac --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Optional: Apple notarization (requires secrets)
