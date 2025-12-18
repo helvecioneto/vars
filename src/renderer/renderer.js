@@ -1053,9 +1053,8 @@ function updateInputModeUI() {
 
 async function populateDevices() {
     try {
-        // Request permission first
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-
+        // Note: Modern browsers allow enumerateDevices() without prior getUserMedia
+        // Permission will be requested when actually starting recording
         const devices = await navigator.mediaDevices.enumerateDevices();
 
         const audioInputs = devices.filter(d => d.kind === 'audioinput');
