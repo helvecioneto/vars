@@ -462,88 +462,43 @@ function setupIPC() {
 
 // App lifecycle
 app.whenReady().then(async () => {
-    // PERMISSION HANDLING
-    // Permission is requested ONCE when user starts recording (via getUserMedia)
-    // These handlers manage the flow to ensure only one dialog appears
+    // Microphone permission handling
+    // - macOS: Requires explicit user consent via system dialog
+    // - Windows/Linux: No special permissions needed, getUserMedia just works
 
-    // Permission check handler - allows check, returns cached or queries system
-    session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
-        const mediaPermissions = ['media', 'audioCapture', 'microphone'];
-        if (mediaPermissions.includes(permission)) {
-            // If already cached as granted, return true
-            if (microphonePermissionGranted) {
+    const checkMicPermission = () => {
+        if (microphonePermissionGranted) return true;
+        if (process.platform === 'darwin') {
+            const status = systemPreferences.getMediaAccessStatus('microphone');
+            if (status === 'granted') {
+                microphonePermissionGranted = true;
                 return true;
             }
-            // Check system status - maybe user granted it via system preferences
-            if (process.platform === 'darwin') {
-                const status = systemPreferences.getMediaAccessStatus('microphone');
-                if (status === 'granted') {
-                    microphonePermissionGranted = true;
-                    return true;
-                }
-            }
-            // Return true to allow the request to proceed (dialog will appear)
-            return true;
+            return status;
+        }
+        // Windows/Linux: Always grant
+        microphonePermissionGranted = true;
+        return true;
+    };
+
+    // Permission handlers for getUserMedia
+    session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+        if (['media', 'audioCapture', 'microphone'].includes(permission)) {
+            checkMicPermission();
         }
         return true;
     });
 
-    // Permission request handler - grants and updates cache after success
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        const mediaPermissions = ['media', 'audioCapture', 'microphone'];
-        if (mediaPermissions.includes(permission)) {
-            // If already cached as granted, return immediately
-            if (microphonePermissionGranted) {
-                console.log(`Permission ${permission}: granted (cached)`);
-                callback(true);
-                return;
-            }
-
-            // On macOS, check current system status
-            if (process.platform === 'darwin') {
-                const status = systemPreferences.getMediaAccessStatus('microphone');
-                console.log(`Permission ${permission}: system status = ${status}`);
-
-                if (status === 'granted') {
-                    microphonePermissionGranted = true;
-                    callback(true);
-                    return;
-                } else if (status === 'denied' || status === 'restricted') {
-                    callback(false);
-                    return;
-                }
-                // For 'not-determined', grant permission - this allows the native dialog to appear
-                // After user clicks Allow, the next check will see 'granted'
-                console.log(`Permission ${permission}: granting to trigger native dialog`);
-                callback(true);
-                return;
-            }
-
-            // Non-macOS: grant by default
-            microphonePermissionGranted = true;
-            callback(true);
+        if (['media', 'audioCapture', 'microphone'].includes(permission)) {
+            const result = checkMicPermission();
+            callback(result !== 'denied' && result !== 'restricted');
         } else {
             callback(true);
         }
     });
 
-    // Check microphone permission status at startup (macOS only)
-    // We DON'T request permission here - let getUserMedia trigger the dialog once
-    // This way we only get ONE permission dialog when user actually starts recording
-    if (process.platform === 'darwin') {
-        const status = systemPreferences.getMediaAccessStatus('microphone');
-        console.log('Initial microphone permission status:', status);
-
-        if (status === 'granted') {
-            microphonePermissionGranted = true;
-            console.log('Microphone permission already granted');
-        } else {
-            console.log('Microphone permission will be requested when recording starts');
-            // microphonePermissionGranted stays false - will be updated when getUserMedia succeeds
-        }
-    } else {
-        microphonePermissionGranted = true;
-    }
+    checkMicPermission();
 
     // Load config
     config = await loadConfig();

@@ -21,10 +21,14 @@ fi
 
 if [ "$PLATFORM" == "mac" ] || [ "$PLATFORM" == "all" ]; then
     echo "-----------------------------------"
-    echo "Starting macOS Build (Universal)..."
+    echo "Starting macOS Build (ARM64 + x64)..."
     echo "-----------------------------------"
-    # Builds for both Apple Silicon (arm64) and Intel (x64)
-    npx electron-builder --mac --universal
+    # Build separate binaries for ARM64 (Apple Silicon) and x64 (Intel)
+    # Note: Using separate builds instead of universal to avoid TCC permission issues
+    echo "Building for Apple Silicon (arm64)..."
+    npx electron-builder --mac --arm64
+    echo "Building for Intel (x64)..."
+    npx electron-builder --mac --x64
 fi
 
 if [ "$PLATFORM" == "linux" ] || [ "$PLATFORM" == "all" ]; then
