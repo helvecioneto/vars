@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Configuration
     getConfig: () => ipcRenderer.invoke('get-config'),
     saveConfig: (config) => ipcRenderer.invoke('save-config', config),
+    requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),
 
     // Zoom controls
     zoomIn: () => setZoom(currentZoomFactor + ZOOM_STEP),

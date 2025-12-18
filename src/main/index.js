@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, session } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
 const path = require('path');
 const { loadConfig, saveConfig, getDefaultConfig } = require('./config');
 const {
@@ -224,6 +224,23 @@ function setupIPC() {
     // Get configuration
     ipcMain.handle('get-config', async () => {
         return config;
+    });
+
+    // Request microphone access (macOS)
+    ipcMain.handle('request-microphone-access', async () => {
+        if (process.platform === 'darwin') {
+            const status = systemPreferences.getMediaAccessStatus('microphone');
+            console.log('Current microphone status:', status);
+
+            if (status === 'not-determined') {
+                const granted = await systemPreferences.askForMediaAccess('microphone');
+                console.log('Microphone permission granted:', granted);
+                return granted;
+            }
+            return status === 'granted';
+        }
+        // On other platforms, assume granted
+        return true;
     });
 
     // Save configuration
