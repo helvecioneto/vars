@@ -95,7 +95,15 @@ jobs:
         run: npm ci
 
       - name: Build macOS ARM64
-        run: npx electron-builder --mac --arm64 --publish never
+        run: |
+          # Pre-download Electron binary to avoid timeouts
+          ELECTRON_VERSION=$(node -p "require('electron/package.json').version")
+          echo "Pre-downloading Electron v$ELECTRON_VERSION for arm64..."
+          mkdir -p ~/Library/Caches/electron
+          cd ~/Library/Caches/electron
+          curl -L -O --retry 5 --retry-delay 10 https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-darwin-arm64.zip
+          cd -
+          npx electron-builder --mac --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Optional: Apple notarization (requires secrets)
@@ -139,7 +147,15 @@ jobs:
         run: npm ci
 
       - name: Build macOS x64
-        run: npx electron-builder --mac --x64 --publish never
+        run: |
+          # Pre-download Electron binary to avoid timeouts
+          ELECTRON_VERSION=$(node -p "require('electron/package.json').version")
+          echo "Pre-downloading Electron v$ELECTRON_VERSION for x64..."
+          mkdir -p ~/Library/Caches/electron
+          cd ~/Library/Caches/electron
+          curl -L -O --retry 5 --retry-delay 10 https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-darwin-x64.zip
+          cd -
+          npx electron-builder --mac --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Optional: Apple notarization (requires secrets)
