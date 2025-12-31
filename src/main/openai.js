@@ -352,10 +352,6 @@ async function getSmartAIResponse({
     }
 }
 
-// Kept for compatibility but now unused internally for main flow
-async function loadKnowledgeBase(filePaths) {
-    return '';
-}
 
 module.exports = {
     transcribeAudio,
@@ -363,7 +359,5 @@ module.exports = {
     initializeAssistant,
     createKnowledgeBase,
     updateAssistantVectorStore,
-    resetKnowledgeBase,
-    loadKnowledgeBase
+    resetKnowledgeBase
 };
-

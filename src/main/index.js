@@ -1,17 +1,7 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
 const path = require('path');
-const { loadConfig, saveConfig, getDefaultConfig, getModels, getTierConfig, getModelForTier } = require('./config');
-const {
-    transcribeAudio,
-    getSmartAIResponse,
-    initializeAssistant,
-    createKnowledgeBase,
-    updateAssistantVectorStore,
-    resetKnowledgeBase
-} = require('./openai');
-const { transcribeAudioGoogle, getGoogleAIResponse } = require('./google');
-const { RealtimeTranscription } = require('./realtime');
-const { GeminiRealtimeTranscription } = require('./google-realtime');
+const { loadConfig, saveConfig } = require('./config');
+const { setupIPCHandlers } = require('./ipc-handlers');
 
 
 // Set App Name explicitly for dev mode
@@ -24,7 +14,6 @@ let mainWindow = null;
 let tray = null;
 let isRecording = false;
 let config = null;
-let realtimeClient = null; // Realtime transcription instance
 let microphonePermissionGranted = false; // Cache permission state to prevent loops
 
 function createWindow() {
@@ -218,308 +207,6 @@ function toggleRecordingState() {
     }
 }
 
-// IPC Handlers
-function setupIPC() {
-    // Toggle recording from renderer
-    ipcMain.on('toggle-recording', () => {
-        toggleRecordingState();
-    });
-    // Get configuration
-    ipcMain.handle('get-config', async () => {
-        return config;
-    });
-
-    // NOTE: 'request-microphone-access' handler removed - permission is now managed
-    // entirely at app startup via systemPreferences.askForMediaAccess()
-
-    // Save configuration
-    ipcMain.handle('save-config', async (event, newConfig) => {
-        config = { ...config, ...newConfig };
-        await saveConfig(config);
-        return config;
-    });
-
-    // Get models configuration
-    ipcMain.handle('get-models', async () => {
-        return getModels();
-    });
-
-    // Transcribe audio
-    ipcMain.handle('transcribe-audio', async (event, audioBuffer) => {
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
-
-        if (!apiKey) {
-            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
-        }
-
-        try {
-            // Get transcription model from tier config
-            const tier = config.tier || 'balanced';
-            const transcribeModel = getModelForTier(provider, tier, 'transcribe');
-
-            let transcription;
-            if (provider === 'google') {
-                transcription = await transcribeAudioGoogle(audioBuffer, apiKey, transcribeModel);
-            } else {
-                transcription = await transcribeAudio(audioBuffer, apiKey, transcribeModel);
-            }
-
-            return { text: transcription };
-        } catch (error) {
-            return { error: error.message };
-        }
-    });
-
-    // Get AI response
-    ipcMain.handle('get-ai-response', async (event, transcription) => {
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
-
-        if (!apiKey) {
-            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
-        }
-
-        try {
-            // Get model and config from tier
-            const tier = config.tier || 'balanced';
-            const analyzeModel = getModelForTier(provider, tier, 'analyze');
-            const tierConfig = getTierConfig(provider, tier);
-
-            let result;
-
-            if (provider === 'google') {
-                // Use Google Gemini
-                result = await getGoogleAIResponse({
-                    transcription,
-                    params: {
-                        apiKey: apiKey,
-                        model: analyzeModel,
-                        systemPrompt: config.systemPrompt,
-                        language: config.language || 'en',
-                        history: config.conversationHistory || [],
-                        tierConfig: tierConfig
-                    }
-                });
-            } else {
-                // Use OpenAI
-                result = await getSmartAIResponse({
-                    transcription,
-                    params: {
-                        apiKey: apiKey,
-                        model: analyzeModel,
-                        systemPrompt: config.systemPrompt,
-                        language: config.language || 'en',
-                        history: config.conversationHistory || [],
-                        assistantId: config.assistantId,
-                        vectorStoreId: config.vectorStoreId,
-                        threadId: config.threadId,
-                        knowledgeBasePaths: config.knowledgeBasePaths || [],
-                        briefMode: config.briefMode || false,
-                        tierConfig: tierConfig
-                    }
-                });
-
-                // If a threadId was returned (Assistant used), save it
-                if (result.threadId && result.threadId !== config.threadId) {
-                    config.threadId = result.threadId;
-                    saveConfig(config); // Save asynchronously
-                }
-            }
-
-            return { response: result.response };
-        } catch (error) {
-            console.error('AI Response Error:', error);
-            return { error: error.message };
-        }
-    });
-
-    // Knowledge Base Management
-    ipcMain.handle('knowledge-base:create', async () => {
-        if (!config.apiKey) return { error: 'API key not configured' };
-        if (!config.knowledgeBasePaths || config.knowledgeBasePaths.length === 0) {
-            return { error: 'No files to process' };
-        }
-
-        try {
-            // 1. Ensure Assistant
-            const assistant = await initializeAssistant(config.apiKey, config.assistantId);
-            config.assistantId = assistant.id;
-
-            // 2. Create/Update Vector Store and Upload Files
-            const vectorStoreId = await createKnowledgeBase(
-                config.apiKey,
-                config.knowledgeBasePaths,
-                config.vectorStoreId
-            );
-            config.vectorStoreId = vectorStoreId;
-
-            // 3. Link Vector Store to Assistant
-            await updateAssistantVectorStore(config.apiKey, config.assistantId, vectorStoreId);
-
-            // Save updated IDs
-            await saveConfig(config);
-
-            return { success: true, count: config.knowledgeBasePaths.length };
-        } catch (error) {
-            console.error('KB Create Error:', error);
-            return { error: error.message };
-        }
-    });
-
-    ipcMain.handle('knowledge-base:reset', async () => {
-        if (!config.apiKey) return { error: 'API key not configured' };
-
-        try {
-            await resetKnowledgeBase(config.apiKey, config.vectorStoreId);
-            config.vectorStoreId = null;
-            config.threadId = null; // Reset thread when KB is reset? Maybe optionally.
-            await saveConfig(config);
-            return { success: true };
-        } catch (error) {
-            console.error('KB Reset Error:', error);
-            return { error: error.message };
-        }
-    });
-
-    // Realtime transcription - Start session
-    ipcMain.handle('realtime-start', async () => {
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
-
-        console.log('[Realtime] Provider from config:', provider);
-        console.log('[Realtime] API Key prefix:', apiKey ? apiKey.substring(0, 10) + '...' : 'NOT SET');
-
-        if (!apiKey) {
-            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
-        }
-
-        try {
-            // Disconnect existing client if any
-            if (realtimeClient) {
-                realtimeClient.disconnect();
-            }
-
-            // Create appropriate realtime client based on provider
-            if (provider === 'google') {
-                console.log('[Realtime] Using Google Gemini Live API');
-                realtimeClient = new GeminiRealtimeTranscription(apiKey);
-            } else {
-                console.log('[Realtime] Using OpenAI Realtime API');
-                realtimeClient = new RealtimeTranscription(apiKey);
-            }
-
-            // Set up transcription callback to send to renderer
-            realtimeClient.onTranscription((text, isFinal) => {
-                if (mainWindow) {
-                    mainWindow.webContents.send('realtime-transcription', { text, isFinal });
-                }
-            });
-
-            realtimeClient.onError((error) => {
-                if (mainWindow) {
-                    mainWindow.webContents.send('realtime-error', { error: error.message });
-                }
-            });
-
-            await realtimeClient.connect();
-            return { success: true, provider };
-        } catch (error) {
-            console.error('Realtime start error:', error);
-            return { error: error.message };
-        }
-    });
-
-    // Realtime transcription - Send audio chunk
-    ipcMain.handle('realtime-audio', async (event, audioBuffer) => {
-        if (!realtimeClient || !realtimeClient.isConnected) {
-            return { error: 'Realtime session not started' };
-        }
-
-        try {
-            const buffer = Buffer.from(audioBuffer);
-            realtimeClient.sendAudio(buffer);
-            return { success: true };
-        } catch (error) {
-            return { error: error.message };
-        }
-    });
-
-    // Realtime transcription - Stop and get final transcript
-    ipcMain.handle('realtime-stop', async () => {
-        if (!realtimeClient) {
-            return { text: '' };
-        }
-
-        try {
-            realtimeClient.commitAudio();
-            const text = realtimeClient.getFullTranscript();
-            realtimeClient.disconnect();
-            realtimeClient = null;
-            return { text };
-        } catch (error) {
-            return { error: error.message };
-        }
-    });
-
-    // Window controls
-    ipcMain.on('minimize-window', () => {
-        if (mainWindow) mainWindow.hide();
-    });
-
-    ipcMain.on('close-window', () => {
-        if (mainWindow) mainWindow.hide();
-    });
-
-    // Context Menu
-    ipcMain.handle('show-context-menu', () => {
-        const menu = Menu.buildFromTemplate([
-            {
-                label: 'Hide',
-                click: () => {
-                    if (mainWindow) mainWindow.hide();
-                }
-            },
-            { type: 'separator' },
-            {
-                label: 'Exit',
-                click: () => {
-                    app.quit();
-                }
-            }
-        ]);
-        if (mainWindow) {
-            menu.popup({ window: mainWindow });
-        }
-    });
-
-    // Dynamic window size - resize to match content
-    let lastResizeTime = 0;
-    const RESIZE_COOLDOWN = 1000; // 1 second cooldown to prevent loops
-
-    ipcMain.on('update-content-bounds', (event, bounds) => {
-        const now = Date.now();
-        if (now - lastResizeTime < RESIZE_COOLDOWN) return;
-
-        if (mainWindow && bounds.width > 0 && bounds.height > 0) {
-            const currentBounds = mainWindow.getBounds();
-            // const newWidth = Math.ceil(bounds.width); // Ignore content width to prevent loops
-            const newHeight = Math.ceil(bounds.height);
-
-            // Only resize if height changed significantly
-            // We ignore width changes to prevent the resize loop bug
-            if (Math.abs(currentBounds.height - newHeight) > 20) {
-                lastResizeTime = now;
-                mainWindow.setSize(currentBounds.width, newHeight);
-            }
-        }
-    });
-
-    ipcMain.on('set-dragging', (event, dragging) => {
-        // Keep for compatibility
-    });
-}
-
 // App lifecycle
 app.whenReady().then(async () => {
     // Microphone permission handling
@@ -566,7 +253,13 @@ app.whenReady().then(async () => {
     createWindow();
     createTray();
     registerGlobalShortcut();
-    setupIPC();
+    // Setup IPC handlers with context
+    setupIPCHandlers({
+        getMainWindow: () => mainWindow,
+        getConfig: () => config,
+        setConfig: (newConfig) => { config = newConfig; },
+        toggleRecording: toggleRecordingState
+    });
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

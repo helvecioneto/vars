@@ -70,8 +70,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
-    setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
-    onZoomShortcut: (callback) => {
-        ipcRenderer.on('zoom-shortcut', (event, key) => callback(key));
-    }
+    setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging)
 });
