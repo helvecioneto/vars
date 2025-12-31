@@ -85,7 +85,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         stopCapture: () => ipcRenderer.invoke('system-audio:stop-capture'),
         getAudio: () => ipcRenderer.invoke('system-audio:get-audio'),
         getAudioFinal: () => ipcRenderer.invoke('system-audio:get-audio-final'),
-        clearBuffer: () => ipcRenderer.invoke('system-audio:clear-buffer'),
         getBufferSize: () => ipcRenderer.invoke('system-audio:get-buffer-size'),
         isCapturing: () => ipcRenderer.invoke('system-audio:is-capturing')
     }

@@ -68,10 +68,6 @@ function setupIPCHandlers(context) {
         const provider = config.provider || 'openai';
         const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
 
-        // Log received audio size for debugging
-        const audioSize = audioBuffer ? (Array.isArray(audioBuffer) ? audioBuffer.length : audioBuffer.byteLength || 0) : 0;
-        console.log('[IPC] transcribe-audio received', audioSize, 'bytes');
-
         if (!apiKey) {
             return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         }
@@ -82,7 +78,6 @@ function setupIPCHandlers(context) {
 
             // Convert to Buffer if it's an array
             const buffer = Array.isArray(audioBuffer) ? Buffer.from(audioBuffer) : audioBuffer;
-            console.log('[IPC] Audio buffer size after conversion:', buffer.length, 'bytes');
 
             let transcription;
             if (provider === 'google') {
@@ -462,7 +457,6 @@ function setupIPCHandlers(context) {
     ipcMain.handle('system-audio:list-devices', async () => {
         try {
             const devices = await systemAudio.listAudioDevices();
-            console.log('[System Audio] Listed devices:', devices.length);
             return { devices };
         } catch (error) {
             console.error('[System Audio] Error listing devices:', error);
@@ -472,8 +466,6 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('system-audio:start-capture', async (event, { deviceName, sampleRate = 16000 }) => {
         try {
-            console.log('[System Audio] Starting capture on device:', deviceName);
-            
             // Start capture - audio is stored in internal buffer
             const success = systemAudio.startCapture(deviceName, sampleRate);
 
@@ -491,7 +483,6 @@ function setupIPCHandlers(context) {
     ipcMain.handle('system-audio:stop-capture', async () => {
         try {
             systemAudio.stopCapture();
-            console.log('[System Audio] Capture stopped');
             return { success: true };
         } catch (error) {
             console.error('[System Audio] Error stopping capture:', error);
@@ -502,12 +493,7 @@ function setupIPCHandlers(context) {
     ipcMain.handle('system-audio:get-audio', async () => {
         try {
             const audioData = systemAudio.getAudioData();
-            if (audioData) {
-                console.log('[System Audio] Returning', audioData.length, 'bytes of WAV data');
-                return { audio: audioData };
-            } else {
-                return { audio: null };
-            }
+            return { audio: audioData };
         } catch (error) {
             console.error('[System Audio] Error getting audio:', error);
             return { error: error.message };
@@ -517,24 +503,9 @@ function setupIPCHandlers(context) {
     ipcMain.handle('system-audio:get-audio-final', async () => {
         try {
             const audioData = systemAudio.getAudioDataAndClear();
-            if (audioData) {
-                console.log('[System Audio] Returning final', audioData.length, 'bytes of WAV data');
-                return { audio: audioData };
-            } else {
-                return { audio: null };
-            }
+            return { audio: audioData };
         } catch (error) {
             console.error('[System Audio] Error getting final audio:', error);
-            return { error: error.message };
-        }
-    });
-
-    ipcMain.handle('system-audio:clear-buffer', async () => {
-        try {
-            systemAudio.clearBuffer();
-            return { success: true };
-        } catch (error) {
-            console.error('[System Audio] Error clearing buffer:', error);
             return { error: error.message };
         }
     });

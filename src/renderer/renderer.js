@@ -573,9 +573,6 @@ let isTranscribing = false;
 let isFinalizing = false; // Flag to prevent intermediate transcriptions during finalization
 let transcriptionInterval = null;
 
-// Store the active system audio stream to reuse
-let activeSystemAudioStream = null;
-
 /**
  * Capture system audio using PulseAudio/PipeWire monitor devices (Linux)
  * or desktopCapturer (Windows/macOS)
@@ -584,7 +581,6 @@ let activeSystemAudioStream = null;
  */
 async function captureSystemAudio(sampleRate) {
     const platform = window.electronAPI.platform;
-    console.log('[SystemAudio] Platform:', platform);
     
     // On Linux, use monitor devices directly
     if (platform === 'linux') {
@@ -601,15 +597,11 @@ async function captureSystemAudio(sampleRate) {
  * Returns a mock stream object with the necessary interface
  */
 async function captureLinuxSystemAudio(sampleRate) {
-    console.log('[SystemAudio] Linux: Starting capture via Main Process...');
-    
     const deviceName = config.systemAudioDeviceId;
     
     if (!deviceName) {
         throw new Error('No audio device configured.\n\nPlease go to Settings > Audio and:\n1. Click the refresh button\n2. Select a device from "System Audio (Monitors)"');
     }
-    
-    console.log('[SystemAudio] Using device:', deviceName);
     
     try {
         // Start capture in Main Process - audio is stored there
@@ -618,8 +610,6 @@ async function captureLinuxSystemAudio(sampleRate) {
         if (result.error) {
             throw new Error(result.error);
         }
-        
-        console.log('[SystemAudio] Capture started successfully');
         
         // Create a mock MediaStream-like object
         const mockStream = {
@@ -634,7 +624,6 @@ async function captureLinuxSystemAudio(sampleRate) {
             getVideoTracks: () => [],
             getTracks: () => mockStream.getAudioTracks(),
             _cleanup: async () => {
-                console.log('[SystemAudio] Cleaning up...');
                 await window.electronAPI.systemAudio.stopCapture();
             }
         };
@@ -651,8 +640,6 @@ async function captureLinuxSystemAudio(sampleRate) {
  * Capture desktop audio on Windows/macOS using desktopCapturer
  */
 async function captureDesktopAudio(sampleRate) {
-    console.log('[SystemAudio] Windows/macOS: Using desktopCapturer...');
-    
     try {
         const sources = await window.electronAPI.getDesktopSources();
         
@@ -666,8 +653,6 @@ async function captureDesktopAudio(sampleRate) {
         if (!screenSource) {
             throw new Error('No screen source available');
         }
-        
-        console.log('[SystemAudio] Using screen source:', screenSource.name);
         
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
@@ -784,8 +769,6 @@ async function startRecording() {
 
         // Handle Linux system audio differently (no MediaRecorder)
         if (stream._isLinuxSystemAudio) {
-            console.log('[SystemAudio] Using Linux PCM capture mode');
-            
             // Store the stream for cleanup and data access
             window._linuxSystemAudioStream = stream;
             
@@ -848,21 +831,18 @@ async function startRecording() {
 async function transcribeLinuxSystemAudio() {
     // Skip if finalizing - let finalizeLinuxSystemAudio handle it
     if (isFinalizing) {
-        console.log('[SystemAudio] Skipping intermediate transcription - finalizing in progress');
         return;
     }
     
     // Check if capture is active
     const capturingResult = await window.electronAPI.systemAudio.isCapturing();
     if (!capturingResult.capturing) {
-        console.log('[SystemAudio] Not capturing, skipping transcription');
         return;
     }
     
     // Check buffer size first
     const sizeResult = await window.electronAPI.systemAudio.getBufferSize();
     if (!sizeResult.size || sizeResult.size < 3200) { // At least 0.1 seconds
-        console.log('[SystemAudio] Not enough audio data yet:', sizeResult.size, 'bytes');
         return;
     }
     
@@ -874,12 +854,9 @@ async function transcribeLinuxSystemAudio() {
         const audioResult = await window.electronAPI.systemAudio.getAudio();
         
         if (!audioResult.audio || audioResult.audio.length === 0) {
-            console.log('[SystemAudio] No audio data available');
             isTranscribing = false;
             return;
         }
-        
-        console.log('[SystemAudio] Got', audioResult.audio.length, 'bytes of WAV data');
         
         // Send to transcription API
         const result = await window.electronAPI.transcribeAudio(audioResult.audio);
@@ -897,64 +874,6 @@ async function transcribeLinuxSystemAudio() {
     } finally {
         isTranscribing = false;
     }
-}
-
-/**
- * Convert raw PCM data to WAV format (kept for compatibility)
- */
-function pcmToWav(pcmData, sampleRate, channels, bitsPerSample) {
-    const bytesPerSample = bitsPerSample / 8;
-    const blockAlign = channels * bytesPerSample;
-    const byteRate = sampleRate * blockAlign;
-    const dataSize = pcmData.length;
-    const headerSize = 44;
-    const totalSize = headerSize + dataSize;
-    
-    const buffer = new ArrayBuffer(totalSize);
-    const view = new DataView(buffer);
-    
-    // RIFF header
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, totalSize - 8, true);
-    writeString(view, 8, 'WAVE');
-    
-    // fmt chunk
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true); // chunk size
-    view.setUint16(20, 1, true); // audio format (PCM)
-    view.setUint16(22, channels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, byteRate, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitsPerSample, true);
-    
-    // data chunk
-    writeString(view, 36, 'data');
-    view.setUint32(40, dataSize, true);
-    
-    // PCM data
-    const output = new Uint8Array(buffer);
-    output.set(pcmData, headerSize);
-    
-    return output;
-}
-
-function writeString(view, offset, string) {
-    for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-    }
-}
-
-
-// Fallback batch transcription (5-second intervals)
-function startBatchTranscription() {
-    if (transcriptionInterval) return; // Already running
-
-    transcriptionInterval = setInterval(async () => {
-        if (isRecording && audioChunks.length > 0 && !isTranscribing) {
-            await transcribeCurrentAudio();
-        }
-    }, 5000);
 }
 
 async function transcribeCurrentAudio() {
@@ -1056,7 +975,6 @@ async function finalizeLinuxSystemAudio() {
     // Wait for any ongoing transcription to finish
     let waitCount = 0;
     while (isTranscribing && waitCount < 50) {
-        console.log('[SystemAudio] Waiting for ongoing transcription to finish...');
         await new Promise(resolve => setTimeout(resolve, 100));
         waitCount++;
     }
@@ -1072,22 +990,14 @@ async function finalizeLinuxSystemAudio() {
         await window.electronAPI.systemAudio.stopCapture();
         
         if (audioResult.audio && audioResult.audio.length > 0) {
-            const audioSizeKB = (audioResult.audio.length / 1024).toFixed(1);
-            const estimatedSeconds = (audioResult.audio.length / (16000 * 2)).toFixed(1); // 16kHz, 16-bit mono
-            console.log('[SystemAudio] Final audio:', audioSizeKB, 'KB (~', estimatedSeconds, 'seconds)');
-            
             // Transcribe final audio (this is the complete audio)
-            console.log('[SystemAudio] Sending final audio to transcription API...');
             const result = await window.electronAPI.transcribeAudio(audioResult.audio);
             
             if (result.text && !result.error) {
                 fullTranscription = result.text;
-                console.log('[SystemAudio] Final transcription received:', fullTranscription.length, 'chars');
             } else if (result.error) {
                 console.error('[SystemAudio] Transcription error:', result.error);
             }
-        } else {
-            console.log('[SystemAudio] No audio data in final buffer!');
         }
         
     } catch (error) {
@@ -1101,15 +1011,12 @@ async function finalizeLinuxSystemAudio() {
     
     // Show transcription result
     if (fullTranscription) {
-        console.log('[SystemAudio] Final fullTranscription:', fullTranscription.length, 'chars');
-        console.log('[SystemAudio] Content:', fullTranscription.substring(0, 200) + (fullTranscription.length > 200 ? '...' : ''));
         showTranscription(fullTranscription);
         
         // Get AI response if we have transcription
         showResponse(''); // Clear previous response
         updateStatus('Getting AI response...', 'processing');
         try {
-            console.log('[SystemAudio] Sending to AI API:', fullTranscription.length, 'chars');
             const aiResult = await window.electronAPI.getAIResponse(fullTranscription);
             
             if (aiResult.error) {

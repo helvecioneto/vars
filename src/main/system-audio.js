@@ -92,12 +92,8 @@ function formatDeviceName(name) {
  */
 function startCapture(deviceName, sampleRate = 16000) {
     if (captureProcess) {
-        console.log('[SystemAudio] Stopping existing capture...');
         stopCapture();
     }
-
-    console.log('[SystemAudio] Starting capture from:', deviceName);
-    console.log('[SystemAudio] Sample rate:', sampleRate);
 
     // Reset buffer
     audioBuffer = [];
@@ -117,25 +113,13 @@ function startCapture(deviceName, sampleRate = 16000) {
     ]);
 
     let byteCount = 0;
-    let startTime = Date.now();
-    console.log('[SystemAudio] Capture process started at:', startTime);
     
     captureProcess.stdout.on('data', (data) => {
-        // Log first data received
-        if (byteCount === 0) {
-            console.log('[SystemAudio] First audio data received after:', Date.now() - startTime, 'ms');
-        }
         // Store audio data in buffer
         for (let i = 0; i < data.length; i++) {
             audioBuffer.push(data[i]);
         }
         byteCount += data.length;
-        
-        // Log periodically (every ~10 seconds)
-        if (byteCount < 10000 || byteCount % 320000 === 0) {
-            const seconds = (byteCount / (sampleRate * 2)).toFixed(1);
-            console.log('[SystemAudio] Captured', seconds, 'seconds of audio');
-        }
     });
 
     captureProcess.stderr.on('data', (data) => {
@@ -146,7 +130,9 @@ function startCapture(deviceName, sampleRate = 16000) {
     });
 
     captureProcess.on('close', (code) => {
-        console.log('[SystemAudio] Capture process ended with code:', code);
+        if (code !== 0) {
+            console.error('[SystemAudio] Capture process ended with code:', code);
+        }
         captureProcess = null;
     });
 
@@ -163,7 +149,6 @@ function startCapture(deviceName, sampleRate = 16000) {
  */
 function stopCapture() {
     if (captureProcess) {
-        console.log('[SystemAudio] Stopping capture...');
         captureProcess.kill('SIGTERM');
         captureProcess = null;
     }
@@ -177,8 +162,6 @@ function getAudioData() {
     if (audioBuffer.length === 0) {
         return null;
     }
-
-    console.log('[SystemAudio] Getting', audioBuffer.length, 'bytes of audio (keeping buffer)');
     
     // Convert buffer to WAV format - don't clear, keep accumulating
     const wavData = pcmToWav(audioBuffer, sampleRateUsed, 1, 16);
@@ -193,8 +176,6 @@ function getAudioDataAndClear() {
     if (audioBuffer.length === 0) {
         return null;
     }
-
-    console.log('[SystemAudio] Getting', audioBuffer.length, 'bytes of audio (clearing buffer)');
     
     const wavData = pcmToWav(audioBuffer, sampleRateUsed, 1, 16);
     
@@ -202,14 +183,6 @@ function getAudioDataAndClear() {
     audioBuffer = [];
     
     return Array.from(wavData);
-}
-
-/**
- * Clear the audio buffer
- */
-function clearBuffer() {
-    audioBuffer = [];
-    console.log('[SystemAudio] Buffer cleared');
 }
 
 /**
@@ -272,7 +245,6 @@ module.exports = {
     stopCapture,
     getAudioData,
     getAudioDataAndClear,
-    clearBuffer,
     getBufferSize,
     isCapturing
 };

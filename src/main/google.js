@@ -26,7 +26,6 @@ async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-fl
     const genAI = getGoogleClient(apiKey);
 
     const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
-    console.log('[Google] Transcribing audio, buffer size:', buffer.length, 'bytes');
     
     // Detect audio format from header
     let mimeType = 'audio/webm';
@@ -38,17 +37,6 @@ async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-fl
         buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45) {
         mimeType = 'audio/wav';
         fileExt = 'wav';
-        
-        // Parse WAV header to get audio duration
-        const dataSize = buffer.readUInt32LE(40);
-        const sampleRate = buffer.readUInt32LE(24);
-        const channels = buffer.readUInt16LE(22);
-        const bitsPerSample = buffer.readUInt16LE(34);
-        const bytesPerSecond = sampleRate * channels * (bitsPerSample / 8);
-        const durationSeconds = dataSize / bytesPerSecond;
-        console.log('[Google] WAV audio: duration =', durationSeconds.toFixed(2), 'seconds, sampleRate =', sampleRate);
-    } else {
-        console.log('[Google] Assuming WebM format');
     }
 
     // Write buffer to a temporary file
@@ -84,10 +72,7 @@ Return ONLY the transcription text, nothing else.`;
         ]);
 
         const response = await result.response;
-        const transcription = response.text().trim();
-        console.log('[Google] Transcription result length:', transcription.length, 'chars');
-        console.log('[Google] Transcription preview:', transcription.substring(0, 100) + (transcription.length > 100 ? '...' : ''));
-        return transcription;
+        return response.text().trim();
 
     } finally {
         try {
@@ -166,8 +151,6 @@ async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, lan
  */
 async function getGoogleAIResponse({ transcription, params }) {
     const { apiKey, model, systemPrompt, language, history, tierConfig } = params;
-
-    console.log('[DEBUG] Google AI Response - Model:', model, 'TierConfig:', tierConfig);
 
     try {
         const response = await getChatCompletionGoogle(
