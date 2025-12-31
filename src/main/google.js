@@ -25,12 +25,37 @@ function getGoogleClient(apiKey) {
 async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-flash-lite') {
     const genAI = getGoogleClient(apiKey);
 
+    const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
+    console.log('[Google] Transcribing audio, buffer size:', buffer.length, 'bytes');
+    
+    // Detect audio format from header
+    let mimeType = 'audio/webm';
+    let fileExt = 'webm';
+    
+    // Check for WAV header (RIFF....WAVE)
+    if (buffer.length > 12 && 
+        buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+        buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45) {
+        mimeType = 'audio/wav';
+        fileExt = 'wav';
+        
+        // Parse WAV header to get audio duration
+        const dataSize = buffer.readUInt32LE(40);
+        const sampleRate = buffer.readUInt32LE(24);
+        const channels = buffer.readUInt16LE(22);
+        const bitsPerSample = buffer.readUInt16LE(34);
+        const bytesPerSecond = sampleRate * channels * (bitsPerSample / 8);
+        const durationSeconds = dataSize / bytesPerSecond;
+        console.log('[Google] WAV audio: duration =', durationSeconds.toFixed(2), 'seconds, sampleRate =', sampleRate);
+    } else {
+        console.log('[Google] Assuming WebM format');
+    }
+
     // Write buffer to a temporary file
     const tempDir = os.tmpdir();
-    const tempFile = path.join(tempDir, `vars-${Date.now()}.webm`);
+    const tempFile = path.join(tempDir, `vars-${Date.now()}.${fileExt}`);
 
     try {
-        const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
         await fsPromises.writeFile(tempFile, buffer);
 
         // Read the file as base64
@@ -41,18 +66,28 @@ async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-fl
         const geminiModel = genAI.getGenerativeModel({ model });
 
         // Create the request with audio data
+        // Use a more explicit prompt to get complete transcription
+        const transcriptionPrompt = `Transcribe ALL the spoken words in this audio file COMPLETELY, word for word.
+Do NOT summarize or shorten the content.
+Do NOT skip any parts of the audio.
+Include everything that is said from beginning to end.
+Return ONLY the transcription text, nothing else.`;
+
         const result = await geminiModel.generateContent([
             {
                 inlineData: {
-                    mimeType: 'audio/webm',
+                    mimeType: mimeType,
                     data: base64Audio
                 }
             },
-            { text: 'Transcribe this audio to text. Return only the transcription, no additional commentary.' }
+            { text: transcriptionPrompt }
         ]);
 
         const response = await result.response;
-        return response.text().trim();
+        const transcription = response.text().trim();
+        console.log('[Google] Transcription result length:', transcription.length, 'chars');
+        console.log('[Google] Transcription preview:', transcription.substring(0, 100) + (transcription.length > 100 ? '...' : ''));
+        return transcription;
 
     } finally {
         try {

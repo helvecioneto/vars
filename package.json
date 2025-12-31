@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "mic": "^2.1.2",
     "openai": "^4.52.0",
     "ws": "^8.18.3"
   }

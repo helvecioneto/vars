@@ -116,6 +116,8 @@ function getDefaultConfig() {
         inputMode: 'system',
         // Audio input source
         inputDeviceId: 'default',
+        // System audio device ID (for Linux monitor devices)
+        systemAudioDeviceId: '',
         conversationHistory: [], // Array of { role, content } pairs
         // Assistants API settings
         assistantId: null,

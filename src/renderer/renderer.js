@@ -67,6 +67,8 @@ const elements = {
     systemPromptInput: document.getElementById('system-prompt'),
     fileList: document.getElementById('file-list'),
     inputDeviceSelect: document.getElementById('input-device'),
+    systemAudioDeviceSelect: document.getElementById('system-audio-device'),
+    refreshAudioBtn: document.getElementById('refresh-audio-btn'),
     trainBtn: document.getElementById('train-btn'),
     resetKbBtn: document.getElementById('reset-kb-btn'),
     kbStatus: document.getElementById('kb-status'),
@@ -119,6 +121,7 @@ async function init() {
     updateInputModeUI();
     updateModelDisplay();
     await populateDevices();
+    await populateSystemAudioDevices();
 
     // Update button tooltips based on OS
     updateButtonTooltips();
@@ -567,7 +570,140 @@ function applyZoom() {
 
 let fullTranscription = '';
 let isTranscribing = false;
+let isFinalizing = false; // Flag to prevent intermediate transcriptions during finalization
 let transcriptionInterval = null;
+
+// Store the active system audio stream to reuse
+let activeSystemAudioStream = null;
+
+/**
+ * Capture system audio using PulseAudio/PipeWire monitor devices (Linux)
+ * or desktopCapturer (Windows/macOS)
+ * @param {number} sampleRate - The desired sample rate
+ * @returns {Promise<MediaStream|null>} The captured audio stream
+ */
+async function captureSystemAudio(sampleRate) {
+    const platform = window.electronAPI.platform;
+    console.log('[SystemAudio] Platform:', platform);
+    
+    // On Linux, use monitor devices directly
+    if (platform === 'linux') {
+        return await captureLinuxSystemAudio(sampleRate);
+    }
+    
+    // On Windows/macOS, use desktopCapturer
+    return await captureDesktopAudio(sampleRate);
+}
+
+/**
+ * Capture system audio on Linux using PulseAudio/PipeWire monitor devices
+ * Audio is captured in Main Process, we just start/stop and fetch data
+ * Returns a mock stream object with the necessary interface
+ */
+async function captureLinuxSystemAudio(sampleRate) {
+    console.log('[SystemAudio] Linux: Starting capture via Main Process...');
+    
+    const deviceName = config.systemAudioDeviceId;
+    
+    if (!deviceName) {
+        throw new Error('No audio device configured.\n\nPlease go to Settings > Audio and:\n1. Click the refresh button\n2. Select a device from "System Audio (Monitors)"');
+    }
+    
+    console.log('[SystemAudio] Using device:', deviceName);
+    
+    try {
+        // Start capture in Main Process - audio is stored there
+        const result = await window.electronAPI.systemAudio.startCapture(deviceName, sampleRate);
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        console.log('[SystemAudio] Capture started successfully');
+        
+        // Create a mock MediaStream-like object
+        const mockStream = {
+            _isLinuxSystemAudio: true,
+            _sampleRate: sampleRate,
+            _deviceName: deviceName,
+            getAudioTracks: () => [{
+                label: 'Linux System Audio (' + deviceName.split('.')[0] + ')',
+                stop: () => {},
+                getSettings: () => ({ sampleRate: sampleRate, channelCount: 1 })
+            }],
+            getVideoTracks: () => [],
+            getTracks: () => mockStream.getAudioTracks(),
+            _cleanup: async () => {
+                console.log('[SystemAudio] Cleaning up...');
+                await window.electronAPI.systemAudio.stopCapture();
+            }
+        };
+        
+        return mockStream;
+        
+    } catch (error) {
+        console.error('[SystemAudio] Capture failed:', error);
+        throw error;
+    }
+}
+
+/**
+ * Capture desktop audio on Windows/macOS using desktopCapturer
+ */
+async function captureDesktopAudio(sampleRate) {
+    console.log('[SystemAudio] Windows/macOS: Using desktopCapturer...');
+    
+    try {
+        const sources = await window.electronAPI.getDesktopSources();
+        
+        if (!sources || sources.length === 0) {
+            throw new Error('No capture sources available');
+        }
+        
+        // Find the first screen source
+        const screenSource = sources.find(s => s.id.startsWith('screen:'));
+        
+        if (!screenSource) {
+            throw new Error('No screen source available');
+        }
+        
+        console.log('[SystemAudio] Using screen source:', screenSource.name);
+        
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                mandatory: {
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: screenSource.id
+                }
+            },
+            video: {
+                mandatory: {
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: screenSource.id,
+                    maxWidth: 1,
+                    maxHeight: 1,
+                    maxFrameRate: 1
+                }
+            }
+        });
+        
+        // Stop video tracks
+        stream.getVideoTracks().forEach(track => {
+            track.stop();
+            stream.removeTrack(track);
+        });
+        
+        if (stream.getAudioTracks().length === 0) {
+            throw new Error('No audio captured');
+        }
+        
+        return stream;
+        
+    } catch (error) {
+        console.error('[SystemAudio] Desktop capture failed:', error);
+        throw error;
+    }
+}
 
 async function handleRecordingToggle(recording) {
     isRecording = recording;
@@ -588,36 +724,85 @@ async function startRecording() {
     }
 
     try {
-        // Get device ID from config
-        const deviceId = config.inputDeviceId !== 'default' ? config.inputDeviceId : undefined;
         const provider = config.provider || 'openai';
         const sampleRate = provider === 'google' ? 16000 : 24000;
+        let stream;
+        let audioTracks;
+        
+        // Check if this is Linux system audio (special handling required)
+        const isLinuxSystemAudio = currentInputMode === 'system' && window.electronAPI.platform === 'linux';
 
-        const constraints = {
-            audio: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: true,
-                sampleRate: sampleRate
+        if (currentInputMode === 'system') {
+            // Capture system/computer audio
+            stream = await captureSystemAudio(sampleRate);
+            
+            if (!stream) {
+                throw new Error('Failed to capture system audio.');
             }
-        };
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const audioTracks = stream.getAudioTracks();
+            audioTracks = stream.getAudioTracks();
 
-        if (audioTracks.length === 0) {
-            throw new Error('No audio input device found');
+            // Stop video tracks if any (we only need audio)
+            const videoTracks = stream.getVideoTracks();
+            videoTracks.forEach(track => track.stop());
+
+            if (audioTracks.length === 0 && !stream._isLinuxSystemAudio) {
+                stream.getTracks().forEach(track => track.stop());
+                throw new Error('No audio captured. Make sure to enable "Share audio" when selecting the screen/window.');
+            }
+
+            console.log('Capturing system audio:', audioTracks[0]?.label || 'Linux PulseAudio');
+        } else {
+            // Capture microphone audio using getUserMedia
+            const deviceId = config.inputDeviceId !== 'default' ? config.inputDeviceId : undefined;
+            const constraints = {
+                audio: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: true,
+                    sampleRate: sampleRate
+                }
+            };
+
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            audioTracks = stream.getAudioTracks();
+
+            if (audioTracks.length === 0) {
+                throw new Error('No audio input device found');
+            }
+
+            console.log('Using microphone:', audioTracks[0].label);
         }
-
-        console.log('Using audio device:', audioTracks[0].label);
 
         // Reset state
         fullTranscription = '';
         audioChunks = [];
-        showTranscription('🎙️ Listening...');
+        isTranscribing = false;
+        isFinalizing = false;
+        showTranscription(currentInputMode === 'system' ? '🔊 Capturing system audio...' : '🎙️ Listening...');
 
-        // Setup MediaRecorder for batch fallback
+        // Handle Linux system audio differently (no MediaRecorder)
+        if (stream._isLinuxSystemAudio) {
+            console.log('[SystemAudio] Using Linux PCM capture mode');
+            
+            // Store the stream for cleanup and data access
+            window._linuxSystemAudioStream = stream;
+            
+            // For Linux system audio, we'll transcribe the PCM data directly
+            // Set up periodic transcription
+            transcriptionInterval = setInterval(async () => {
+                if (isRecording && !isTranscribing) {
+                    await transcribeLinuxSystemAudio();
+                }
+            }, 3000);
+            
+            const statusMsg = '🔊 Capturing system audio...';
+            updateStatus(statusMsg, 'recording');
+            return;
+        }
+
+        // Setup MediaRecorder for regular audio (microphone or Windows/macOS system audio)
         const audioStream = new MediaStream(audioTracks);
         mediaRecorder = new MediaRecorder(audioStream, {
             mimeType: 'audio/webm;codecs=opus'
@@ -646,13 +831,117 @@ async function startRecording() {
             }
         }, 2000);
 
-        updateStatus('🎙️ Recording...', 'recording');
+        const statusMsg = currentInputMode === 'system' ? '🔊 Capturing system audio...' : '🎙️ Recording...';
+        updateStatus(statusMsg, 'recording');
 
     } catch (error) {
         console.error('Failed to start recording:', error);
         updateStatus('Error: ' + error.message, 'error');
         isRecording = false;
         updateRecordingUI();
+    }
+}
+
+/**
+ * Transcribe Linux system audio - fetches WAV data from Main Process
+ */
+async function transcribeLinuxSystemAudio() {
+    // Skip if finalizing - let finalizeLinuxSystemAudio handle it
+    if (isFinalizing) {
+        console.log('[SystemAudio] Skipping intermediate transcription - finalizing in progress');
+        return;
+    }
+    
+    // Check if capture is active
+    const capturingResult = await window.electronAPI.systemAudio.isCapturing();
+    if (!capturingResult.capturing) {
+        console.log('[SystemAudio] Not capturing, skipping transcription');
+        return;
+    }
+    
+    // Check buffer size first
+    const sizeResult = await window.electronAPI.systemAudio.getBufferSize();
+    if (!sizeResult.size || sizeResult.size < 3200) { // At least 0.1 seconds
+        console.log('[SystemAudio] Not enough audio data yet:', sizeResult.size, 'bytes');
+        return;
+    }
+    
+    isTranscribing = true;
+    updateStatus('🔊 Transcribing system audio...', 'recording');
+    
+    try {
+        // Get WAV audio data from Main Process
+        const audioResult = await window.electronAPI.systemAudio.getAudio();
+        
+        if (!audioResult.audio || audioResult.audio.length === 0) {
+            console.log('[SystemAudio] No audio data available');
+            isTranscribing = false;
+            return;
+        }
+        
+        console.log('[SystemAudio] Got', audioResult.audio.length, 'bytes of WAV data');
+        
+        // Send to transcription API
+        const result = await window.electronAPI.transcribeAudio(audioResult.audio);
+        
+        if (result.text && !result.error) {
+            fullTranscription = result.text;
+            showTranscription(fullTranscription + ' ▌');
+        } else if (result.error) {
+            console.error('Transcription error:', result.error);
+        }
+        
+        updateStatus('🔊 Capturing system audio...', 'recording');
+    } catch (error) {
+        console.error('[SystemAudio] Transcription failed:', error);
+    } finally {
+        isTranscribing = false;
+    }
+}
+
+/**
+ * Convert raw PCM data to WAV format (kept for compatibility)
+ */
+function pcmToWav(pcmData, sampleRate, channels, bitsPerSample) {
+    const bytesPerSample = bitsPerSample / 8;
+    const blockAlign = channels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = pcmData.length;
+    const headerSize = 44;
+    const totalSize = headerSize + dataSize;
+    
+    const buffer = new ArrayBuffer(totalSize);
+    const view = new DataView(buffer);
+    
+    // RIFF header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, totalSize - 8, true);
+    writeString(view, 8, 'WAVE');
+    
+    // fmt chunk
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true); // chunk size
+    view.setUint16(20, 1, true); // audio format (PCM)
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    
+    // data chunk
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+    
+    // PCM data
+    const output = new Uint8Array(buffer);
+    output.set(pcmData, headerSize);
+    
+    return output;
+}
+
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
     }
 }
 
@@ -672,7 +961,8 @@ async function transcribeCurrentAudio() {
     if (audioChunks.length === 0) return;
 
     isTranscribing = true;
-    updateStatus('🎙️ Transcribing...', 'recording');
+    const transcribingMsg = currentInputMode === 'system' ? '🔊 Transcribing system audio...' : '🎙️ Transcribing...';
+    updateStatus(transcribingMsg, 'recording');
 
     try {
         // Combine all chunks collected so far
@@ -689,7 +979,8 @@ async function transcribeCurrentAudio() {
             console.error('Transcription error:', result.error);
         }
 
-        updateStatus('🎙️ Recording...', 'recording');
+        const statusMsg = currentInputMode === 'system' ? '🔊 Capturing system audio...' : '🎙️ Recording...';
+        updateStatus(statusMsg, 'recording');
     } catch (error) {
         console.error('Transcription error:', error);
     } finally {
@@ -716,6 +1007,17 @@ function stopRecording() {
         window._realtimeSendInterval = null;
     }
 
+    // Cleanup Linux system audio
+    if (window._linuxSystemAudioStream) {
+        const stream = window._linuxSystemAudioStream;
+        window._linuxSystemAudioStream = null;
+        
+        // Do final transcription FIRST (before stopping capture)
+        // This ensures all audio is collected before parec is killed
+        finalizeLinuxSystemAudio();
+        return; // Skip the rest, finalizeLinuxSystemAudio handles cleanup
+    }
+
     // Cleanup AudioContext
     if (scriptProcessor) {
         scriptProcessor.disconnect();
@@ -726,13 +1028,108 @@ function stopRecording() {
         audioContext = null;
     }
 
-    // Stop MediaRecorder
+    // Stop MediaRecorder and cleanup stream
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        const stream = mediaRecorder.stream;
+        
+        // Call cleanup function if this is a Linux system audio stream
+        if (stream._cleanup) {
+            stream._cleanup();
+        }
+        
+        stream.getTracks().forEach(track => track.stop());
     }
 
     updateStatus('Processing...', 'processing');
+}
+
+/**
+ * Finalize Linux system audio recording
+ */
+async function finalizeLinuxSystemAudio() {
+    updateStatus('Processing final audio...', 'processing');
+    
+    // Set finalizing flag to prevent intermediate transcriptions
+    isFinalizing = true;
+    
+    // Wait for any ongoing transcription to finish
+    let waitCount = 0;
+    while (isTranscribing && waitCount < 50) {
+        console.log('[SystemAudio] Waiting for ongoing transcription to finish...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+    }
+    
+    try {
+        // Small delay to ensure last audio chunks are in the buffer
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Get ALL audio from buffer and clear it (final transcription)
+        const audioResult = await window.electronAPI.systemAudio.getAudioFinal();
+        
+        // Now stop capture AFTER getting all audio
+        await window.electronAPI.systemAudio.stopCapture();
+        
+        if (audioResult.audio && audioResult.audio.length > 0) {
+            const audioSizeKB = (audioResult.audio.length / 1024).toFixed(1);
+            const estimatedSeconds = (audioResult.audio.length / (16000 * 2)).toFixed(1); // 16kHz, 16-bit mono
+            console.log('[SystemAudio] Final audio:', audioSizeKB, 'KB (~', estimatedSeconds, 'seconds)');
+            
+            // Transcribe final audio (this is the complete audio)
+            console.log('[SystemAudio] Sending final audio to transcription API...');
+            const result = await window.electronAPI.transcribeAudio(audioResult.audio);
+            
+            if (result.text && !result.error) {
+                fullTranscription = result.text;
+                console.log('[SystemAudio] Final transcription received:', fullTranscription.length, 'chars');
+            } else if (result.error) {
+                console.error('[SystemAudio] Transcription error:', result.error);
+            }
+        } else {
+            console.log('[SystemAudio] No audio data in final buffer!');
+        }
+        
+    } catch (error) {
+        console.error('[SystemAudio] Error getting final audio:', error);
+        // Ensure capture is stopped even on error
+        await window.electronAPI.systemAudio.stopCapture();
+    } finally {
+        isTranscribing = false;
+        isFinalizing = false;
+    }
+    
+    // Show transcription result
+    if (fullTranscription) {
+        console.log('[SystemAudio] Final fullTranscription:', fullTranscription.length, 'chars');
+        console.log('[SystemAudio] Content:', fullTranscription.substring(0, 200) + (fullTranscription.length > 200 ? '...' : ''));
+        showTranscription(fullTranscription);
+        
+        // Get AI response if we have transcription
+        showResponse(''); // Clear previous response
+        updateStatus('Getting AI response...', 'processing');
+        try {
+            console.log('[SystemAudio] Sending to AI API:', fullTranscription.length, 'chars');
+            const aiResult = await window.electronAPI.getAIResponse(fullTranscription);
+            
+            if (aiResult.error) {
+                showResponse(`Error: ${aiResult.error}`);
+                updateStatus('AI response failed', 'error');
+                return;
+            }
+            
+            showResponse(aiResult.response);
+            updateStatus('Done', 'idle');
+            
+            // Update History
+            updateHistory(fullTranscription, aiResult.response);
+        } catch (error) {
+            console.error('AI response error:', error);
+            updateStatus('Error', 'error');
+        }
+    } else {
+        updateStatus('No audio captured', 'error');
+    }
 }
 
 async function finalizeRecording() {
@@ -1187,6 +1584,23 @@ function setupAutoSave() {
     if (elements.providerSelect) {
         elements.providerSelect.addEventListener('change', updateAPIKeyVisibility);
     }
+
+    // System audio device selection
+    if (elements.systemAudioDeviceSelect) {
+        elements.systemAudioDeviceSelect.addEventListener('change', async (e) => {
+            config.systemAudioDeviceId = e.target.value;
+            await autoSaveConfig();
+            console.log('[Settings] System audio device saved:', e.target.value.slice(0, 20) + '...');
+        });
+    }
+
+    // Refresh audio devices button
+    if (elements.refreshAudioBtn) {
+        elements.refreshAudioBtn.addEventListener('click', async () => {
+            await populateSystemAudioDevices();
+        });
+    }
+
 }
 
 function debounceAutoSave() {
@@ -1207,6 +1621,7 @@ async function autoSaveConfig() {
     config.language = elements.languageSelect?.value || 'en';
     config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
+    config.systemAudioDeviceId = elements.systemAudioDeviceSelect?.value || '';
     config.inputMode = currentInputMode;
     config.briefMode = elements.briefModeCheckbox?.checked || false;
     // conversationHistory is already in config, preserved automatically
@@ -1324,6 +1739,98 @@ async function populateDevices() {
 
     } catch (error) {
         console.error('Failed to enumerate devices:', error);
+    }
+}
+
+// ==========================================
+// System Audio Device Enumeration
+// ==========================================
+
+async function populateSystemAudioDevices() {
+    console.log('[Settings] Populating system audio devices...');
+    
+    if (!elements.systemAudioDeviceSelect) return;
+    
+    elements.systemAudioDeviceSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    try {
+        // Use the Main Process API to list PulseAudio/PipeWire devices
+        const result = await window.electronAPI.systemAudio.listDevices();
+        
+        if (result.error) {
+            console.error('[Settings] Error from system audio API:', result.error);
+            elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error: ' + result.error + '</option>';
+            return;
+        }
+        
+        const devices = result.devices || [];
+        console.log('[Settings] System audio devices:', devices.length);
+        devices.forEach((d, i) => {
+            console.log(`  ${i}: "${d.displayName}" | Name: ${d.name} | Monitor: ${d.isMonitor}`);
+        });
+        
+        elements.systemAudioDeviceSelect.innerHTML = '';
+        
+        if (devices.length === 0) {
+            elements.systemAudioDeviceSelect.innerHTML = '<option value="">No devices found - is PulseAudio running?</option>';
+            return;
+        }
+        
+        // Add a default option
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '-- Select a device --';
+        elements.systemAudioDeviceSelect.appendChild(defaultOpt);
+        
+        // Separate monitors from other sources
+        const monitors = devices.filter(d => d.isMonitor);
+        
+        console.log('[Settings] Monitors:', monitors.length);
+        
+        // Add monitors only (these capture system audio output)
+        // Input sources are already available in Microphone Input section
+        if (monitors.length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = '🔊 System Audio (Monitors)';
+            monitors.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.name; // Use PulseAudio device name
+                option.textContent = device.displayName;
+                optgroup.appendChild(option);
+            });
+            elements.systemAudioDeviceSelect.appendChild(optgroup);
+        } else {
+            // No monitors found
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No monitor devices found';
+            elements.systemAudioDeviceSelect.appendChild(option);
+        }
+        
+        // Restore saved selection
+        if (config.systemAudioDeviceId) {
+            elements.systemAudioDeviceSelect.value = config.systemAudioDeviceId;
+        }
+        
+        // Update hint
+        const hintEl = document.getElementById('audio-hint');
+        if (hintEl) {
+            if (monitors.length > 0) {
+                hintEl.innerHTML = `
+                    <strong>Microphone:</strong> Used in Microphone mode.<br>
+                    <strong>System Audio:</strong> ✅ ${monitors.length} monitor device(s) found. Select one to capture system audio.
+                `;
+            } else {
+                hintEl.innerHTML = `
+                    <strong>Microphone:</strong> Used in Microphone mode.<br>
+                    <strong>System Audio:</strong> ⚠️ No monitor devices found. Make sure PulseAudio/PipeWire is running.
+                `;
+            }
+        }
+        
+    } catch (error) {
+        console.error('[Settings] Failed to enumerate devices:', error);
+        elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error - click refresh</option>';
     }
 }
 

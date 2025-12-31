@@ -298,12 +298,31 @@
 
         <div class="settings-grid">
           <div class="form-group">
-            <label>Audio Input Source</label>
+            <label>Microphone Input</label>
             <select id="input-device">
               <option value="default">Default Microphone</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>System Audio Source</label>
+            <div class="select-with-btn">
+              <select id="system-audio-device">
+                <option value="">Click refresh to load devices</option>
+              </select>
+              <button type="button" id="refresh-audio-btn" class="icon-btn small-btn" title="Refresh devices">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
+        <p class="settings-hint" id="audio-hint">
+          <strong>Microphone:</strong> Used in Microphone Input mode.<br>
+          <strong>System Audio:</strong> Used in Computer Audio mode. Select a "Monitor" device to capture what you hear.
+        </p>
       </div>
 
       <!-- Settings Footer -->

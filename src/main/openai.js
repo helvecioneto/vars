@@ -17,12 +17,35 @@ function getClient(apiKey) {
 async function transcribeAudio(audioBuffer, apiKey, model = 'gpt-4o-mini-transcribe') {
     const openai = getClient(apiKey);
 
+    const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
+    console.log('[OpenAI] Transcribing audio, buffer size:', buffer.length, 'bytes');
+    
+    // Detect audio format from header
+    let fileExt = 'webm';
+    
+    // Check for WAV header (RIFF....WAVE)
+    if (buffer.length > 12 && 
+        buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+        buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45) {
+        fileExt = 'wav';
+        
+        // Parse WAV header to get audio duration
+        const dataSize = buffer.readUInt32LE(40);
+        const sampleRate = buffer.readUInt32LE(24);
+        const channels = buffer.readUInt16LE(22);
+        const bitsPerSample = buffer.readUInt16LE(34);
+        const bytesPerSecond = sampleRate * channels * (bitsPerSample / 8);
+        const durationSeconds = dataSize / bytesPerSecond;
+        console.log('[OpenAI] WAV audio: duration =', durationSeconds.toFixed(2), 'seconds, sampleRate =', sampleRate);
+    } else {
+        console.log('[OpenAI] Assuming WebM format');
+    }
+
     // Write buffer to a temporary file
     const tempDir = os.tmpdir();
-    const tempFile = path.join(tempDir, `vars-${Date.now()}.webm`);
+    const tempFile = path.join(tempDir, `vars-${Date.now()}.${fileExt}`);
 
     try {
-        const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
         await fsPromises.writeFile(tempFile, buffer);
 
         const fileStream = fs.createReadStream(tempFile);
@@ -33,6 +56,7 @@ async function transcribeAudio(audioBuffer, apiKey, model = 'gpt-4o-mini-transcr
             language: 'pt' // Defaulting to Portuguese as requested, or can be dynamic
         });
 
+        console.log('[OpenAI] Transcription result length:', transcription.text.length, 'chars');
         return transcription.text;
     } finally {
         try {

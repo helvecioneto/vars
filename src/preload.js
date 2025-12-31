@@ -73,5 +73,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
-    setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging)
+    setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
+
+    // Desktop Capturer for System Audio
+    getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
+
+    // System Audio Capture (Linux PulseAudio/PipeWire)
+    systemAudio: {
+        listDevices: () => ipcRenderer.invoke('system-audio:list-devices'),
+        startCapture: (deviceName, sampleRate) => ipcRenderer.invoke('system-audio:start-capture', { deviceName, sampleRate }),
+        stopCapture: () => ipcRenderer.invoke('system-audio:stop-capture'),
+        getAudio: () => ipcRenderer.invoke('system-audio:get-audio'),
+        getAudioFinal: () => ipcRenderer.invoke('system-audio:get-audio-final'),
+        clearBuffer: () => ipcRenderer.invoke('system-audio:clear-buffer'),
+        getBufferSize: () => ipcRenderer.invoke('system-audio:get-buffer-size'),
+        isCapturing: () => ipcRenderer.invoke('system-audio:is-capturing')
+    }
 });

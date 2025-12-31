@@ -3,7 +3,7 @@
  * Handles all inter-process communication between main and renderer processes
  */
 
-const { ipcMain, Menu } = require('electron');
+const { ipcMain, Menu, desktopCapturer } = require('electron');
 const { saveConfig, getModels, getTierConfig, getModelForTier } = require('./config');
 const {
     transcribeAudio,
@@ -16,6 +16,7 @@ const {
 const { transcribeAudioGoogle, getGoogleAIResponse } = require('./google');
 const { RealtimeTranscription } = require('./realtime');
 const { GeminiRealtimeTranscription } = require('./gemini-realtime');
+const systemAudio = require('./system-audio');
 
 /**
  * Active realtime transcription session
@@ -67,6 +68,10 @@ function setupIPCHandlers(context) {
         const provider = config.provider || 'openai';
         const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
 
+        // Log received audio size for debugging
+        const audioSize = audioBuffer ? (Array.isArray(audioBuffer) ? audioBuffer.length : audioBuffer.byteLength || 0) : 0;
+        console.log('[IPC] transcribe-audio received', audioSize, 'bytes');
+
         if (!apiKey) {
             return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         }
@@ -75,11 +80,15 @@ function setupIPCHandlers(context) {
             const tier = config.tier || 'balanced';
             const transcribeModel = getModelForTier(provider, tier, 'transcribe');
 
+            // Convert to Buffer if it's an array
+            const buffer = Array.isArray(audioBuffer) ? Buffer.from(audioBuffer) : audioBuffer;
+            console.log('[IPC] Audio buffer size after conversion:', buffer.length, 'bytes');
+
             let transcription;
             if (provider === 'google') {
-                transcription = await transcribeAudioGoogle(audioBuffer, apiKey, transcribeModel);
+                transcription = await transcribeAudioGoogle(buffer, apiKey, transcribeModel);
             } else {
-                transcription = await transcribeAudio(audioBuffer, apiKey, transcribeModel);
+                transcription = await transcribeAudio(buffer, apiKey, transcribeModel);
             }
 
             return { text: transcription };
@@ -420,6 +429,122 @@ function setupIPCHandlers(context) {
 
     ipcMain.on('set-dragging', (event, dragging) => {
         // Kept for compatibility
+    });
+
+    // ==========================================
+    // Desktop Capturer Handlers (for System Audio)
+    // ==========================================
+
+    ipcMain.handle('get-desktop-sources', async () => {
+        try {
+            const sources = await desktopCapturer.getSources({
+                types: ['window', 'screen'],
+                thumbnailSize: { width: 160, height: 100 },
+                fetchWindowIcons: false
+            });
+
+            return sources.map(source => ({
+                id: source.id,
+                name: source.name,
+                displayId: source.display_id || '',
+                thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null
+            }));
+        } catch (error) {
+            console.error('Failed to get desktop sources:', error);
+            return [];
+        }
+    });
+
+    // ==========================================
+    // System Audio Capture Handlers (Linux PulseAudio/PipeWire)
+    // ==========================================
+
+    ipcMain.handle('system-audio:list-devices', async () => {
+        try {
+            const devices = await systemAudio.listAudioDevices();
+            console.log('[System Audio] Listed devices:', devices.length);
+            return { devices };
+        } catch (error) {
+            console.error('[System Audio] Error listing devices:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:start-capture', async (event, { deviceName, sampleRate = 16000 }) => {
+        try {
+            console.log('[System Audio] Starting capture on device:', deviceName);
+            
+            // Start capture - audio is stored in internal buffer
+            const success = systemAudio.startCapture(deviceName, sampleRate);
+
+            if (success) {
+                return { success: true };
+            } else {
+                return { error: 'Failed to start capture' };
+            }
+        } catch (error) {
+            console.error('[System Audio] Error starting capture:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:stop-capture', async () => {
+        try {
+            systemAudio.stopCapture();
+            console.log('[System Audio] Capture stopped');
+            return { success: true };
+        } catch (error) {
+            console.error('[System Audio] Error stopping capture:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:get-audio', async () => {
+        try {
+            const audioData = systemAudio.getAudioData();
+            if (audioData) {
+                console.log('[System Audio] Returning', audioData.length, 'bytes of WAV data');
+                return { audio: audioData };
+            } else {
+                return { audio: null };
+            }
+        } catch (error) {
+            console.error('[System Audio] Error getting audio:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:get-audio-final', async () => {
+        try {
+            const audioData = systemAudio.getAudioDataAndClear();
+            if (audioData) {
+                console.log('[System Audio] Returning final', audioData.length, 'bytes of WAV data');
+                return { audio: audioData };
+            } else {
+                return { audio: null };
+            }
+        } catch (error) {
+            console.error('[System Audio] Error getting final audio:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:clear-buffer', async () => {
+        try {
+            systemAudio.clearBuffer();
+            return { success: true };
+        } catch (error) {
+            console.error('[System Audio] Error clearing buffer:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('system-audio:get-buffer-size', async () => {
+        return { size: systemAudio.getBufferSize() };
+    });
+
+    ipcMain.handle('system-audio:is-capturing', async () => {
+        return { capturing: systemAudio.isCapturing() };
     });
 }
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { loadConfig, saveConfig } = require('./config');
 const { setupIPCHandlers } = require('./ipc-handlers');
@@ -228,19 +228,26 @@ app.whenReady().then(async () => {
         return true;
     };
 
-    // Permission handlers for getUserMedia
+    // Permission handlers for getUserMedia and getDisplayMedia
     session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
-        if (['media', 'audioCapture', 'microphone'].includes(permission)) {
+        // Allow audio, screen capture, and display capture
+        if (['media', 'audioCapture', 'microphone', 'display-capture', 'screen'].includes(permission)) {
             checkMicPermission();
         }
         return true;
     });
 
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+        // Allow audio capture permissions
         if (['media', 'audioCapture', 'microphone'].includes(permission)) {
             const result = checkMicPermission();
             callback(result !== 'denied' && result !== 'restricted');
-        } else {
+        } 
+        // Allow display/screen capture permissions (for system audio)
+        else if (['display-capture', 'screen'].includes(permission)) {
+            callback(true);
+        } 
+        else {
             callback(true);
         }
     });
