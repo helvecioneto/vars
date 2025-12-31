@@ -105,30 +105,130 @@
 
     <!-- Settings Panel (expands below) -->
     <div class="settings-panel" id="settings-panel">
-      <!-- Settings Header with Drag Button -->
+      <!-- Settings Tabs Navigation -->
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="api" title="API Keys & Providers">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </span>
+          <span class="tab-label">API</span>
+        </button>
+        <button class="settings-tab" data-tab="behavior" title="Language & Response">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </span>
+          <span class="tab-label">Behavior</span>
+        </button>
+        <button class="settings-tab" data-tab="knowledge" title="Knowledge Base Files">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+          </span>
+          <span class="tab-label">Knowledge</span>
+        </button>
+        <button class="settings-tab" data-tab="audio" title="Audio Input">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </span>
+          <span class="tab-label">Audio</span>
+        </button>
+      </div>
 
-      <div class="settings-content">
-        <div class="settings-section">
-          <div class="form-group">
-            <label>OpenAI API Key <a href="#" id="api-key-help" class="help-link">💡: Get Key</a></label>
-            <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
+      <!-- Tab Content: API & Providers -->
+      <div class="settings-tab-content active" id="tab-api">
+
+
+        <!-- Provider Selection -->
+        <div class="form-group">
+          <label>Provider</label>
+          <select id="provider-select">
+            <!-- Options populated dynamically from models.json -->
+          </select>
+        </div>
+
+        <!-- Quality Tier - Radio Buttons -->
+        <div class="form-group full-width">
+          <label>Quality Tier</label>
+          <div id="tier-buttons" class="tier-button-group">
+            <!-- Buttons populated dynamically -->
           </div>
-          <div class="form-group">
-            <label>Google API Key <a href="#" id="google-api-key-help" class="help-link">💡: Get Key</a></label>
-            <input type="password" id="google-api-key" placeholder="AIzaSy..." autocomplete="off">
+        </div>
+
+        <!-- Dynamic API Key Container -->
+        <div class="form-group full-width" id="api-key-container">
+          <div id="openai-key-group" class="api-key-group">
+            <label>
+              OpenAI API Key
+              <a href="#" id="api-key-help" class="help-link">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Get Key
+              </a>
+            </label>
+            <div class="api-key-input-row">
+              <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
+              <button type="button" id="test-api-btn" class="test-api-btn" title="Test API Connection">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Provider</label>
-            <select id="provider-select">
-              <!-- Options populated dynamically from models.json -->
-            </select>
+          <div id="google-key-group" class="api-key-group hidden">
+            <label>
+              Google API Key
+              <a href="#" id="google-api-key-help" class="help-link">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Get Key
+              </a>
+            </label>
+            <div class="api-key-input-row">
+              <input type="password" id="google-api-key" placeholder="AIzaSy..." autocomplete="off">
+              <button type="button" id="test-google-api-btn" class="test-api-btn" title="Test API Connection">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Quality Tier</label>
-            <select id="model-select">
-              <!-- Options populated dynamically from models.json -->
-            </select>
-          </div>
+          <span id="api-test-status" class="api-test-status"></span>
+        </div>
+      </div>
+
+      <!-- Tab Content: Behavior -->
+      <div class="settings-tab-content" id="tab-behavior">
+
+        <div class="settings-grid">
           <div class="form-group">
             <label>Language</label>
             <select id="language-select">
@@ -137,74 +237,72 @@
               <option value="pt-br">Português (BR)</option>
             </select>
           </div>
-        </div>
-
-        <!-- Prompt Section -->
-        <div class="settings-section full-width">
-          <div class="form-group">
-            <label>System Prompt</label>
-            <textarea id="system-prompt" rows="2" placeholder="Optional instructions for the AI..."></textarea>
-          </div>
-          <div class="form-group checkbox-group"
-            style="flex-direction: row; align-items: center; gap: 10px; margin-top: 5px;">
-            <input type="checkbox" id="brief-mode" style="width: auto;">
-            <label for="brief-mode" style="margin-bottom: 0; cursor: pointer;">Brief Mode (Short Answers)</label>
+          <div class="form-group checkbox-inline">
+            <input type="checkbox" id="brief-mode">
+            <label for="brief-mode">Brief Mode (Short Answers)</label>
           </div>
         </div>
-
-        <!-- Files Section -->
-        <div class="settings-section">
-          <label>Knowledge Base Files</label>
-          <div id="file-list" class="file-list">
-            <!-- Files will be added here -->
-            <p class="placeholder">No files added</p>
-          </div>
-          <input type="file" id="file-input" multiple accept=".pdf,.txt,.docx,.md" style="display: none;">
-          <div class="kb-toolbar" style="display: flex; gap: 8px; margin-top: 10px;">
-            <button id="add-file-btn" class="icon-btn icon-text-btn">
-              <span class="icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="12" y1="11" x2="12" y2="17"></line>
-                  <line x1="9" y1="14" x2="15" y2="14"></line>
-                </svg>
-              </span>
-              <span>Add Files</span>
-            </button>
-
-            <button id="train-btn" class="icon-btn icon-text-btn">
-              <span class="icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-              </span>
-              <span>Fit</span>
-            </button>
-            <button id="reset-kb-btn" class="icon-btn icon-text-btn">
-              <span class="icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </span>
-              <span>Clear</span>
-            </button>
-          </div>
-          <p id="kb-status" style="font-size: 0.8em; margin-top: 5px; opacity: 0.7; min-height: 1.2em;"></p>
+        <div class="form-group full-width">
+          <label>System Prompt</label>
+          <textarea id="system-prompt" rows="3" placeholder="Optional instructions for the AI..."></textarea>
         </div>
       </div>
 
-      <!-- Audio Section -->
-      <div class="settings-section">
-        <div class="form-group">
-          <label>Audio Input Source</label>
-          <select id="input-device">
-            <option value="default">Default Microphone</option>
-          </select>
+      <!-- Tab Content: Knowledge Base -->
+      <div class="settings-tab-content" id="tab-knowledge">
+        <label
+          style="display: block; margin-bottom: 10px; font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">FILES</label>
+
+        <div id="file-list" class="file-list">
+          <p class="placeholder">No files added</p>
+        </div>
+        <input type="file" id="file-input" multiple accept=".pdf,.txt,.docx,.md" style="display: none;">
+        <div class="kb-toolbar">
+          <button id="add-file-btn" class="icon-btn icon-text-btn">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="11" x2="12" y2="17"></line>
+                <line x1="9" y1="14" x2="15" y2="14"></line>
+              </svg>
+            </span>
+            <span>Add Files</span>
+          </button>
+          <button id="train-btn" class="icon-btn icon-text-btn">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </span>
+            <span>Fit</span>
+          </button>
+          <button id="reset-kb-btn" class="icon-btn icon-text-btn">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </span>
+            <span>Clear</span>
+          </button>
+        </div>
+        <p id="kb-status" class="kb-status"></p>
+      </div>
+
+      <!-- Tab Content: Audio -->
+      <div class="settings-tab-content" id="tab-audio">
+
+        <div class="settings-grid">
+          <div class="form-group">
+            <label>Audio Input Source</label>
+            <select id="input-device">
+              <option value="default">Default Microphone</option>
+            </select>
+          </div>
         </div>
       </div>
 

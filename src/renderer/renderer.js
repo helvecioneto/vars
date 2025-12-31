@@ -244,6 +244,9 @@ function setupEventListeners() {
     // Settings toggle (click to open/close)
     elements.settingsBtn.addEventListener('click', toggleSettings);
 
+    // Settings tabs navigation
+    setupSettingsTabs();
+
     // API Key help link
     const apiKeyHelp = document.getElementById('api-key-help');
     if (apiKeyHelp) {
@@ -251,6 +254,16 @@ function setupEventListeners() {
             e.preventDefault();
             console.log('Opening OpenAI API Key page...');
             window.electronAPI.openExternal('https://platform.openai.com/api-keys');
+        });
+    }
+
+    // Google API Key help link
+    const googleApiKeyHelp = document.getElementById('google-api-key-help');
+    if (googleApiKeyHelp) {
+        googleApiKeyHelp.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Opening Google AI Studio page...');
+            window.electronAPI.openExternal('https://aistudio.google.com/app/apikey');
         });
     }
 
@@ -280,6 +293,16 @@ function setupEventListeners() {
     }
     if (elements.resetKbBtn) {
         elements.resetKbBtn.addEventListener('click', handleResetKB);
+    }
+
+    // API Key Test Buttons (OpenAI and Google)
+    const testApiBtn = document.getElementById('test-api-btn');
+    if (testApiBtn) {
+        testApiBtn.addEventListener('click', testAPIKey);
+    }
+    const testGoogleApiBtn = document.getElementById('test-google-api-btn');
+    if (testGoogleApiBtn) {
+        testGoogleApiBtn.addEventListener('click', testAPIKey);
     }
 
     // Keyboard input submit
@@ -877,7 +900,7 @@ function applyConfigToUI() {
     if (elements.providerSelect) {
         elements.providerSelect.value = config.provider || 'openai';
     }
-    elements.modelSelect.value = config.tier || 'balanced';
+    // Tier is now managed by tier buttons (populated in populateModelOptions)
     if (elements.languageSelect) {
         elements.languageSelect.value = config.language || 'en';
     }
@@ -886,8 +909,97 @@ function applyConfigToUI() {
         elements.briefModeCheckbox.checked = config.briefMode || false;
     }
 
+    // Update API Key visibility based on provider
+    updateAPIKeyVisibility();
+
     updateFileList();
     updateModelDisplay();
+}
+
+/**
+ * Updates the visibility of API Key input fields based on the selected provider.
+ * Shows only the relevant API Key field (OpenAI or Google).
+ */
+function updateAPIKeyVisibility() {
+    const provider = elements.providerSelect?.value || 'openai';
+    const openaiKeyGroup = document.getElementById('openai-key-group');
+    const googleKeyGroup = document.getElementById('google-key-group');
+
+    if (openaiKeyGroup && googleKeyGroup) {
+        if (provider === 'google') {
+            openaiKeyGroup.classList.add('hidden');
+            googleKeyGroup.classList.remove('hidden');
+        } else {
+            openaiKeyGroup.classList.remove('hidden');
+            googleKeyGroup.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Tests the API Key connectivity for the current provider.
+ * Shows visual feedback for success/failure.
+ */
+async function testAPIKey() {
+    const testStatus = document.getElementById('api-test-status');
+    const provider = elements.providerSelect?.value || 'openai';
+
+    // Get the correct test button based on provider
+    const testBtn = provider === 'google'
+        ? document.getElementById('test-google-api-btn')
+        : document.getElementById('test-api-btn');
+
+    if (!testStatus) return;
+
+    const apiKey = provider === 'google'
+        ? elements.googleApiKeyInput?.value?.trim()
+        : elements.apiKeyInput?.value?.trim();
+
+    if (!apiKey) {
+        testStatus.textContent = 'Please enter an API key first';
+        testStatus.className = 'api-test-status error';
+        return;
+    }
+
+    // Show loading state
+    if (testBtn) {
+        testBtn.disabled = true;
+        testBtn.classList.add('testing');
+    }
+    testStatus.textContent = 'Testing...';
+    testStatus.className = 'api-test-status testing';
+
+    // Get selected tier
+    const activeTierBtn = document.querySelector('.tier-btn.active');
+    const tier = activeTierBtn?.dataset?.tier || 'balanced';
+
+    try {
+        const result = await window.electronAPI.testAPIKey(provider, apiKey, tier);
+
+        if (result.success) {
+            testStatus.textContent = '✓ Connection successful';
+            testStatus.className = 'api-test-status success';
+            if (testBtn) testBtn.classList.add('success');
+        } else {
+            testStatus.textContent = result.error || 'Connection failed';
+            testStatus.className = 'api-test-status error';
+        }
+    } catch (error) {
+        testStatus.textContent = 'Test failed: ' + error.message;
+        testStatus.className = 'api-test-status error';
+    } finally {
+        if (testBtn) {
+            testBtn.disabled = false;
+            testBtn.classList.remove('testing');
+        }
+
+        // Clear status after 5 seconds
+        setTimeout(() => {
+            testStatus.textContent = '';
+            testStatus.className = 'api-test-status';
+            if (testBtn) testBtn.classList.remove('success');
+        }, 5000);
+    }
 }
 
 function updateFileList() {
@@ -1022,6 +1134,32 @@ function toggleSettings() {
 }
 
 // ==========================================
+// Settings Tabs Navigation
+// ==========================================
+
+function setupSettingsTabs() {
+    const tabs = document.querySelectorAll('.settings-tab');
+    const tabContents = document.querySelectorAll('.settings-tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            const targetContent = document.getElementById(`tab-${targetTab}`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+}
+
+// ==========================================
 // Auto-save Settings
 // ==========================================
 
@@ -1033,7 +1171,6 @@ function setupAutoSave() {
         elements.apiKeyInput,
         elements.googleApiKeyInput,
         elements.providerSelect,
-        elements.modelSelect,
         elements.languageSelect,
         elements.systemPromptInput,
         elements.inputDeviceSelect
@@ -1045,6 +1182,11 @@ function setupAutoSave() {
             input.addEventListener('input', debounceAutoSave);
         }
     });
+
+    // Add specific listener for provider change to update API Key visibility
+    if (elements.providerSelect) {
+        elements.providerSelect.addEventListener('change', updateAPIKeyVisibility);
+    }
 }
 
 function debounceAutoSave() {
@@ -1059,7 +1201,9 @@ async function autoSaveConfig() {
     config.googleApiKey = elements.googleApiKeyInput?.value?.trim() || '';
     // Save provider and tier
     config.provider = elements.providerSelect?.value || 'openai';
-    config.tier = elements.modelSelect?.value || 'balanced';
+    // Tier is managed by tier buttons
+    const activeTierBtn = document.querySelector('.tier-btn.active');
+    config.tier = activeTierBtn?.dataset?.tier || config.tier || 'balanced';
     config.language = elements.languageSelect?.value || 'en';
     config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
@@ -1186,10 +1330,10 @@ async function populateDevices() {
 // Model Selection
 // ==========================================
 
-// Provider labels for UI display
+// Provider labels for UI display (clean text, no icons)
 const PROVIDER_LABELS = {
-    'openai': '🤖 OpenAI',
-    'google': '🔷 Google'
+    'openai': 'OpenAI',
+    'google': 'Google'
 };
 
 function getProviderLabel(provider) {
@@ -1215,49 +1359,79 @@ async function populateProviderOptions() {
         // Fallback to default options
         if (elements.providerSelect) {
             elements.providerSelect.innerHTML = `
-                <option value="openai">🤖 OpenAI</option>
-                <option value="google">🔷 Google</option>
+                <option value="openai">OpenAI</option>
+                <option value="google">Google</option>
             `;
         }
     }
 }
 
-// Tier labels for UI display
-const TIER_LABELS = {
-    'fast': '⚡ Fast',
-    'balanced': '⚖️ Balanced',
-    'quality': '🎯 Quality'
+// Tier configuration with labels and descriptions for tooltips
+const TIER_CONFIG = {
+    'fast': {
+        label: 'Fast',
+        description: 'Faster responses with good quality'
+    },
+    'balanced': {
+        label: 'Balanced',
+        description: 'Best balance of speed and quality'
+    },
+    'quality': {
+        label: 'Quality',
+        description: 'Highest quality, more detailed responses'
+    }
 };
 
 function getTierLabel(tier) {
-    return TIER_LABELS[tier] || tier;
+    return TIER_CONFIG[tier]?.label || tier;
+}
+
+function getTierDescription(tier) {
+    return TIER_CONFIG[tier]?.description || '';
 }
 
 async function populateModelOptions() {
+    const tierContainer = document.getElementById('tier-buttons');
+    if (!tierContainer) return;
+
     try {
         // Get models configuration from main process
         const modelsConfig = await window.electronAPI.getModels();
+        const tiers = modelsConfig?.tiers || ['fast', 'balanced', 'quality'];
 
-        if (elements.modelSelect && modelsConfig?.tiers) {
-            elements.modelSelect.innerHTML = '';
-            modelsConfig.tiers.forEach(tier => {
-                const option = document.createElement('option');
-                option.value = tier;
-                option.textContent = getTierLabel(tier);
-                elements.modelSelect.appendChild(option);
-            });
-        }
+        renderTierButtons(tierContainer, tiers);
     } catch (error) {
         console.error('Failed to load models configuration:', error);
-        // Fallback to default tier options
-        if (elements.modelSelect) {
-            elements.modelSelect.innerHTML = `
-                <option value="fast">⚡ Fast</option>
-                <option value="balanced" selected>⚖️ Balanced</option>
-                <option value="quality">🎯 Quality</option>
-            `;
-        }
+        // Fallback to default tiers
+        renderTierButtons(tierContainer, ['fast', 'balanced', 'quality']);
     }
+}
+
+function renderTierButtons(container, tiers) {
+    container.innerHTML = '';
+    const currentTier = config.tier || 'balanced';
+
+    tiers.forEach(tier => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `tier-btn ${tier === currentTier ? 'active' : ''}`;
+        button.dataset.tier = tier;
+        button.title = getTierDescription(tier);
+        button.textContent = getTierLabel(tier);
+
+        button.addEventListener('click', () => {
+            // Update active state
+            container.querySelectorAll('.tier-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            // Save to config
+            config.tier = tier;
+            autoSaveConfig();
+            updateModelDisplay();
+        });
+
+        container.appendChild(button);
+    });
 }
 
 function updateModelDisplay() {

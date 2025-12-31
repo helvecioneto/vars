@@ -386,6 +386,121 @@ html {
   }
 }
 
+/* Settings Tabs Navigation */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.settings-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab.active {
+  color: var(--accent-light);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.settings-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.tab-label {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+/* Tab Content */
+.settings-tab-content {
+  display: none;
+  padding: 16px;
+  animation: fade-in 0.2s ease;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+/* Section Title with Icon */
+.settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-light);
+}
+
+.section-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* Settings Grid Layout */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 400px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .settings-header {
   display: flex;
   align-items: center;
@@ -442,12 +557,183 @@ html {
   gap: 4px;
 }
 
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Tier Button Group */
+.tier-button-group {
+  display: flex;
+  gap: 6px;
+}
+
+.tier-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tier-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.tier-btn.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
+/* Dynamic API Key Groups */
+.api-key-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fade-in 0.2s ease;
+}
+
+.api-key-group.hidden {
+  display: none;
+}
+
+/* API Key Input Row */
+.api-key-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.api-key-input-row input {
+  flex: 1;
+}
+
+/* Test API Button */
+.test-api-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.test-api-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-light);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.test-api-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-api-btn.testing {
+  animation: pulse-dot 0.5s infinite;
+}
+
+.test-api-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* API Test Status */
+.api-test-status {
+  font-size: 11px;
+  min-height: 20px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.api-test-status:empty {
+  display: none;
+}
+
+.api-test-status.testing {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.api-test-status.success {
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.15);
+  font-weight: 500;
+  animation: success-pulse 0.3s ease;
+}
+
+.api-test-status.error {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@keyframes success-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Test Button Success State */
+.test-api-btn.success {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.form-group.checkbox-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group.checkbox-inline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.form-group.checkbox-inline label {
+  margin-bottom: 0;
+  cursor: pointer;
+  text-transform: none;
+  font-size: 12px;
+}
+
 .form-group label {
   font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .help-link {
@@ -565,6 +851,21 @@ html {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(139, 92, 246, 0.1);
+}
+
+/* Knowledge Base Toolbar */
+.kb-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.kb-status {
+  font-size: 11px;
+  margin-top: 8px;
+  opacity: 0.7;
+  min-height: 1.2em;
+  color: var(--text-secondary);
 }
 
 /* Scrollbar */

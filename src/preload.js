@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webFrame, shell } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 // Zoom state
 let currentZoomFactor = 1.0;
@@ -15,7 +15,7 @@ function setZoom(factor) {
 
 contextBridge.exposeInMainWorld('electronAPI', {
     platform: process.platform,
-    openExternal: (url) => shell.openExternal(url),
+    openExternal: (url) => ipcRenderer.invoke('open-external', url),
     // Configuration
     getConfig: () => ipcRenderer.invoke('get-config'),
     saveConfig: (config) => ipcRenderer.invoke('save-config', config),
@@ -67,6 +67,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Knowledge Base
     createKnowledgeBase: () => ipcRenderer.invoke('knowledge-base:create'),
     resetKnowledgeBase: () => ipcRenderer.invoke('knowledge-base:reset'),
+
+    // API Key Testing
+    testAPIKey: (provider, apiKey, tier) => ipcRenderer.invoke('test-api-key', provider, apiKey, tier),
 
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),

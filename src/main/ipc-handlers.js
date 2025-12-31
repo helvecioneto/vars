@@ -154,6 +154,54 @@ function setupIPCHandlers(context) {
     });
 
     // ==========================================
+    // API Key Test Handler
+    // ==========================================
+
+    ipcMain.handle('test-api-key', async (event, provider, apiKey, tier) => {
+        if (!apiKey) {
+            return { success: false, error: 'API key is required' };
+        }
+
+        try {
+            if (provider === 'google') {
+                // Test Google API with a simple model list request
+                const { GoogleGenerativeAI } = require('@google/generative-ai');
+                const genAI = new GoogleGenerativeAI(apiKey);
+
+                // Get the specific model for the selected tier to test availability
+                // Default to 'gemini-pro' if resolution fails, but prefer the configured model
+                let modelName = 'gemini-pro';
+                try {
+                    modelName = getModelForTier(provider, tier || 'balanced', 'analyze');
+                } catch (e) {
+                    console.warn('Failed to resolve model for tier in test, falling back to gemini-pro');
+                }
+
+                console.log(`Testing Google API with model: ${modelName}`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+
+                // Simple test - just try to get model info
+                await model.generateContent('test');
+                return { success: true };
+            } else {
+                // Test OpenAI API with a simple models list request
+                const OpenAI = require('openai');
+                const openai = new OpenAI({ apiKey });
+                await openai.models.list();
+                return { success: true };
+            }
+        } catch (error) {
+            console.error('API Key test error:', error.message);
+            return {
+                success: false,
+                error: error.message.includes('401') || error.message.includes('invalid')
+                    ? 'Invalid API key'
+                    : error.message
+            };
+        }
+    });
+
+    // ==========================================
     // Knowledge Base Handlers
     // ==========================================
 
@@ -289,6 +337,21 @@ function setupIPCHandlers(context) {
             return { text };
         } catch (error) {
             return { error: error.message };
+        }
+    });
+
+    // ==========================================
+    // External URL Handler
+    // ==========================================
+
+    ipcMain.handle('open-external', async (event, url) => {
+        const { shell } = require('electron');
+        try {
+            await shell.openExternal(url);
+            return { success: true };
+        } catch (error) {
+            console.error('Failed to open external URL:', error);
+            return { success: false, error: error.message };
         }
     });
 
