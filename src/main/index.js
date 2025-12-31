@@ -1,6 +1,6 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, session, systemPreferences } = require('electron');
 const path = require('path');
-const { loadConfig, saveConfig, getDefaultConfig, getModels } = require('./config');
+const { loadConfig, saveConfig, getDefaultConfig, getModels, getTierConfig, getModelForTier } = require('./config');
 const {
     transcribeAudio,
     getSmartAIResponse,
@@ -9,7 +9,9 @@ const {
     updateAssistantVectorStore,
     resetKnowledgeBase
 } = require('./openai');
+const { transcribeAudioGoogle, getGoogleAIResponse } = require('./google');
 const { RealtimeTranscription } = require('./realtime');
+const { GeminiRealtimeTranscription } = require('./google-realtime');
 
 
 // Set App Name explicitly for dev mode
@@ -244,12 +246,25 @@ function setupIPC() {
 
     // Transcribe audio
     ipcMain.handle('transcribe-audio', async (event, audioBuffer) => {
-        if (!config.apiKey) {
-            return { error: 'API key not configured' };
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         }
 
         try {
-            const transcription = await transcribeAudio(audioBuffer, config.apiKey, config.whisperModel || 'whisper-1');
+            // Get transcription model from tier config
+            const tier = config.tier || 'balanced';
+            const transcribeModel = getModelForTier(provider, tier, 'transcribe');
+
+            let transcription;
+            if (provider === 'google') {
+                transcription = await transcribeAudioGoogle(audioBuffer, apiKey, transcribeModel);
+            } else {
+                transcription = await transcribeAudio(audioBuffer, apiKey, transcribeModel);
+            }
+
             return { text: transcription };
         } catch (error) {
             return { error: error.message };
@@ -258,31 +273,58 @@ function setupIPC() {
 
     // Get AI response
     ipcMain.handle('get-ai-response', async (event, transcription) => {
-        if (!config.apiKey) {
-            return { error: 'API key not configured' };
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         }
 
         try {
-            const result = await getSmartAIResponse({
-                transcription,
-                params: {
-                    apiKey: config.apiKey,
-                    model: config.model || 'gpt-4o-mini',
-                    systemPrompt: config.systemPrompt,
-                    language: config.language || 'en',
-                    history: config.conversationHistory || [],
-                    assistantId: config.assistantId,
-                    vectorStoreId: config.vectorStoreId,
-                    threadId: config.threadId,
-                    knowledgeBasePaths: config.knowledgeBasePaths || [],
-                    briefMode: config.briefMode || false
-                }
-            });
+            // Get model and config from tier
+            const tier = config.tier || 'balanced';
+            const analyzeModel = getModelForTier(provider, tier, 'analyze');
+            const tierConfig = getTierConfig(provider, tier);
 
-            // If a threadId was returned (Assistant used), save it
-            if (result.threadId && result.threadId !== config.threadId) {
-                config.threadId = result.threadId;
-                saveConfig(config); // Save asynchronously
+            let result;
+
+            if (provider === 'google') {
+                // Use Google Gemini
+                result = await getGoogleAIResponse({
+                    transcription,
+                    params: {
+                        apiKey: apiKey,
+                        model: analyzeModel,
+                        systemPrompt: config.systemPrompt,
+                        language: config.language || 'en',
+                        history: config.conversationHistory || [],
+                        tierConfig: tierConfig
+                    }
+                });
+            } else {
+                // Use OpenAI
+                result = await getSmartAIResponse({
+                    transcription,
+                    params: {
+                        apiKey: apiKey,
+                        model: analyzeModel,
+                        systemPrompt: config.systemPrompt,
+                        language: config.language || 'en',
+                        history: config.conversationHistory || [],
+                        assistantId: config.assistantId,
+                        vectorStoreId: config.vectorStoreId,
+                        threadId: config.threadId,
+                        knowledgeBasePaths: config.knowledgeBasePaths || [],
+                        briefMode: config.briefMode || false,
+                        tierConfig: tierConfig
+                    }
+                });
+
+                // If a threadId was returned (Assistant used), save it
+                if (result.threadId && result.threadId !== config.threadId) {
+                    config.threadId = result.threadId;
+                    saveConfig(config); // Save asynchronously
+                }
             }
 
             return { response: result.response };
@@ -342,8 +384,14 @@ function setupIPC() {
 
     // Realtime transcription - Start session
     ipcMain.handle('realtime-start', async () => {
-        if (!config.apiKey) {
-            return { error: 'API key not configured' };
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        console.log('[Realtime] Provider from config:', provider);
+        console.log('[Realtime] API Key prefix:', apiKey ? apiKey.substring(0, 10) + '...' : 'NOT SET');
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         }
 
         try {
@@ -352,7 +400,14 @@ function setupIPC() {
                 realtimeClient.disconnect();
             }
 
-            realtimeClient = new RealtimeTranscription(config.apiKey);
+            // Create appropriate realtime client based on provider
+            if (provider === 'google') {
+                console.log('[Realtime] Using Google Gemini Live API');
+                realtimeClient = new GeminiRealtimeTranscription(apiKey);
+            } else {
+                console.log('[Realtime] Using OpenAI Realtime API');
+                realtimeClient = new RealtimeTranscription(apiKey);
+            }
 
             // Set up transcription callback to send to renderer
             realtimeClient.onTranscription((text, isFinal) => {
@@ -368,7 +423,7 @@ function setupIPC() {
             });
 
             await realtimeClient.connect();
-            return { success: true };
+            return { success: true, provider };
         } catch (error) {
             console.error('Realtime start error:', error);
             return { error: error.message };

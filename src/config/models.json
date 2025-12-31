@@ -1,33 +1,59 @@
 {
-    "chat": {
-        "default": "gpt-4o",
-        "options": [
-            "gpt-5-nano",
-            "gpt-5.2-chat-latest",
-            "gpt-4o"
-        ]
+    "providers": {
+        "openai": {
+            "fast": {
+                "analyze": "gpt-4o-mini",
+                "transcribe": "gpt-4o-mini-transcribe",
+                "temperature": 0.5,
+                "maxOutputTokens": 500
+            },
+            "balanced": {
+                "analyze": "gpt-4o",
+                "transcribe": "gpt-4o-transcribe",
+                "temperature": 0.4,
+                "maxOutputTokens": 1500
+            },
+            "quality": {
+                "analyze": "gpt-4o",
+                "transcribe": "gpt-4o-transcribe",
+                "temperature": 0.3,
+                "maxOutputTokens": 2048
+            },
+            "realtime": "gpt-4o-transcribe",
+            "assistant": "gpt-4o-mini"
+        },
+        "google": {
+            "fast": {
+                "analyze": "gemini-2.0-flash",
+                "transcribe": "gemini-2.0-flash",
+                "temperature": 0.5,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 500
+            },
+            "balanced": {
+                "analyze": "gemini-2.0-flash",
+                "transcribe": "gemini-2.0-flash",
+                "temperature": 0.4,
+                "topK": 32,
+                "topP": 1,
+                "maxOutputTokens": 1500
+            },
+            "quality": {
+                "analyze": "gemini-2.0-flash",
+                "transcribe": "gemini-2.0-flash",
+                "temperature": 0.3,
+                "topK": 20,
+                "topP": 1,
+                "maxOutputTokens": 2048
+            }
+        }
     },
-    "transcription": {
-        "default": "gpt-4o-mini-transcribe",
-        "options": [
-            "gpt-4o-mini-transcribe",
-            "gpt-4o-transcribe",
-            "whisper-1"
-        ]
-    },
-    "assistant": {
-        "default": "gpt-4o-mini",
-        "description": "Model for Assistants API (requires tool support like file_search)"
-    },
-    "realtime": {
-        "transcription": "gpt-4o-transcribe",
-        "description": "Model for Realtime API transcription sessions"
-    },
-    "assistant_unsupported_models": [
-        "gpt-5.2-chat-latest",
-        "gpt-5-mini",
-        "o1",
-        "o1-pro",
-        "gpt-5-nano"
-    ]
+    "tiers": [
+        "fast",
+        "balanced",
+        "quality"
+    ],
+    "defaultProvider": "openai",
+    "defaultTier": "balanced"
 }

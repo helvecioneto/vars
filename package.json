@@ -53,6 +53,7 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "openai": "^4.52.0",
     "ws": "^8.18.3"
   }

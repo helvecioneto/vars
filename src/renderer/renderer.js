@@ -17,6 +17,11 @@ let isZooming = false; // Flag to pause auto-resize during zoom operations
 let zoomTimeout = null;
 let historyIndex = -1; // -1 = current/live, 0 = oldest, 1 = middle, 2 = newest
 
+// Realtime audio streaming
+let realtimeActive = false;
+let audioContext = null;
+let scriptProcessor = null;
+
 
 // DOM Elements
 const elements = {
@@ -55,6 +60,8 @@ const elements = {
 
     // Settings inputs
     apiKeyInput: document.getElementById('api-key'),
+    googleApiKeyInput: document.getElementById('google-api-key'),
+    providerSelect: document.getElementById('provider-select'),
     modelSelect: document.getElementById('model-select'),
     languageSelect: document.getElementById('language-select'),
     systemPromptInput: document.getElementById('system-prompt'),
@@ -104,7 +111,8 @@ async function init() {
     config = await window.electronAPI.getConfig();
     currentInputMode = config.inputMode || 'system';
 
-    // Populate model options from config
+    // Populate provider and model options from config
+    await populateProviderOptions();
     await populateModelOptions();
 
     applyConfigToUI();
@@ -557,11 +565,10 @@ async function startRecording() {
     }
 
     try {
-        // Permission is now requested at app startup, so we just check if it was granted
-        // No need to call requestMicrophoneAccess again as it may trigger duplicate prompts
-
         // Get device ID from config
         const deviceId = config.inputDeviceId !== 'default' ? config.inputDeviceId : undefined;
+        const provider = config.provider || 'openai';
+        const sampleRate = provider === 'google' ? 16000 : 24000;
 
         const constraints = {
             audio: {
@@ -569,7 +576,7 @@ async function startRecording() {
                 echoCancellation: false,
                 noiseSuppression: false,
                 autoGainControl: true,
-                sampleRate: 16000
+                sampleRate: sampleRate
             }
         };
 
@@ -587,7 +594,7 @@ async function startRecording() {
         audioChunks = [];
         showTranscription('🎙️ Listening...');
 
-        // Setup MediaRecorder
+        // Setup MediaRecorder for batch fallback
         const audioStream = new MediaStream(audioTracks);
         mediaRecorder = new MediaRecorder(audioStream, {
             mimeType: 'audio/webm;codecs=opus'
@@ -600,7 +607,6 @@ async function startRecording() {
         };
 
         mediaRecorder.onstop = async () => {
-            // Clear interval
             if (transcriptionInterval) {
                 clearInterval(transcriptionInterval);
                 transcriptionInterval = null;
@@ -608,15 +614,14 @@ async function startRecording() {
             await finalizeRecording();
         };
 
-        // Start recording - collect data every second for smooth processing
         mediaRecorder.start(1000);
 
-        // Transcribe every 5 seconds while recording
+        // Batch transcription mode (every 2 seconds)
         transcriptionInterval = setInterval(async () => {
             if (isRecording && audioChunks.length > 0 && !isTranscribing) {
                 await transcribeCurrentAudio();
             }
-        }, 5000);
+        }, 2000);
 
         updateStatus('🎙️ Recording...', 'recording');
 
@@ -626,6 +631,173 @@ async function startRecording() {
         isRecording = false;
         updateRecordingUI();
     }
+}
+
+// Safe realtime streaming with throttled audio sending
+async function tryStartSafeRealtimeStreaming(stream, sampleRate) {
+    try {
+        // Start realtime transcription session
+        const realtimeResult = await window.electronAPI.realtimeStart();
+
+        if (realtimeResult.error) {
+            console.warn('[Realtime] Failed to start:', realtimeResult.error);
+            return false;
+        }
+
+        realtimeActive = true;
+        console.log('[Realtime] Started with provider:', realtimeResult.provider);
+
+        // Setup transcription listener
+        window.electronAPI.onRealtimeTranscription((data) => {
+            if (data.text) {
+                fullTranscription = data.text;
+                showTranscription(fullTranscription + (data.isFinal ? '' : ' ▌'));
+            }
+        });
+
+        window.electronAPI.onRealtimeError((data) => {
+            console.error('[Realtime] Error:', data.error);
+        });
+
+        // Setup AudioContext for streaming
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sampleRate });
+        const source = audioContext.createMediaStreamSource(stream);
+
+        // Create ScriptProcessor to capture audio
+        const bufferSize = 4096;
+        scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+        // Audio buffer for throttling
+        let audioBuffer = [];
+
+        scriptProcessor.onaudioprocess = (event) => {
+            if (!realtimeActive) return;
+
+            const inputData = event.inputBuffer.getChannelData(0);
+
+            // Convert float32 to int16 PCM and add to buffer
+            const pcmData = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                const s = Math.max(-1, Math.min(1, inputData[i]));
+                pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+
+            audioBuffer.push(...new Uint8Array(pcmData.buffer));
+        };
+
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+
+        // Send audio buffer every 500ms (throttled to avoid freeze)
+        const sendInterval = setInterval(() => {
+            if (!realtimeActive || audioBuffer.length === 0) return;
+
+            // Send accumulated audio
+            window.electronAPI.realtimeAudio(audioBuffer);
+            audioBuffer = [];
+        }, 500);
+
+        // Store interval for cleanup
+        window._realtimeSendInterval = sendInterval;
+
+        return true;
+
+    } catch (error) {
+        console.warn('[Realtime] Exception:', error.message);
+        return false;
+    }
+}
+
+// Try to start realtime transcription - falls back to batch mode if fails
+async function tryStartRealtimeTranscription(stream) {
+    // Always start batch mode as backup after 3 seconds if no realtime transcriptions received
+    const batchFallbackTimeout = setTimeout(() => {
+        if (!transcriptionInterval && isRecording) {
+            console.log('[Realtime] No transcriptions received, starting batch mode as backup');
+            startBatchTranscription();
+        }
+    }, 3000);
+
+    try {
+        // Start realtime transcription session
+        const realtimeResult = await window.electronAPI.realtimeStart();
+
+        if (realtimeResult.error) {
+            console.warn('[Realtime] Failed to start, using batch mode:', realtimeResult.error);
+            clearTimeout(batchFallbackTimeout);
+            startBatchTranscription();
+            return;
+        }
+
+        realtimeActive = true;
+        console.log('[Realtime] Started with provider:', realtimeResult.provider);
+
+        // Setup realtime transcription listeners
+        window.electronAPI.onRealtimeTranscription((data) => {
+            // Clear fallback timeout once we receive first transcription
+            clearTimeout(batchFallbackTimeout);
+
+            if (data.text) {
+                fullTranscription = data.text;
+                showTranscription(fullTranscription + (data.isFinal ? '' : ' ▌'));
+            }
+        });
+
+        window.electronAPI.onRealtimeError((data) => {
+            console.error('[Realtime] Error:', data.error);
+            clearTimeout(batchFallbackTimeout);
+            // Fall back to batch mode on error
+            if (!transcriptionInterval) {
+                console.log('[Realtime] Falling back to batch mode');
+                startBatchTranscription();
+            }
+        });
+
+        // Use 16kHz for Google, 24kHz for OpenAI
+        const provider = config.provider || 'openai';
+        const sampleRate = provider === 'google' ? 16000 : 24000;
+
+        // Setup AudioContext for streaming PCM
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sampleRate });
+        const source = audioContext.createMediaStreamSource(stream);
+
+        const bufferSize = 4096;
+        scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+        scriptProcessor.onaudioprocess = (event) => {
+            if (!realtimeActive) return;
+
+            const inputData = event.inputBuffer.getChannelData(0);
+
+            // Convert float32 to int16 PCM
+            const pcmData = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                const s = Math.max(-1, Math.min(1, inputData[i]));
+                pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+
+            // Send PCM chunk to realtime API
+            window.electronAPI.realtimeAudio(Array.from(new Uint8Array(pcmData.buffer)));
+        };
+
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+
+    } catch (error) {
+        console.warn('[Realtime] Exception, using batch mode:', error.message);
+        startBatchTranscription();
+    }
+}
+
+// Fallback batch transcription (5-second intervals)
+function startBatchTranscription() {
+    if (transcriptionInterval) return; // Already running
+
+    transcriptionInterval = setInterval(async () => {
+        if (isRecording && audioChunks.length > 0 && !isTranscribing) {
+            await transcribeCurrentAudio();
+        }
+    }, 5000);
 }
 
 async function transcribeCurrentAudio() {
@@ -662,6 +834,28 @@ function stopRecording() {
     if (transcriptionInterval) {
         clearInterval(transcriptionInterval);
         transcriptionInterval = null;
+    }
+
+    // Stop realtime streaming
+    if (realtimeActive) {
+        realtimeActive = false;
+        window.electronAPI.realtimeStop();
+    }
+
+    // Clear realtime send interval
+    if (window._realtimeSendInterval) {
+        clearInterval(window._realtimeSendInterval);
+        window._realtimeSendInterval = null;
+    }
+
+    // Cleanup AudioContext
+    if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
     }
 
     // Stop MediaRecorder
@@ -834,7 +1028,15 @@ function escapeHtml(text) {
 
 function applyConfigToUI() {
     elements.apiKeyInput.value = config.apiKey || '';
-    elements.modelSelect.value = config.model || 'gpt-4o-mini';
+    // Google API Key
+    if (elements.googleApiKeyInput) {
+        elements.googleApiKeyInput.value = config.googleApiKey || '';
+    }
+    // Set provider and tier
+    if (elements.providerSelect) {
+        elements.providerSelect.value = config.provider || 'openai';
+    }
+    elements.modelSelect.value = config.tier || 'balanced';
     if (elements.languageSelect) {
         elements.languageSelect.value = config.language || 'en';
     }
@@ -988,6 +1190,8 @@ function setupAutoSave() {
     // Add change listeners to all settings inputs
     const inputs = [
         elements.apiKeyInput,
+        elements.googleApiKeyInput,
+        elements.providerSelect,
         elements.modelSelect,
         elements.languageSelect,
         elements.systemPromptInput,
@@ -1011,7 +1215,10 @@ async function autoSaveConfig() {
     if (saveTimeout) clearTimeout(saveTimeout);
 
     config.apiKey = elements.apiKeyInput?.value?.trim() || '';
-    config.model = elements.modelSelect?.value || 'gpt-4o-mini';
+    config.googleApiKey = elements.googleApiKeyInput?.value?.trim() || '';
+    // Save provider and tier
+    config.provider = elements.providerSelect?.value || 'openai';
+    config.tier = elements.modelSelect?.value || 'balanced';
     config.language = elements.languageSelect?.value || 'en';
     config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
@@ -1138,19 +1345,51 @@ async function populateDevices() {
 // Model Selection
 // ==========================================
 
-// Model labels for UI display
-// Helper to generate dynamic model labels
-function getModelLabel(model) {
-    if (model.includes('mini') || model.includes('nano') || model.includes('instant') || model.includes('fast')) {
-        return `${model} (Fast)`;
+// Provider labels for UI display
+const PROVIDER_LABELS = {
+    'openai': '🤖 OpenAI',
+    'google': '🔷 Google'
+};
+
+function getProviderLabel(provider) {
+    return PROVIDER_LABELS[provider] || provider;
+}
+
+async function populateProviderOptions() {
+    try {
+        // Get models configuration from main process
+        const modelsConfig = await window.electronAPI.getModels();
+
+        if (elements.providerSelect && modelsConfig?.providers) {
+            elements.providerSelect.innerHTML = '';
+            Object.keys(modelsConfig.providers).forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = getProviderLabel(provider);
+                elements.providerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load providers configuration:', error);
+        // Fallback to default options
+        if (elements.providerSelect) {
+            elements.providerSelect.innerHTML = `
+                <option value="openai">🤖 OpenAI</option>
+                <option value="google">🔷 Google</option>
+            `;
+        }
     }
-    if (model.includes('thinking') || model.startsWith('o1') || model.includes('reasoning')) {
-        return `${model} (Thinking)`;
-    }
-    if (model.includes('legacy')) {
-        return `${model} (Legacy)`;
-    }
-    return `${model} (Balanced)`;
+}
+
+// Tier labels for UI display
+const TIER_LABELS = {
+    'fast': '⚡ Fast',
+    'balanced': '⚖️ Balanced',
+    'quality': '🎯 Quality'
+};
+
+function getTierLabel(tier) {
+    return TIER_LABELS[tier] || tier;
 }
 
 async function populateModelOptions() {
@@ -1158,32 +1397,32 @@ async function populateModelOptions() {
         // Get models configuration from main process
         const modelsConfig = await window.electronAPI.getModels();
 
-        if (elements.modelSelect && modelsConfig?.chat?.options) {
+        if (elements.modelSelect && modelsConfig?.tiers) {
             elements.modelSelect.innerHTML = '';
-            modelsConfig.chat.options.forEach(model => {
+            modelsConfig.tiers.forEach(tier => {
                 const option = document.createElement('option');
-                option.value = model;
-                option.textContent = getModelLabel(model);
+                option.value = tier;
+                option.textContent = getTierLabel(tier);
                 elements.modelSelect.appendChild(option);
             });
         }
     } catch (error) {
         console.error('Failed to load models configuration:', error);
-        // Fallback to default options
+        // Fallback to default tier options
         if (elements.modelSelect) {
             elements.modelSelect.innerHTML = `
-                <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
-                <option value="gpt-4o">GPT-4o (Balanced)</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo (Best)</option>
+                <option value="fast">⚡ Fast</option>
+                <option value="balanced" selected>⚖️ Balanced</option>
+                <option value="quality">🎯 Quality</option>
             `;
         }
     }
 }
 
 function updateModelDisplay() {
-    const currentModel = config.model || 'gpt-4o-mini';
+    const currentTier = config.tier || 'balanced';
     if (elements.statusModel) {
-        elements.statusModel.textContent = currentModel;
+        elements.statusModel.textContent = getTierLabel(currentTier);
     }
 }
 

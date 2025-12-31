@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const { getModels, getPrompts } = require('./config');
+const { getModels, getPrompts, getSpecialModel } = require('./config');
 
 class RealtimeTranscription {
     constructor(apiKey) {
@@ -13,10 +13,9 @@ class RealtimeTranscription {
 
     async connect() {
         return new Promise((resolve, reject) => {
-            const models = getModels();
             const prompts = getPrompts();
-            // Use model from centralized config
-            const realtimeModel = models.realtime.transcription;
+            // Use realtime model from provider config
+            const realtimeModel = getSpecialModel('openai', 'realtime') || 'gpt-4o-transcribe';
             const url = `wss://api.openai.com/v1/realtime?model=${realtimeModel}`;
 
             this.ws = new WebSocket(url, {

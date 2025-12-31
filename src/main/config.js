@@ -18,6 +18,67 @@ function getPrompts() {
     return prompts;
 }
 
+/**
+ * Get available tiers
+ */
+function getTiers() {
+    return models.tiers || ['fast', 'balanced', 'quality'];
+}
+
+/**
+ * Get available providers
+ */
+function getProviders() {
+    return Object.keys(models.providers || { openai: {} });
+}
+
+/**
+ * Get model configuration for a specific provider, tier, and type
+ * @param {string} provider - 'openai' or 'google'
+ * @param {string} tier - 'fast', 'balanced', or 'quality'
+ * @param {string} type - 'analyze' or 'transcribe'
+ * @returns {string} Model name
+ */
+function getModelForTier(provider = 'openai', tier = 'balanced', type = 'analyze') {
+    const providerConfig = models.providers?.[provider];
+    if (!providerConfig) {
+        console.warn(`Provider not found: ${provider}, falling back to openai`);
+        return models.providers?.openai?.[tier]?.[type] || 'gpt-4o';
+    }
+
+    const tierConfig = providerConfig[tier];
+    if (!tierConfig) {
+        console.warn(`Tier not found: ${tier}, falling back to balanced`);
+        return providerConfig.balanced?.[type] || 'gpt-4o';
+    }
+
+    return tierConfig[type] || 'gpt-4o';
+}
+
+/**
+ * Get full tier configuration with all parameters
+ * @param {string} provider - 'openai' or 'google'
+ * @param {string} tier - 'fast', 'balanced', or 'quality'
+ * @returns {object} Full tier config including temperature, maxOutputTokens, etc.
+ */
+function getTierConfig(provider = 'openai', tier = 'balanced') {
+    const providerConfig = models.providers?.[provider];
+    if (!providerConfig) {
+        return models.providers?.openai?.balanced || {};
+    }
+    return providerConfig[tier] || providerConfig.balanced || {};
+}
+
+/**
+ * Get special model (realtime, assistant) for a provider
+ * @param {string} provider - 'openai' or 'google'
+ * @param {string} type - 'realtime' or 'assistant'
+ * @returns {string} Model name
+ */
+function getSpecialModel(provider = 'openai', type = 'realtime') {
+    return models.providers?.[provider]?.[type] || null;
+}
+
 function getPromptForLanguage(promptPath, language = 'en') {
     // Navigate the prompt path (e.g., 'defaults.systemPrompt')
     const parts = promptPath.split('.');
@@ -35,10 +96,18 @@ function getPromptForLanguage(promptPath, language = 'en') {
 
 function getDefaultConfig() {
     const defaultLanguage = 'en';
+    const defaultProvider = models.defaultProvider || 'openai';
+    const defaultTier = models.defaultTier || 'balanced';
+
     return {
         apiKey: '',
-        model: models.chat.default,
-        whisperModel: models.transcription.default,
+        googleApiKey: '', // Separate API key for Google Gemini
+        // New tier-based model selection
+        provider: defaultProvider,
+        tier: defaultTier,
+        // Legacy fields kept for backward compatibility
+        model: getModelForTier(defaultProvider, defaultTier, 'analyze'),
+        whisperModel: getModelForTier(defaultProvider, defaultTier, 'transcribe'),
         systemPrompt: getPromptForLanguage('defaults.systemPrompt', defaultLanguage),
         knowledgeBasePaths: [],
         // Language for AI responses: 'en', 'es', 'pt-br'
@@ -69,6 +138,18 @@ async function loadConfig() {
         await ensureConfigDir();
         const data = await fs.readFile(CONFIG_FILE, 'utf-8');
         const savedConfig = JSON.parse(data);
+
+        // Migration: if old config doesn't have tier/provider, derive from model
+        if (!savedConfig.tier && savedConfig.model) {
+            // Try to detect tier from old model
+            if (savedConfig.model.includes('mini') || savedConfig.model.includes('fast')) {
+                savedConfig.tier = 'fast';
+            } else {
+                savedConfig.tier = 'balanced';
+            }
+            savedConfig.provider = 'openai';
+        }
+
         return { ...getDefaultConfig(), ...savedConfig };
     } catch (error) {
         // Config doesn't exist, return defaults
@@ -88,6 +169,11 @@ module.exports = {
     getModels,
     getPrompts,
     getPromptForLanguage,
+    getTiers,
+    getProviders,
+    getModelForTier,
+    getTierConfig,
+    getSpecialModel,
     CONFIG_DIR,
     CONFIG_FILE
 };

@@ -3,7 +3,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const os = require('os');
-const { getModels, getPrompts, getPromptForLanguage } = require('./config');
+const { getModels, getPrompts, getPromptForLanguage, getTierConfig, getSpecialModel } = require('./config');
 
 // Helper to get initialized client
 function getClient(apiKey) {
@@ -63,11 +63,12 @@ async function initializeAssistant(apiKey, currentAssistantId) {
 
     // Create new assistant if needed
     const prompts = getPrompts();
-    const models = getModels();
+    // Use the special 'assistant' model from provider config
+    const assistantModel = getSpecialModel('openai', 'assistant') || 'gpt-4o-mini';
     assistant = await openai.beta.assistants.create({
         name: prompts.assistant.name,
         instructions: prompts.assistant.instructions['en'], // Default to English for assistant creation
-        model: models.assistant.default, // Must be a model that supports tools
+        model: assistantModel, // Must be a model that supports tools
         tools: [{ type: "file_search" }]
     });
 
@@ -288,7 +289,7 @@ async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, 
 // Legacy / Standard Chat Completion
 // ==========================================
 
-async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = []) {
+async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}) {
     const openai = getClient(apiKey);
 
     // Get language instruction from configuration
@@ -306,6 +307,10 @@ async function getChatCompletionResponse(transcription, apiKey, model, systemPro
         }
     ];
 
+    // Use tier config for parameters, with fallbacks
+    const temperature = tierConfig.temperature ?? 0.7;
+    const maxOutputTokens = tierConfig.maxOutputTokens ?? 1000;
+
     const params = {
         model: model,
         messages: messages
@@ -313,11 +318,11 @@ async function getChatCompletionResponse(transcription, apiKey, model, systemPro
 
     // Newer models (GPT-5+, o1) use max_completion_tokens and default temperature
     if (model.startsWith('gpt-5') || model.startsWith('o1') || model.includes('thinking')) {
-        params.max_completion_tokens = 1000;
-        params.temperature = 1;
+        params.max_completion_tokens = maxOutputTokens;
+        params.temperature = 1; // These models require temperature=1
     } else {
-        params.max_tokens = 1000;
-        params.temperature = 0.7;
+        params.max_tokens = maxOutputTokens;
+        params.temperature = temperature;
     }
 
     const completion = await openai.chat.completions.create(params);
@@ -330,19 +335,19 @@ async function getSmartAIResponse({
     transcription, params
 }) {
     const { apiKey, model, systemPrompt, language, history,
-        assistantId, vectorStoreId, threadId, knowledgeBasePaths, briefMode } = params;
+        assistantId, vectorStoreId, threadId, knowledgeBasePaths, briefMode, tierConfig } = params;
 
     // Use Assistant if a Knowledge Base is active (vectorStoreId is present)
     // AND we have an assistantId
-    console.log('[DEBUG] SmartAI Params:', { assistantId, vectorStoreId, model, briefMode });
+    console.log('[DEBUG] SmartAI Params:', { assistantId, vectorStoreId, model, briefMode, tierConfig });
 
     if (assistantId && vectorStoreId) {
         console.log('[DEBUG] Using Assistant API');
         return await getAssistantResponse(apiKey, assistantId, threadId, transcription, model, systemPrompt, knowledgeBasePaths, briefMode, language);
     } else {
         console.log('[DEBUG] Using Chat Completion API');
-        // Fallback to standard chat completion
-        const response = await getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language, history);
+        // Fallback to standard chat completion with tier config for parameters
+        const response = await getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language, history, tierConfig || {});
         return { response, threadId: null };
     }
 }

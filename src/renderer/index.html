@@ -108,14 +108,23 @@
       <!-- Settings Header with Drag Button -->
 
       <div class="settings-content">
-        <!-- API Section -->
         <div class="settings-section">
           <div class="form-group">
-            <label>API Key <a href="#" id="api-key-help" class="help-link">💡: Get API Key from OpenAI</a></label>
+            <label>OpenAI API Key <a href="#" id="api-key-help" class="help-link">💡: Get Key</a></label>
             <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
           </div>
           <div class="form-group">
-            <label>Model</label>
+            <label>Google API Key <a href="#" id="google-api-key-help" class="help-link">💡: Get Key</a></label>
+            <input type="password" id="google-api-key" placeholder="AIzaSy..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="provider-select">
+              <!-- Options populated dynamically from models.json -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Quality Tier</label>
             <select id="model-select">
               <!-- Options populated dynamically from models.json -->
             </select>
