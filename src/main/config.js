@@ -121,7 +121,7 @@ function getDefaultConfig() {
         assistantId: null,
         vectorStoreId: null,
         threadId: null,
-        briefMode: false // Force short answers
+        briefMode: true // Force short answers
     };
 }
 

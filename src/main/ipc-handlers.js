@@ -117,7 +117,8 @@ function setupIPCHandlers(context) {
                         systemPrompt: config.systemPrompt,
                         language: config.language || 'en',
                         history: config.conversationHistory || [],
-                        tierConfig: tierConfig
+                        tierConfig: tierConfig,
+                        briefMode: config.briefMode || false
                     }
                 });
             } else {

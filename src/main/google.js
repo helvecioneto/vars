@@ -78,14 +78,14 @@ async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-fl
  * @param {object} tierConfig - Tier-specific parameters
  * @returns {string} AI response
  */
-async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}) {
+async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}, briefMode = false) {
     const genAI = getGoogleClient(apiKey);
 
     // Get language instruction from configuration
     const langInstructions = getPromptForLanguage('language.responseInstruction', language);
 
     // Build system instruction
-    const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant.') + langInstructions;
+    const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant.') + langInstructions + (briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '');
 
     // Configure generation parameters from tier config
     const generationConfig = {
@@ -142,7 +142,8 @@ async function getGoogleAIResponse({ transcription, params }) {
             systemPrompt,
             language,
             history,
-            tierConfig || {}
+            tierConfig || {},
+            params.briefMode || false
         );
 
         return { response, threadId: null };

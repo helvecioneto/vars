@@ -289,7 +289,7 @@ async function getAssistantResponse(apiKey, assistantId, threadId, userMessage, 
 // Legacy / Standard Chat Completion
 // ==========================================
 
-async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}) {
+async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}, briefMode = false) {
     const openai = getClient(apiKey);
 
     // Get language instruction from configuration
@@ -298,7 +298,7 @@ async function getChatCompletionResponse(transcription, apiKey, model, systemPro
     const messages = [
         {
             role: 'system',
-            content: (systemPrompt || 'You are a helpful assistant.') + langInstructions
+            content: (systemPrompt || 'You are a helpful assistant.') + langInstructions + (briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '')
         },
         ...(history || []),
         {
@@ -347,7 +347,7 @@ async function getSmartAIResponse({
     } else {
         console.log('[DEBUG] Using Chat Completion API');
         // Fallback to standard chat completion with tier config for parameters
-        const response = await getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language, history, tierConfig || {});
+        const response = await getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language, history, tierConfig || {}, briefMode);
         return { response, threadId: null };
     }
 }

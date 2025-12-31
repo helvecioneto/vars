@@ -1208,6 +1208,7 @@ async function autoSaveConfig() {
     config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
     config.inputMode = currentInputMode;
+    config.briefMode = elements.briefModeCheckbox?.checked || false;
     // conversationHistory is already in config, preserved automatically
 
 
