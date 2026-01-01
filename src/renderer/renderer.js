@@ -641,17 +641,26 @@ async function captureLinuxSystemAudio(sampleRate) {
  */
 async function captureDesktopAudio(sampleRate) {
     try {
+        // Check if a screen source is configured
+        const configuredSource = config.systemAudioDeviceId;
+        
         const sources = await window.electronAPI.getDesktopSources();
         
         if (!sources || sources.length === 0) {
             throw new Error('No capture sources available');
         }
         
-        // Find the first screen source
-        const screenSource = sources.find(s => s.id.startsWith('screen:'));
+        // Find the configured source or use the first screen source
+        let screenSource;
+        if (configuredSource) {
+            screenSource = sources.find(s => s.id === configuredSource);
+        }
+        if (!screenSource) {
+            screenSource = sources.find(s => s.id.startsWith('screen:'));
+        }
         
         if (!screenSource) {
-            throw new Error('No screen source available');
+            throw new Error('No screen source available.\n\nPlease go to Settings > Audio and select a screen source.');
         }
         
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1654,65 +1663,74 @@ async function populateDevices() {
 // ==========================================
 
 async function populateSystemAudioDevices() {
-    console.log('[Settings] Populating system audio devices...');
-    
     if (!elements.systemAudioDeviceSelect) return;
     
     elements.systemAudioDeviceSelect.innerHTML = '<option value="">Loading...</option>';
     
+    const platform = window.electronAPI.platform;
+    
     try {
-        // Use the Main Process API to list PulseAudio/PipeWire devices
-        const result = await window.electronAPI.systemAudio.listDevices();
+        let devices = [];
         
-        if (result.error) {
-            console.error('[Settings] Error from system audio API:', result.error);
-            elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error: ' + result.error + '</option>';
-            return;
+        if (platform === 'linux') {
+            // Linux: Use PulseAudio/PipeWire API
+            const result = await window.electronAPI.systemAudio.listDevices();
+            
+            if (result.error) {
+                console.error('[Settings] Error from system audio API:', result.error);
+                elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error: ' + result.error + '</option>';
+                return;
+            }
+            
+            devices = result.devices || [];
+            
+            // Filter to monitors only for Linux
+            devices = devices.filter(d => d.isMonitor);
+            
+        } else {
+            // macOS/Windows: Use desktopCapturer to list screen sources
+            const sources = await window.electronAPI.getDesktopSources();
+            
+            if (sources && sources.length > 0) {
+                // Create virtual device entries for screen sources
+                devices = sources
+                    .filter(s => s.id.startsWith('screen:'))
+                    .map(s => ({
+                        id: s.id,
+                        name: s.id,
+                        displayName: s.name + ' (System Audio)',
+                        isMonitor: true
+                    }));
+            }
         }
-        
-        const devices = result.devices || [];
-        console.log('[Settings] System audio devices:', devices.length);
-        devices.forEach((d, i) => {
-            console.log(`  ${i}: "${d.displayName}" | Name: ${d.name} | Monitor: ${d.isMonitor}`);
-        });
         
         elements.systemAudioDeviceSelect.innerHTML = '';
         
         if (devices.length === 0) {
-            elements.systemAudioDeviceSelect.innerHTML = '<option value="">No devices found - is PulseAudio running?</option>';
+            const noDeviceMsg = platform === 'linux' 
+                ? 'No monitor devices found - is PulseAudio running?'
+                : 'No screen sources found';
+            elements.systemAudioDeviceSelect.innerHTML = '<option value="">' + noDeviceMsg + '</option>';
             return;
         }
         
         // Add a default option
         const defaultOpt = document.createElement('option');
         defaultOpt.value = '';
-        defaultOpt.textContent = '-- Select a device --';
+        defaultOpt.textContent = '-- Select a source --';
         elements.systemAudioDeviceSelect.appendChild(defaultOpt);
         
-        // Separate monitors from other sources
-        const monitors = devices.filter(d => d.isMonitor);
+        // Add devices/sources
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = platform === 'linux' ? '🔊 System Audio (Monitors)' : '🖥️ Screen Audio Sources';
         
-        console.log('[Settings] Monitors:', monitors.length);
-        
-        // Add monitors only (these capture system audio output)
-        // Input sources are already available in Microphone Input section
-        if (monitors.length > 0) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = '🔊 System Audio (Monitors)';
-            monitors.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.name; // Use PulseAudio device name
-                option.textContent = device.displayName;
-                optgroup.appendChild(option);
-            });
-            elements.systemAudioDeviceSelect.appendChild(optgroup);
-        } else {
-            // No monitors found
+        devices.forEach(device => {
             const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'No monitor devices found';
-            elements.systemAudioDeviceSelect.appendChild(option);
-        }
+            option.value = device.name;
+            option.textContent = device.displayName;
+            optgroup.appendChild(option);
+        });
+        elements.systemAudioDeviceSelect.appendChild(optgroup);
         
         // Restore saved selection
         if (config.systemAudioDeviceId) {
@@ -1722,15 +1740,19 @@ async function populateSystemAudioDevices() {
         // Update hint
         const hintEl = document.getElementById('audio-hint');
         if (hintEl) {
-            if (monitors.length > 0) {
+            if (devices.length > 0) {
+                const sourceType = platform === 'linux' ? 'monitor device(s)' : 'screen source(s)';
                 hintEl.innerHTML = `
                     <strong>Microphone:</strong> Used in Microphone mode.<br>
-                    <strong>System Audio:</strong> ✅ ${monitors.length} monitor device(s) found. Select one to capture system audio.
+                    <strong>System Audio:</strong> ✅ ${devices.length} ${sourceType} found. Select one to capture system audio.
                 `;
             } else {
+                const helpMsg = platform === 'linux' 
+                    ? 'Make sure PulseAudio/PipeWire is running.'
+                    : 'Grant screen recording permission in System Preferences.';
                 hintEl.innerHTML = `
                     <strong>Microphone:</strong> Used in Microphone mode.<br>
-                    <strong>System Audio:</strong> ⚠️ No monitor devices found. Make sure PulseAudio/PipeWire is running.
+                    <strong>System Audio:</strong> ⚠️ No sources found. ${helpMsg}
                 `;
             }
         }
