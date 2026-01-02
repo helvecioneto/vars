@@ -149,6 +149,9 @@ async function init() {
     startBoundsTracking();
 
     console.log('VARS initialized');
+
+    // Check for first-time user and start onboarding
+    checkFirstRunOnboarding();
 }
 
 /**
@@ -581,12 +584,12 @@ let transcriptionInterval = null;
  */
 async function captureSystemAudio(sampleRate) {
     const platform = window.electronAPI.platform;
-    
+
     // On Linux, use monitor devices directly
     if (platform === 'linux') {
         return await captureLinuxSystemAudio(sampleRate);
     }
-    
+
     // On Windows/macOS, use desktopCapturer
     return await captureDesktopAudio(sampleRate);
 }
@@ -598,19 +601,19 @@ async function captureSystemAudio(sampleRate) {
  */
 async function captureLinuxSystemAudio(sampleRate) {
     const deviceName = config.systemAudioDeviceId;
-    
+
     if (!deviceName) {
         throw new Error('No audio device configured.\n\nPlease go to Settings > Audio and:\n1. Click the refresh button\n2. Select a device from "System Audio (Monitors)"');
     }
-    
+
     try {
         // Start capture in Main Process - audio is stored there
         const result = await window.electronAPI.systemAudio.startCapture(deviceName, sampleRate);
-        
+
         if (result.error) {
             throw new Error(result.error);
         }
-        
+
         // Create a mock MediaStream-like object
         const mockStream = {
             _isLinuxSystemAudio: true,
@@ -618,7 +621,7 @@ async function captureLinuxSystemAudio(sampleRate) {
             _deviceName: deviceName,
             getAudioTracks: () => [{
                 label: 'Linux System Audio (' + deviceName.split('.')[0] + ')',
-                stop: () => {},
+                stop: () => { },
                 getSettings: () => ({ sampleRate: sampleRate, channelCount: 1 })
             }],
             getVideoTracks: () => [],
@@ -627,9 +630,9 @@ async function captureLinuxSystemAudio(sampleRate) {
                 await window.electronAPI.systemAudio.stopCapture();
             }
         };
-        
+
         return mockStream;
-        
+
     } catch (error) {
         console.error('[SystemAudio] Capture failed:', error);
         throw error;
@@ -643,13 +646,13 @@ async function captureDesktopAudio(sampleRate) {
     try {
         // Check if a screen source is configured
         const configuredSource = config.systemAudioDeviceId;
-        
+
         const sources = await window.electronAPI.getDesktopSources();
-        
+
         if (!sources || sources.length === 0) {
             throw new Error('No capture sources available');
         }
-        
+
         // Find the configured source or use the first screen source
         let screenSource;
         if (configuredSource) {
@@ -658,11 +661,11 @@ async function captureDesktopAudio(sampleRate) {
         if (!screenSource) {
             screenSource = sources.find(s => s.id.startsWith('screen:'));
         }
-        
+
         if (!screenSource) {
             throw new Error('No screen source available.\n\nPlease go to Settings > Audio and select a screen source.');
         }
-        
+
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 mandatory: {
@@ -680,19 +683,19 @@ async function captureDesktopAudio(sampleRate) {
                 }
             }
         });
-        
+
         // Stop video tracks
         stream.getVideoTracks().forEach(track => {
             track.stop();
             stream.removeTrack(track);
         });
-        
+
         if (stream.getAudioTracks().length === 0) {
             throw new Error('No audio captured');
         }
-        
+
         return stream;
-        
+
     } catch (error) {
         console.error('[SystemAudio] Desktop capture failed:', error);
         throw error;
@@ -722,14 +725,14 @@ async function startRecording() {
         const sampleRate = provider === 'google' ? 16000 : 24000;
         let stream;
         let audioTracks;
-        
+
         // Check if this is Linux system audio (special handling required)
         const isLinuxSystemAudio = currentInputMode === 'system' && window.electronAPI.platform === 'linux';
 
         if (currentInputMode === 'system') {
             // Capture system/computer audio
             stream = await captureSystemAudio(sampleRate);
-            
+
             if (!stream) {
                 throw new Error('Failed to capture system audio.');
             }
@@ -780,7 +783,7 @@ async function startRecording() {
         if (stream._isLinuxSystemAudio) {
             // Store the stream for cleanup and data access
             window._linuxSystemAudioStream = stream;
-            
+
             // For Linux system audio, we'll transcribe the PCM data directly
             // Set up periodic transcription
             transcriptionInterval = setInterval(async () => {
@@ -788,7 +791,7 @@ async function startRecording() {
                     await transcribeLinuxSystemAudio();
                 }
             }, 3000);
-            
+
             const statusMsg = '🔊 Capturing system audio...';
             updateStatus(statusMsg, 'recording');
             return;
@@ -842,41 +845,41 @@ async function transcribeLinuxSystemAudio() {
     if (isFinalizing) {
         return;
     }
-    
+
     // Check if capture is active
     const capturingResult = await window.electronAPI.systemAudio.isCapturing();
     if (!capturingResult.capturing) {
         return;
     }
-    
+
     // Check buffer size first
     const sizeResult = await window.electronAPI.systemAudio.getBufferSize();
     if (!sizeResult.size || sizeResult.size < 3200) { // At least 0.1 seconds
         return;
     }
-    
+
     isTranscribing = true;
     updateStatus('🔊 Transcribing system audio...', 'recording');
-    
+
     try {
         // Get WAV audio data from Main Process
         const audioResult = await window.electronAPI.systemAudio.getAudio();
-        
+
         if (!audioResult.audio || audioResult.audio.length === 0) {
             isTranscribing = false;
             return;
         }
-        
+
         // Send to transcription API
         const result = await window.electronAPI.transcribeAudio(audioResult.audio);
-        
+
         if (result.text && !result.error) {
             fullTranscription = result.text;
             showTranscription(fullTranscription + ' ▌');
         } else if (result.error) {
             console.error('Transcription error:', result.error);
         }
-        
+
         updateStatus('🔊 Capturing system audio...', 'recording');
     } catch (error) {
         console.error('[SystemAudio] Transcription failed:', error);
@@ -939,7 +942,7 @@ function stopRecording() {
     if (window._linuxSystemAudioStream) {
         const stream = window._linuxSystemAudioStream;
         window._linuxSystemAudioStream = null;
-        
+
         // Do final transcription FIRST (before stopping capture)
         // This ensures all audio is collected before parec is killed
         finalizeLinuxSystemAudio();
@@ -960,12 +963,12 @@ function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
         const stream = mediaRecorder.stream;
-        
+
         // Call cleanup function if this is a Linux system audio stream
         if (stream._cleanup) {
             stream._cleanup();
         }
-        
+
         stream.getTracks().forEach(track => track.stop());
     }
 
@@ -977,38 +980,38 @@ function stopRecording() {
  */
 async function finalizeLinuxSystemAudio() {
     updateStatus('Processing final audio...', 'processing');
-    
+
     // Set finalizing flag to prevent intermediate transcriptions
     isFinalizing = true;
-    
+
     // Wait for any ongoing transcription to finish
     let waitCount = 0;
     while (isTranscribing && waitCount < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
         waitCount++;
     }
-    
+
     try {
         // Small delay to ensure last audio chunks are in the buffer
         await new Promise(resolve => setTimeout(resolve, 150));
-        
+
         // Get ALL audio from buffer and clear it (final transcription)
         const audioResult = await window.electronAPI.systemAudio.getAudioFinal();
-        
+
         // Now stop capture AFTER getting all audio
         await window.electronAPI.systemAudio.stopCapture();
-        
+
         if (audioResult.audio && audioResult.audio.length > 0) {
             // Transcribe final audio (this is the complete audio)
             const result = await window.electronAPI.transcribeAudio(audioResult.audio);
-            
+
             if (result.text && !result.error) {
                 fullTranscription = result.text;
             } else if (result.error) {
                 console.error('[SystemAudio] Transcription error:', result.error);
             }
         }
-        
+
     } catch (error) {
         console.error('[SystemAudio] Error getting final audio:', error);
         // Ensure capture is stopped even on error
@@ -1017,26 +1020,26 @@ async function finalizeLinuxSystemAudio() {
         isTranscribing = false;
         isFinalizing = false;
     }
-    
+
     // Show transcription result
     if (fullTranscription) {
         showTranscription(fullTranscription);
-        
+
         // Get AI response if we have transcription
         showResponse(''); // Clear previous response
         updateStatus('Getting AI response...', 'processing');
         try {
             const aiResult = await window.electronAPI.getAIResponse(fullTranscription);
-            
+
             if (aiResult.error) {
                 showResponse(`Error: ${aiResult.error}`);
                 updateStatus('AI response failed', 'error');
                 return;
             }
-            
+
             showResponse(aiResult.response);
             updateStatus('Done', 'idle');
-            
+
             // Update History
             updateHistory(fullTranscription, aiResult.response);
         } catch (error) {
@@ -1498,7 +1501,11 @@ function setupAutoSave() {
 
     // Add specific listener for provider change to update API Key visibility
     if (elements.providerSelect) {
-        elements.providerSelect.addEventListener('change', updateAPIKeyVisibility);
+        elements.providerSelect.addEventListener('change', () => {
+            updateAPIKeyVisibility();
+            // Refresh tier buttons to update "Fast (Free)" label based on provider
+            populateModelOptions();
+        });
     }
 
     // System audio device selection
@@ -1664,33 +1671,33 @@ async function populateDevices() {
 
 async function populateSystemAudioDevices() {
     if (!elements.systemAudioDeviceSelect) return;
-    
+
     elements.systemAudioDeviceSelect.innerHTML = '<option value="">Loading...</option>';
-    
+
     const platform = window.electronAPI.platform;
-    
+
     try {
         let devices = [];
-        
+
         if (platform === 'linux') {
             // Linux: Use PulseAudio/PipeWire API
             const result = await window.electronAPI.systemAudio.listDevices();
-            
+
             if (result.error) {
                 console.error('[Settings] Error from system audio API:', result.error);
                 elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error: ' + result.error + '</option>';
                 return;
             }
-            
+
             devices = result.devices || [];
-            
+
             // Filter to monitors only for Linux
             devices = devices.filter(d => d.isMonitor);
-            
+
         } else {
             // macOS/Windows: Use desktopCapturer to list screen sources
             const sources = await window.electronAPI.getDesktopSources();
-            
+
             if (sources && sources.length > 0) {
                 // Create virtual device entries for screen sources
                 devices = sources
@@ -1703,27 +1710,27 @@ async function populateSystemAudioDevices() {
                     }));
             }
         }
-        
+
         elements.systemAudioDeviceSelect.innerHTML = '';
-        
+
         if (devices.length === 0) {
-            const noDeviceMsg = platform === 'linux' 
+            const noDeviceMsg = platform === 'linux'
                 ? 'No monitor devices found - is PulseAudio running?'
                 : 'No screen sources found';
             elements.systemAudioDeviceSelect.innerHTML = '<option value="">' + noDeviceMsg + '</option>';
             return;
         }
-        
+
         // Add a default option
         const defaultOpt = document.createElement('option');
         defaultOpt.value = '';
         defaultOpt.textContent = '-- Select a source --';
         elements.systemAudioDeviceSelect.appendChild(defaultOpt);
-        
+
         // Add devices/sources
         const optgroup = document.createElement('optgroup');
         optgroup.label = platform === 'linux' ? '🔊 System Audio (Monitors)' : '🖥️ Screen Audio Sources';
-        
+
         devices.forEach(device => {
             const option = document.createElement('option');
             option.value = device.name;
@@ -1731,12 +1738,12 @@ async function populateSystemAudioDevices() {
             optgroup.appendChild(option);
         });
         elements.systemAudioDeviceSelect.appendChild(optgroup);
-        
+
         // Restore saved selection
         if (config.systemAudioDeviceId) {
             elements.systemAudioDeviceSelect.value = config.systemAudioDeviceId;
         }
-        
+
         // Update hint
         const hintEl = document.getElementById('audio-hint');
         if (hintEl) {
@@ -1747,7 +1754,7 @@ async function populateSystemAudioDevices() {
                     <strong>System Audio:</strong> ✅ ${devices.length} ${sourceType} found. Select one to capture system audio.
                 `;
             } else {
-                const helpMsg = platform === 'linux' 
+                const helpMsg = platform === 'linux'
                     ? 'Make sure PulseAudio/PipeWire is running.'
                     : 'Grant screen recording permission in System Preferences.';
                 hintEl.innerHTML = `
@@ -1756,7 +1763,7 @@ async function populateSystemAudioDevices() {
                 `;
             }
         }
-        
+
     } catch (error) {
         console.error('[Settings] Failed to enumerate devices:', error);
         elements.systemAudioDeviceSelect.innerHTML = '<option value="">Error - click refresh</option>';
@@ -1770,7 +1777,7 @@ async function populateSystemAudioDevices() {
 // Provider labels for UI display (clean text, no icons)
 const PROVIDER_LABELS = {
     'openai': 'OpenAI',
-    'google': 'Google'
+    'google': 'Gemini'
 };
 
 function getProviderLabel(provider) {
@@ -1819,8 +1826,13 @@ const TIER_CONFIG = {
     }
 };
 
-function getTierLabel(tier) {
-    return TIER_CONFIG[tier]?.label || tier;
+function getTierLabel(tier, provider = null) {
+    const baseLabel = TIER_CONFIG[tier]?.label || tier;
+    // Show "(Free)" suffix for Fast tier when using Gemini (google provider)
+    if (tier === 'fast' && provider === 'google') {
+        return baseLabel + ' (Free)';
+    }
+    return baseLabel;
 }
 
 function getTierDescription(tier) {
@@ -1847,6 +1859,9 @@ async function populateModelOptions() {
 function renderTierButtons(container, tiers) {
     container.innerHTML = '';
     const currentTier = config.tier || 'balanced';
+    // Get provider from the select element (current value) rather than config
+    // This handles the timing when provider changes but config hasn't been saved yet
+    const currentProvider = elements.providerSelect?.value || config.provider || 'google';
 
     tiers.forEach(tier => {
         const button = document.createElement('button');
@@ -1854,7 +1869,7 @@ function renderTierButtons(container, tiers) {
         button.className = `tier-btn ${tier === currentTier ? 'active' : ''}`;
         button.dataset.tier = tier;
         button.title = getTierDescription(tier);
-        button.textContent = getTierLabel(tier);
+        button.textContent = getTierLabel(tier, currentProvider);
 
         button.addEventListener('click', () => {
             // Update active state
@@ -1874,7 +1889,7 @@ function renderTierButtons(container, tiers) {
 function updateModelDisplay() {
     const currentTier = config.tier || 'balanced';
     if (elements.statusModel) {
-        elements.statusModel.textContent = getTierLabel(currentTier);
+        elements.statusModel.textContent = getTierLabel(currentTier, config.provider);
     }
 }
 
@@ -1922,6 +1937,371 @@ async function handleKeyboardSubmit() {
         updateStatus('Error: ' + error.message, 'error');
     }
 }
+
+// ==========================================
+// Onboarding Tutorial
+// ==========================================
+
+/**
+ * Onboarding Steps - Simplified flow with auto-tab-switching
+ * Step 0: Click Settings to open
+ * Steps 1-7: Guide through all settings with automatic tab navigation
+ */
+const ONBOARDING_STEPS = [
+    // Step 0: Settings button (just highlight, no tooltip)
+    {
+        id: 'settings-btn',
+        targetSelector: '#settings-btn',
+        message: '',
+        waitForClick: true,
+        showTooltip: false,
+        tab: null
+    },
+    // Step 1: Provider selection (API tab)
+    {
+        id: 'provider',
+        targetSelector: '.form-group:has(#provider-select)',
+        message: 'Choose your AI provider.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'api'
+    },
+    // Step 2: Quality tier (API tab)
+    {
+        id: 'tier',
+        targetSelector: '.form-group:has(#tier-buttons)',
+        message: 'Select quality of response.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'api'
+    },
+    // Step 3: API Key (API tab)
+    {
+        id: 'api-key',
+        targetSelector: '#api-key-container',
+        message: 'Enter your API key. Click "Get Key" to create one.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'api'
+    },
+    // Step 4: Language (Behavior tab - auto switches)
+    {
+        id: 'language',
+        targetSelector: '.form-group:has(#language-select)',
+        message: 'Select your language.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'behavior'
+    },
+    // Step 5: System prompt (Behavior tab)
+    {
+        id: 'system-prompt',
+        targetSelector: '.form-group:has(#system-prompt)',
+        message: 'Customize how the AI responds.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'behavior'
+    },
+    // Step 6: Knowledge Base (Knowledge tab - target toolbar buttons)
+    {
+        id: 'knowledge',
+        targetSelector: '.kb-toolbar',
+        message: 'Add files for AI context. Click "Fit" to process.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'knowledge'
+    },
+    // Step 7: Audio (Audio tab - target settings grid)
+    {
+        id: 'audio',
+        targetSelector: '#tab-audio .settings-grid',
+        message: 'Select microphone and system audio sources.',
+        waitForClick: false,
+        showTooltip: true,
+        tab: 'audio',
+        isLastStep: true
+    }
+];
+
+let currentOnboardingStep = 0;
+let onboardingActive = false;
+
+function checkFirstRunOnboarding() {
+    if (!config.hasCompletedOnboarding) {
+        setTimeout(() => {
+            startOnboarding();
+        }, 800);
+    }
+}
+
+function startOnboarding() {
+    onboardingActive = true;
+    currentOnboardingStep = 0;
+    showOnboardingStep(currentOnboardingStep);
+}
+
+function showOnboardingStep(stepIndex) {
+    const step = ONBOARDING_STEPS[stepIndex];
+    if (!step) {
+        completeOnboarding();
+        return;
+    }
+
+    const tooltip = document.getElementById('onboarding-tooltip');
+    const stepEl = document.getElementById('onboarding-step');
+    const messageEl = document.getElementById('onboarding-message');
+    const nextBtn = document.getElementById('onboarding-next-btn');
+
+    // Auto-switch to correct tab if specified
+    if (step.tab) {
+        const tabBtn = document.querySelector(`.settings-tab[data-tab="${step.tab}"]`);
+        if (tabBtn) {
+            tabBtn.click();
+        }
+    }
+
+    // Update content - count only visible steps (exclude step 0)
+    const visibleSteps = ONBOARDING_STEPS.filter(s => s.showTooltip !== false);
+    const visibleIndex = visibleSteps.findIndex(s => s.id === step.id) + 1;
+
+    if (step.showTooltip !== false) {
+        stepEl.textContent = `Step ${visibleIndex} of ${visibleSteps.length}`;
+        messageEl.textContent = step.message;
+    }
+
+    // Show/hide Next button
+    if (step.waitForClick) {
+        nextBtn.style.display = 'none';
+    } else {
+        nextBtn.style.display = '';
+        nextBtn.textContent = step.isLastStep ? 'Done' : 'Next';
+    }
+
+    // Remove previous highlight
+    document.querySelectorAll('.onboarding-highlight').forEach(el => {
+        el.classList.remove('onboarding-highlight');
+    });
+
+    // Small delay to let tab switch complete
+    setTimeout(() => {
+        const target = document.querySelector(step.targetSelector);
+        if (target) {
+            target.classList.add('onboarding-highlight');
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            // Position tooltip opposite to target (never overlap)
+            positionTooltipOpposite(tooltip, target);
+
+            // Add click listener for waitForClick steps
+            if (step.waitForClick) {
+                const clickHandler = () => {
+                    target.removeEventListener('click', clickHandler);
+                    setTimeout(() => nextOnboardingStep(), 300);
+                };
+                target.addEventListener('click', clickHandler);
+            }
+        }
+
+        // Show/hide tooltip
+        if (step.showTooltip === false) {
+            tooltip.classList.add('hidden');
+        } else {
+            tooltip.classList.remove('hidden');
+        }
+    }, step.tab ? 150 : 0);
+}
+
+/**
+ * Position tooltip opposite to target element
+ * If target is in upper half of screen -> tooltip at bottom
+ * If target is in lower half of screen -> tooltip at top
+ */
+function positionTooltipOpposite(tooltip, target) {
+    const targetRect = target.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    const targetCenter = targetRect.top + targetRect.height / 2;
+
+    // Reset position classes
+    tooltip.classList.remove('position-top', 'position-bottom');
+
+    if (targetCenter < windowHeight / 2) {
+        // Target is in upper half -> put tooltip at bottom
+        tooltip.classList.add('position-bottom');
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = '10px';
+    } else {
+        // Target is in lower half -> put tooltip at top
+        tooltip.classList.add('position-top');
+        tooltip.style.bottom = 'auto';
+        tooltip.style.top = '50px';
+    }
+}
+
+/**
+ * Position tooltip below the main toolbar for Step 1
+ * This ensures visibility when the app is in its compact toolbar state
+ */
+function positionTooltipBelowToolbar(tooltip, target) {
+    const appContainer = document.getElementById('app-container');
+    const containerRect = appContainer ? appContainer.getBoundingClientRect() : target.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    tooltip.className = 'onboarding-tooltip';
+    tooltip.style.transform = '';
+
+    // Position below the entire app container
+    const top = containerRect.bottom + 12;
+    // Align horizontally with the target (Settings button)
+    let left = targetRect.left - 100; // Offset to center better
+
+    // Keep on screen
+    if (left < 10) left = 10;
+    if (left + 260 > window.innerWidth - 10) {
+        left = window.innerWidth - 270;
+    }
+
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+
+    // Position arrow to point at the Settings button
+    const arrow = tooltip.querySelector('.onboarding-arrow');
+    if (arrow) {
+        const arrowLeft = Math.max(10, Math.min(targetRect.left - left + targetRect.width / 2, 230));
+        arrow.style.left = `${arrowLeft}px`;
+        arrow.style.top = '';
+    }
+}
+
+function positionTooltipNear(tooltip, target, position = 'bottom', extraGap = 0) {
+    const targetRect = target.getBoundingClientRect();
+    const tooltipWidth = 260; // Smaller for adaptive windows
+    const tooltipHeight = 110; // Reduced height estimate (text is shorter now)
+    const gap = 10 + extraGap;
+
+    // Reset any transform
+    tooltip.style.transform = '';
+    tooltip.className = 'onboarding-tooltip';
+
+    let top, left;
+    const arrow = tooltip.querySelector('.onboarding-arrow');
+
+    // First try preferred position, then fallback if it doesn't fit
+    let finalPosition = position;
+
+    // Check if bottom position would overflow
+    if (position === 'bottom' && targetRect.bottom + gap + tooltipHeight > window.innerHeight) {
+        // Only flip to top if there is actually space on top!
+        if (targetRect.top - gap - tooltipHeight > 0) {
+            finalPosition = 'top';
+        }
+    }
+    // Check if top position would overflow
+    if (position === 'top' && targetRect.top - gap - tooltipHeight < 0) {
+        finalPosition = 'bottom';
+    }
+    // Check if top position would overflow
+    if (position === 'top' && targetRect.top - gap - tooltipHeight < 0) {
+        finalPosition = 'bottom';
+    }
+    // Check if left position would overflow
+    if (position === 'left' && targetRect.left - gap - tooltipWidth < 0) {
+        finalPosition = 'right';
+    }
+
+    switch (finalPosition) {
+        case 'left':
+            top = targetRect.top + targetRect.height / 2 - 60;
+            left = targetRect.left - tooltipWidth - gap;
+            tooltip.classList.add('arrow-right');
+            if (arrow) {
+                arrow.style.left = 'auto';
+                arrow.style.top = '30px';
+            }
+            break;
+        case 'right':
+            top = targetRect.top + targetRect.height / 2 - 60;
+            left = targetRect.right + gap;
+            tooltip.classList.add('arrow-left');
+            if (arrow) {
+                arrow.style.left = '';
+                arrow.style.top = '30px';
+            }
+            break;
+        case 'top':
+            top = targetRect.top - tooltipHeight - gap;
+            left = targetRect.left;
+            tooltip.classList.add('arrow-bottom');
+            if (arrow) {
+                arrow.style.left = `${Math.min(targetRect.width / 2, 80)}px`;
+                arrow.style.top = '';
+            }
+            break;
+        case 'bottom':
+        default:
+            top = targetRect.bottom + gap;
+            left = targetRect.left;
+            if (arrow) {
+                arrow.style.left = `${Math.min(targetRect.width / 2, 80)}px`;
+                arrow.style.top = '';
+            }
+            break;
+    }
+
+    // Keep tooltip on screen with safe margins
+    const margin = 8;
+    if (left < margin) left = margin;
+    if (left + tooltipWidth > window.innerWidth - margin) {
+        left = window.innerWidth - tooltipWidth - margin;
+    }
+    if (top < margin) top = margin;
+    if (top + tooltipHeight > window.innerHeight - margin) {
+        top = window.innerHeight - tooltipHeight - margin;
+    }
+
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+}
+
+function nextOnboardingStep() {
+    currentOnboardingStep++;
+    if (currentOnboardingStep >= ONBOARDING_STEPS.length) {
+        completeOnboarding();
+    } else {
+        showOnboardingStep(currentOnboardingStep);
+    }
+}
+
+function skipOnboarding() {
+    completeOnboarding();
+}
+
+function completeOnboarding() {
+    onboardingActive = false;
+
+    const tooltip = document.getElementById('onboarding-tooltip');
+    if (tooltip) {
+        tooltip.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.onboarding-highlight').forEach(el => {
+        el.classList.remove('onboarding-highlight');
+    });
+
+    config.hasCompletedOnboarding = true;
+    autoSaveConfig();
+    console.log('Onboarding completed');
+}
+
+// Setup onboarding event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const nextBtn = document.getElementById('onboarding-next-btn');
+    const skipBtn = document.getElementById('onboarding-skip-btn');
+    const closeBtn = document.getElementById('onboarding-skip');
+
+    if (nextBtn) nextBtn.addEventListener('click', nextOnboardingStep);
+    if (skipBtn) skipBtn.addEventListener('click', skipOnboarding);
+    if (closeBtn) closeBtn.addEventListener('click', skipOnboarding);
+});
 
 // ==========================================
 // Start Application

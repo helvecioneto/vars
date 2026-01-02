@@ -200,7 +200,7 @@
           </div>
           <div id="google-key-group" class="api-key-group hidden">
             <label>
-              Google API Key
+              Gemini API Key
               <a href="#" id="google-api-key-help" class="help-link">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -310,7 +310,8 @@
                 <option value="">Click refresh to load devices</option>
               </select>
               <button type="button" id="refresh-audio-btn" class="icon-btn small-btn" title="Refresh devices">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="23 4 23 10 17 10"></polyline>
                   <polyline points="1 20 1 14 7 14"></polyline>
                   <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -321,13 +322,30 @@
         </div>
         <p class="settings-hint" id="audio-hint">
           <strong>Microphone:</strong> Used in Microphone Input mode.<br>
-          <strong>System Audio:</strong> Used in Computer Audio mode. Select a "Monitor" device to capture what you hear.
+          <strong>System Audio:</strong> Used in Computer Audio mode. Select a "Monitor" device to capture what you
+          hear.
         </p>
       </div>
 
       <!-- Settings Footer -->
       <div class="settings-footer">
         <p>Developed by Helvecio Neto | <a href="#" id="github-link" class="footer-link">GitHub</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Tooltip -->
+  <div id="onboarding-tooltip" class="onboarding-tooltip hidden">
+    <div class="onboarding-arrow"></div>
+    <div class="onboarding-content">
+      <div class="onboarding-header">
+        <span class="onboarding-step" id="onboarding-step">Step 1 of 3</span>
+        <button class="onboarding-close" id="onboarding-skip" title="Skip tutorial">&times;</button>
+      </div>
+      <p class="onboarding-message" id="onboarding-message">Welcome to VARS! Let's set up your AI assistant.</p>
+      <div class="onboarding-actions">
+        <button class="onboarding-btn secondary" id="onboarding-skip-btn">Skip</button>
+        <button class="onboarding-btn primary" id="onboarding-next-btn">Next</button>
       </div>
     </div>
   </div>

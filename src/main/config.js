@@ -123,7 +123,8 @@ function getDefaultConfig() {
         assistantId: null,
         vectorStoreId: null,
         threadId: null,
-        briefMode: true // Force short answers
+        briefMode: true, // Force short answers
+        hasCompletedOnboarding: false // Flag to track if user has seen the onboarding tutorial
     };
 }
 
