@@ -23,6 +23,14 @@
             "assistant": "gpt-4o-mini"
         },
         "google": {
+            "free": {
+                "analyze": "gemini-2.0-flash-lite",
+                "transcribe": "gemini-2.0-flash-lite",
+                "temperature": 0.5,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 500
+            },
             "fast": {
                 "analyze": "gemini-2.0-flash",
                 "transcribe": "gemini-2.0-flash",
@@ -32,7 +40,7 @@
                 "maxOutputTokens": 500
             },
             "balanced": {
-                "analyze": "gemini-2.0-flash",
+                "analyze": "gemini-2.5-flash",
                 "transcribe": "gemini-2.0-flash",
                 "temperature": 0.4,
                 "topK": 32,
@@ -40,7 +48,7 @@
                 "maxOutputTokens": 1500
             },
             "quality": {
-                "analyze": "gemini-2.0-flash",
+                "analyze": "gemini-3-flash-preview",
                 "transcribe": "gemini-2.0-flash",
                 "temperature": 0.3,
                 "topK": 20,
@@ -50,10 +58,11 @@
         }
     },
     "tiers": [
+        "free",
         "fast",
         "balanced",
         "quality"
     ],
     "defaultProvider": "google",
-    "defaultTier": "balanced"
+    "defaultTier": "free"
 }

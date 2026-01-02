@@ -113,11 +113,15 @@ async function init() {
     config = await window.electronAPI.getConfig();
     currentInputMode = config.inputMode || 'system';
 
-    // Populate provider and model options from config
+    // Populate provider options first
     await populateProviderOptions();
-    await populateModelOptions();
 
+    // Apply config to UI before populating model options
+    // This ensures providerSelect.value is set correctly when rendering tier buttons
     applyConfigToUI();
+
+    // Now populate model options (tier buttons) - they need provider to be set
+    await populateModelOptions();
     updateInputModeUI();
     updateModelDisplay();
     await populateDevices();
@@ -1812,6 +1816,10 @@ async function populateProviderOptions() {
 
 // Tier configuration with labels and descriptions for tooltips
 const TIER_CONFIG = {
+    'free': {
+        label: 'Free',
+        description: 'Free tier with basic capabilities'
+    },
     'fast': {
         label: 'Fast',
         description: 'Faster responses with good quality'
@@ -1827,12 +1835,7 @@ const TIER_CONFIG = {
 };
 
 function getTierLabel(tier, provider = null) {
-    const baseLabel = TIER_CONFIG[tier]?.label || tier;
-    // Show "(Free)" suffix for Fast tier when using Gemini (google provider)
-    if (tier === 'fast' && provider === 'google') {
-        return baseLabel + ' (Free)';
-    }
-    return baseLabel;
+    return TIER_CONFIG[tier]?.label || tier;
 }
 
 function getTierDescription(tier) {
@@ -1863,7 +1866,15 @@ function renderTierButtons(container, tiers) {
     // This handles the timing when provider changes but config hasn't been saved yet
     const currentProvider = elements.providerSelect?.value || config.provider || 'google';
 
-    tiers.forEach(tier => {
+    // Filter out 'free' tier for providers that don't support it (e.g., OpenAI)
+    const filteredTiers = tiers.filter(tier => {
+        if (tier === 'free' && currentProvider !== 'google') {
+            return false;
+        }
+        return true;
+    });
+
+    filteredTiers.forEach(tier => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `tier-btn ${tier === currentTier ? 'active' : ''}`;
