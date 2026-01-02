@@ -83,6 +83,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Desktop Capturer for System Audio
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
 
+    // Screen Capture and Image Analysis
+    captureScreen: () => ipcRenderer.invoke('capture-screen'),
+    analyzeImage: (params) => ipcRenderer.invoke('analyze-image', params),
+    onScreenshotCapture: (callback) => {
+        ipcRenderer.on('screenshot-capture', () => callback());
+    },
+
     // System Audio Capture (Linux PulseAudio/PipeWire)
     systemAudio: {
         listDevices: () => ipcRenderer.invoke('system-audio:list-devices'),

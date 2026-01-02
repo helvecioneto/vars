@@ -341,8 +341,106 @@ async function getGoogleAIResponse({ transcription, params }) {
     }
 }
 
+// ==========================================
+// Image Analysis (Gemini Vision)
+// ==========================================
+
+/**
+ * Analyze an image using Google's Gemini Vision API
+ * @param {object} params - Parameters for image analysis
+ * @param {string} params.imageData - Base64 encoded image data (with data URL prefix)
+ * @param {string} params.prompt - User prompt for the analysis
+ * @param {string} params.apiKey - Google API key
+ * @param {string} params.model - Model to use
+ * @param {string} params.systemPrompt - System prompt
+ * @param {string} params.language - Response language
+ * @param {Array} params.history - Conversation history
+ * @param {object} params.tierConfig - Tier configuration for parameters
+ * @param {boolean} params.briefMode - Whether to use brief mode
+ * @returns {Promise<string>} AI response
+ */
+async function analyzeImageGoogle({
+    imageData,
+    prompt,
+    apiKey,
+    model,
+    systemPrompt,
+    language = 'en',
+    history = [],
+    tierConfig = {},
+    briefMode = false
+}) {
+    const genAI = getGoogleClient(apiKey);
+
+    // Get language instruction from configuration
+    const langInstructions = getPromptForLanguage('language.responseInstruction', language);
+    const briefModeInstruction = briefMode ? '\n\nPlease keep your response brief and concise.' : '';
+
+    // Gemini models that support vision
+    // Most Gemini models (gemini-pro-vision, gemini-1.5-pro, gemini-1.5-flash, etc.) support vision
+    const visionModel = model.includes('gemini') ? model : 'gemini-1.5-flash';
+
+    const genModel = genAI.getGenerativeModel({ 
+        model: visionModel,
+        generationConfig: {
+            temperature: tierConfig.temperature ?? 0.7,
+            maxOutputTokens: tierConfig.maxOutputTokens ?? 1500,
+        }
+    });
+
+    // Parse the base64 image data
+    // Expected format: "data:image/png;base64,..." or "data:image/jpeg;base64,..."
+    let mimeType = 'image/png';
+    let base64Data = imageData;
+
+    if (imageData.startsWith('data:')) {
+        const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+            mimeType = matches[1];
+            base64Data = matches[2];
+        }
+    }
+
+    // Build system instruction
+    const systemInstruction = (systemPrompt || 'You are a helpful assistant that analyzes images and provides detailed descriptions.') + langInstructions + briefModeInstruction;
+
+    // Build chat history (convert from OpenAI format to Gemini format)
+    const geminiHistory = history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : msg.role,
+        parts: [{ text: msg.content }]
+    }));
+
+    console.log(`[Vision] Analyzing image with Gemini model: ${visionModel}`);
+
+    // Create the content with image
+    const imagePart = {
+        inlineData: {
+            mimeType: mimeType,
+            data: base64Data
+        }
+    };
+
+    const textPart = { text: prompt };
+
+    // Use generateContent for multimodal input
+    const result = await genModel.generateContent({
+        contents: [
+            ...geminiHistory.map(h => ({ role: h.role, parts: h.parts })),
+            {
+                role: 'user',
+                parts: [textPart, imagePart]
+            }
+        ],
+        systemInstruction: systemInstruction
+    });
+
+    const response = result.response;
+    return response.text();
+}
+
 module.exports = {
     transcribeAudioGoogle,
     getChatCompletionGoogle,
-    getGoogleAIResponse
+    getGoogleAIResponse,
+    analyzeImageGoogle
 };

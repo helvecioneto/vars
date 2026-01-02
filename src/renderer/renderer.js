@@ -22,6 +22,9 @@ let realtimeActive = false;
 let audioContext = null;
 let scriptProcessor = null;
 
+// Pending screenshot for action selection
+let pendingScreenshot = null;
+
 
 // DOM Elements
 const elements = {
@@ -34,6 +37,7 @@ const elements = {
     inputField: document.getElementById('input-field'),
     modeBtn: document.getElementById('mode-btn'),
     modeIcon: document.getElementById('mode-icon'),
+    screenshotBtn: document.getElementById('screenshot-btn'),
     historyBtn: document.getElementById('history-btn'),
     settingsBtn: document.getElementById('settings-btn'),
     dragBtn: document.getElementById('drag-btn'),
@@ -44,6 +48,15 @@ const elements = {
     statusDot: document.getElementById('status-dot'),
     statusText: document.getElementById('status-text'),
     statusModel: document.getElementById('status-model'),
+
+    // Screenshot actions
+    screenshotActions: document.getElementById('screenshot-actions'),
+    screenshotTitle: document.getElementById('screenshot-title'),
+    actionAnswers: document.getElementById('action-answers'),
+    actionCode: document.getElementById('action-code'),
+    actionSummary: document.getElementById('action-summary'),
+    actionAsk: document.getElementById('action-ask'),
+    screenshotAskInput: document.getElementById('screenshot-ask-input'),
 
     // Content sections
     transcriptionSection: document.getElementById('transcription-section'),
@@ -183,6 +196,11 @@ function updateButtonTooltips() {
     // History button (uses same modifier as other shortcuts)
     if (elements.historyBtn) {
         elements.historyBtn.title = `${mod}+↑/↓: History`;
+    }
+
+    // Screenshot button
+    if (elements.screenshotBtn) {
+        elements.screenshotBtn.title = `${mod}+Shift+S: Capture Screen`;
     }
 
     // Settings button
@@ -372,6 +390,74 @@ function setupEventListeners() {
             navigateHistory('up');
         });
     }
+
+    // Screenshot button click
+    if (elements.screenshotBtn) {
+        elements.screenshotBtn.addEventListener('click', () => {
+            captureAndAnalyzeScreen();
+        });
+    }
+
+    // Listen for screenshot toggle from main process (global shortcut)
+    window.electronAPI.onScreenshotCapture(() => {
+        captureAndAnalyzeScreen();
+    });
+
+    // Screenshot action buttons
+    if (elements.actionAnswers) {
+        elements.actionAnswers.addEventListener('click', () => {
+            processScreenshotAction('answers');
+        });
+    }
+    if (elements.actionCode) {
+        elements.actionCode.addEventListener('click', () => {
+            processScreenshotAction('code');
+        });
+    }
+    if (elements.actionSummary) {
+        elements.actionSummary.addEventListener('click', () => {
+            processScreenshotAction('summary');
+        });
+    }
+    if (elements.actionAsk) {
+        elements.actionAsk.addEventListener('click', () => {
+            const customPrompt = elements.screenshotAskInput?.value?.trim() || '';
+            processScreenshotAction('ask', customPrompt);
+        });
+    }
+    if (elements.screenshotAskInput) {
+        elements.screenshotAskInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const customPrompt = elements.screenshotAskInput.value.trim();
+                processScreenshotAction('ask', customPrompt);
+            }
+        });
+    }
+
+    // Screenshot action shortcuts (1, 2, 3 when panel is visible)
+    document.addEventListener('keydown', (e) => {
+        // Only handle if screenshot actions panel is visible and not typing in input
+        if (!pendingScreenshot) return;
+        if (elements.screenshotActions?.classList.contains('hidden')) return;
+        if (document.activeElement === elements.screenshotAskInput) return;
+        if (document.activeElement === elements.inputField) return;
+        
+        switch (e.key) {
+            case '1':
+                e.preventDefault();
+                processScreenshotAction('answers');
+                break;
+            case '2':
+                e.preventDefault();
+                processScreenshotAction('code');
+                break;
+            case '3':
+                e.preventDefault();
+                processScreenshotAction('summary');
+                break;
+        }
+    });
 
     // Legacy mode badge click (for compatibility)
     if (elements.modeBadge) {
@@ -1632,6 +1718,147 @@ async function handleInputSubmit() {
     } catch (error) {
         console.error('Input submit error:', error);
         updateStatus('Error: ' + error.message, 'error');
+    }
+}
+
+// ==========================================
+// Screen Capture and Analysis
+// ==========================================
+
+/**
+ * Capture the foreground window/application and show action options
+ */
+async function captureAndAnalyzeScreen() {
+    // Visual feedback
+    if (elements.screenshotBtn) {
+        elements.screenshotBtn.classList.add('capturing');
+    }
+    
+    updateStatus('📸 Capturing screen...', 'processing');
+
+    try {
+        // Call main process to capture the foreground window
+        const result = await window.electronAPI.captureScreen();
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        if (!result.imageData) {
+            throw new Error('No image data returned');
+        }
+
+        // Store the screenshot for later use
+        pendingScreenshot = {
+            imageData: result.imageData,
+            windowTitle: result.windowTitle || 'Captured screen'
+        };
+
+        // Show the action panel
+        showScreenshotActions(pendingScreenshot.windowTitle);
+        
+        updateStatus('Select an action', 'ready');
+
+    } catch (error) {
+        console.error('Screen capture error:', error);
+        updateStatus('Error: ' + error.message, 'error');
+        showResponse(`Error capturing screen: ${error.message}`);
+    } finally {
+        // Remove visual feedback
+        if (elements.screenshotBtn) {
+            elements.screenshotBtn.classList.remove('capturing');
+        }
+    }
+}
+
+/**
+ * Show the screenshot action panel
+ */
+function showScreenshotActions(title) {
+    // Show content area if hidden
+    elements.contentArea?.classList.remove('hidden');
+    
+    // Hide transcription and response sections
+    elements.transcriptionSection?.classList.add('hidden');
+    elements.responseSection?.classList.add('hidden');
+    
+    // Update title and show actions panel
+    if (elements.screenshotTitle) {
+        elements.screenshotTitle.textContent = title;
+    }
+    if (elements.screenshotAskInput) {
+        elements.screenshotAskInput.value = '';
+    }
+    elements.screenshotActions?.classList.remove('hidden');
+}
+
+/**
+ * Hide the screenshot action panel
+ */
+function hideScreenshotActions() {
+    elements.screenshotActions?.classList.add('hidden');
+}
+
+/**
+ * Process the screenshot with a specific action
+ */
+async function processScreenshotAction(actionType, customPrompt = '') {
+    if (!pendingScreenshot) {
+        updateStatus('No screenshot to process', 'error');
+        return;
+    }
+
+    // Hide action panel
+    hideScreenshotActions();
+    
+    // Show processing state
+    updateStatus('🔍 Analyzing...', 'processing');
+    showTranscription(`📸 ${pendingScreenshot.windowTitle}`);
+    showResponse('');
+
+    // Build prompt based on action
+    let prompt;
+    switch (actionType) {
+        case 'answers':
+            prompt = 'FOCUS: Find all questions, exercises, problems, or quizzes visible on the screen. For each one found, provide the correct answer or solution. Be direct and comprehensive.';
+            break;
+        case 'code':
+            prompt = 'FOCUS: Analyze any code visible on the screen. Explain what it does, identify bugs or issues, suggest improvements, and provide corrected versions if needed.';
+            break;
+        case 'summary':
+            prompt = 'FOCUS: Provide a concise summary of all content visible on the screen. Highlight the most important information, key points, and any actionable items.';
+            break;
+        case 'ask':
+            prompt = customPrompt || 'Describe what you see on the screen.';
+            break;
+        default:
+            prompt = '';
+    }
+
+    try {
+        const aiResult = await window.electronAPI.analyzeImage({
+            imageData: pendingScreenshot.imageData,
+            prompt: prompt,
+            windowTitle: pendingScreenshot.windowTitle
+        });
+
+        if (handleApiError(aiResult)) return;
+
+        showResponse(aiResult.response);
+        updateStatus('Ready', 'ready');
+
+        // Update History
+        const actionLabel = actionType === 'ask' ? customPrompt : actionType.charAt(0).toUpperCase() + actionType.slice(1);
+        const historyEntry = `📸 [${pendingScreenshot.windowTitle}] ${actionLabel}`;
+        updateHistory(historyEntry, aiResult.response);
+
+    } catch (error) {
+        console.error('Screenshot analysis error:', error);
+        updateStatus('Error: ' + error.message, 'error');
+        showResponse(`Error: ${error.message}`);
+    } finally {
+        // Clear pending screenshot
+        pendingScreenshot = null;
     }
 }
 

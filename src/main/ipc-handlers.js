@@ -11,12 +11,14 @@ const {
     initializeAssistant,
     createKnowledgeBase,
     updateAssistantVectorStore,
-    resetKnowledgeBase
+    resetKnowledgeBase,
+    analyzeImageOpenAI
 } = require('./openai');
-const { transcribeAudioGoogle, getGoogleAIResponse } = require('./google');
+const { transcribeAudioGoogle, getGoogleAIResponse, analyzeImageGoogle } = require('./google');
 const { RealtimeTranscription } = require('./realtime');
 const { GeminiRealtimeTranscription } = require('./gemini-realtime');
 const systemAudio = require('./system-audio');
+const screenCapture = require('./screen-capture');
 
 /**
  * Active realtime transcription session
@@ -577,6 +579,94 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('system-audio:is-capturing', async () => {
         return { capturing: systemAudio.isCapturing() };
+    });
+
+    // ==========================================
+    // Screen Capture and Image Analysis Handlers
+    // ==========================================
+
+    ipcMain.handle('capture-screen', async () => {
+        try {
+            const result = await screenCapture.captureForegroundWindow();
+            return result;
+        } catch (error) {
+            console.error('[Screen Capture] Error:', error);
+            return { error: error.message };
+        }
+    });
+
+    ipcMain.handle('analyze-image', async (event, { imageData, prompt, windowTitle }) => {
+        const config = getConfig();
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+        }
+
+        try {
+            const tier = config.tier || 'balanced';
+            const tierConfig = getTierConfig(provider, tier);
+            
+            // Build the analysis prompt
+            // If user provided a specific question, use it with context
+            // Otherwise, use a smart default that analyzes and answers what's visible
+            let contextualPrompt;
+            
+            if (prompt && prompt.trim()) {
+                // User has a specific question
+                contextualPrompt = windowTitle 
+                    ? `[Screenshot: ${windowTitle}]\n\n${prompt}`
+                    : prompt;
+            } else {
+                // No specific question - analyze everything visible and provide useful information
+                contextualPrompt = `Analyze this screenshot${windowTitle ? ` from "${windowTitle}"` : ''}.
+
+Look at everything visible and:
+1. If there are questions, exercises, or problems visible, provide the answers or solutions
+2. If there's code, explain what it does and identify any issues
+3. If there's an error message, explain what it means and how to fix it
+4. If there's text content, summarize the key information
+5. If there's a form or interface, describe what actions can be taken
+
+Be direct and helpful. Focus on actionable information.`;
+            }
+
+            let response;
+            
+            if (provider === 'google') {
+                const analyzeModel = getModelForTier(provider, tier, 'analyze');
+                response = await analyzeImageGoogle({
+                    imageData,
+                    prompt: contextualPrompt,
+                    apiKey,
+                    model: analyzeModel,
+                    systemPrompt: config.systemPrompt,
+                    language: config.language || 'en',
+                    history: config.conversationHistory || [],
+                    tierConfig,
+                    briefMode: config.briefMode || false
+                });
+            } else {
+                const analyzeModel = getModelForTier(provider, tier, 'analyze');
+                response = await analyzeImageOpenAI({
+                    imageData,
+                    prompt: contextualPrompt,
+                    apiKey,
+                    model: analyzeModel,
+                    systemPrompt: config.systemPrompt,
+                    language: config.language || 'en',
+                    history: config.conversationHistory || [],
+                    tierConfig,
+                    briefMode: config.briefMode || false
+                });
+            }
+
+            return { response };
+        } catch (error) {
+            console.error('[Image Analysis] Error:', error);
+            return { error: error.message };
+        }
     });
 }
 

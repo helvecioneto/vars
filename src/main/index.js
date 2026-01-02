@@ -190,6 +190,28 @@ function registerGlobalShortcut() {
     if (!modeRet) {
         console.error('Failed to register global shortcut CTRL+M');
     }
+
+    // Screenshot capture shortcut
+    // macOS: Option+Shift+S, Others: CTRL+Shift+S
+    const screenshotKey = isMac ? 'Alt+Shift+S' : 'CommandOrControl+Shift+S';
+
+    const screenshotRet = globalShortcut.register(screenshotKey, () => {
+        console.log('Screenshot shortcut triggered');
+        
+        if (mainWindow) {
+            // Send event to renderer to capture screenshot
+            mainWindow.webContents.send('screenshot-capture');
+
+            // Show window if hidden
+            if (!mainWindow.isVisible()) {
+                mainWindow.show();
+            }
+        }
+    });
+
+    if (!screenshotRet) {
+        console.error('Failed to register global shortcut for screenshot');
+    }
 }
 
 

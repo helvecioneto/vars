@@ -194,6 +194,21 @@ html {
   font-size: 14px;
 }
 
+/* Screenshot Button States */
+#screenshot-btn.capturing {
+  background: var(--accent);
+  animation: pulse-screenshot 1s infinite;
+}
+
+@keyframes pulse-screenshot {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+}
+
 /* Mic Button States */
 .mic-btn.recording {
   background: var(--error);
@@ -333,6 +348,128 @@ html {
 
 .content-section.hidden {
   display: none;
+}
+
+/* Screenshot Actions Panel */
+.screenshot-actions {
+  padding: 10px 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  animation: fade-in 0.2s ease;
+}
+
+.screenshot-actions.hidden {
+  display: none;
+}
+
+.screenshot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.screenshot-icon {
+  font-size: 16px;
+}
+
+.screenshot-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.screenshot-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent);
+}
+
+.action-btn:active {
+  transform: scale(0.97);
+}
+
+.action-btn .action-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+.action-btn:hover .action-key {
+  background: rgba(139, 92, 246, 0.4);
+  color: var(--text-primary);
+}
+
+.action-btn .action-icon {
+  font-size: 12px;
+}
+
+.screenshot-ask {
+  display: flex;
+  gap: 6px;
+}
+
+.ask-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.ask-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ask-input:focus {
+  border-color: var(--accent);
+}
+
+.ask-btn {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.ask-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent-light);
 }
 
 @keyframes fade-in {
