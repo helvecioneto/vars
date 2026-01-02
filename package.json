@@ -1,6 +1,6 @@
 {
   "name": "vars",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "VARS (Virtual Agent for Real-time Support) - AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing",
   "main": "src/main/index.js",
   "scripts": {
@@ -18,7 +18,12 @@
       "output": "dist"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "src/assets/icon.png",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
@@ -29,15 +34,30 @@
         "NSCameraUsageDescription": "VARS does not use the camera."
       }
     },
+    "dmg": {
+      "sign": false
+    },
     "win": {
       "target": "nsis",
-      "icon": "src/assets/icon.png"
+      "icon": "src/assets/icon.png",
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false
     },
     "linux": {
       "target": "AppImage",
       "icon": "src/assets/icon.png",
-      "category": "Utility"
-    }
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
   },
   "keywords": [
     "electron",
