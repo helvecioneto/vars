@@ -4,7 +4,7 @@
  */
 
 const { ipcMain, Menu, desktopCapturer } = require('electron');
-const { saveConfig, getModels, getTierConfig, getModelForTier } = require('./config');
+const { saveConfig, getModels, getTierConfig, getModelForTier, getModelListForTier, getRetryConfig } = require('./config');
 const {
     transcribeAudio,
     getSmartAIResponse,
@@ -74,20 +74,44 @@ function setupIPCHandlers(context) {
 
         try {
             const tier = config.tier || 'balanced';
-            const transcribeModel = getModelForTier(provider, tier, 'transcribe');
 
             // Convert to Buffer if it's an array
             const buffer = Array.isArray(audioBuffer) ? Buffer.from(audioBuffer) : audioBuffer;
 
             let transcription;
             if (provider === 'google') {
-                transcription = await transcribeAudioGoogle(buffer, apiKey, transcribeModel);
+                // For free tier, use model list with fallback
+                if (tier === 'free') {
+                    const modelList = getModelListForTier(provider, tier, 'transcribe');
+                    const retryConfig = getRetryConfig(provider, tier);
+
+                    // Create progress callback to notify renderer
+                    const onProgress = (data) => {
+                        const mainWindow = getMainWindow();
+                        if (mainWindow) {
+                            mainWindow.webContents.send('free-tier-retry', { type: 'transcribe', ...data });
+                        }
+                    };
+
+                    transcription = await transcribeAudioGoogle(buffer, apiKey, modelList, retryConfig, onProgress);
+                } else {
+                    const transcribeModel = getModelForTier(provider, tier, 'transcribe');
+                    transcription = await transcribeAudioGoogle(buffer, apiKey, transcribeModel);
+                }
             } else {
+                const transcribeModel = getModelForTier(provider, tier, 'transcribe');
                 transcription = await transcribeAudio(buffer, apiKey, transcribeModel);
             }
 
             return { text: transcription };
         } catch (error) {
+            // Check for quota exhaustion error
+            if (error.isQuotaError) {
+                return {
+                    error: error.userMessage,
+                    isQuotaError: true
+                };
+            }
             return { error: error.message };
         }
     });
@@ -107,25 +131,55 @@ function setupIPCHandlers(context) {
 
         try {
             const tier = config.tier || 'balanced';
-            const analyzeModel = getModelForTier(provider, tier, 'analyze');
             const tierConfig = getTierConfig(provider, tier);
 
             let result;
 
             if (provider === 'google') {
-                result = await getGoogleAIResponse({
-                    transcription,
-                    params: {
-                        apiKey: apiKey,
-                        model: analyzeModel,
-                        systemPrompt: config.systemPrompt,
-                        language: config.language || 'en',
-                        history: config.conversationHistory || [],
-                        tierConfig: tierConfig,
-                        briefMode: config.briefMode || false
-                    }
-                });
+                // For free tier, use model list with fallback
+                if (tier === 'free') {
+                    const modelList = getModelListForTier(provider, tier, 'analyze');
+                    const retryConfig = getRetryConfig(provider, tier);
+
+                    // Create progress callback to notify renderer
+                    const onProgress = (data) => {
+                        const mainWindow = getMainWindow();
+                        if (mainWindow) {
+                            mainWindow.webContents.send('free-tier-retry', { type: 'analyze', ...data });
+                        }
+                    };
+
+                    result = await getGoogleAIResponse({
+                        transcription,
+                        params: {
+                            apiKey: apiKey,
+                            models: modelList,
+                            retryConfig: retryConfig,
+                            onProgress: onProgress,
+                            systemPrompt: config.systemPrompt,
+                            language: config.language || 'en',
+                            history: config.conversationHistory || [],
+                            tierConfig: tierConfig,
+                            briefMode: config.briefMode || false
+                        }
+                    });
+                } else {
+                    const analyzeModel = getModelForTier(provider, tier, 'analyze');
+                    result = await getGoogleAIResponse({
+                        transcription,
+                        params: {
+                            apiKey: apiKey,
+                            model: analyzeModel,
+                            systemPrompt: config.systemPrompt,
+                            language: config.language || 'en',
+                            history: config.conversationHistory || [],
+                            tierConfig: tierConfig,
+                            briefMode: config.briefMode || false
+                        }
+                    });
+                }
             } else {
+                const analyzeModel = getModelForTier(provider, tier, 'analyze');
                 result = await getSmartAIResponse({
                     transcription,
                     params: {
@@ -154,6 +208,13 @@ function setupIPCHandlers(context) {
             return { response: result.response };
         } catch (error) {
             console.error('AI Response Error:', error);
+            // Check for quota exhaustion error
+            if (error.isQuotaError) {
+                return {
+                    error: error.userMessage,
+                    isQuotaError: true
+                };
+            }
             return { error: error.message };
         }
     });

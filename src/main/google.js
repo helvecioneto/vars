@@ -11,28 +11,181 @@ function getGoogleClient(apiKey) {
 }
 
 // ==========================================
+// Retry and Fallback Utilities
+// ==========================================
+
+/**
+ * Sleep utility for retry delays
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if error is retryable (rate limit, temporary failure)
+ */
+function isRetryableError(error) {
+    const message = error?.message?.toLowerCase() || '';
+    const status = error?.status || error?.statusCode || error?.code;
+
+    return (
+        status === 429 ||
+        status === 503 ||
+        status === 'RESOURCE_EXHAUSTED' ||
+        message.includes('rate limit') ||
+        message.includes('quota') ||
+        message.includes('resource_exhausted') ||
+        message.includes('temporarily unavailable') ||
+        message.includes('429') ||
+        message.includes('too many requests')
+    );
+}
+
+/**
+ * Execute an operation with retry and model fallback
+ * @param {Function} operation - Async function that takes a model name and returns result
+ * @param {string[]} models - Array of model names to try in order
+ * @param {object} retryConfig - Retry configuration
+ * @param {Function} onProgress - Optional callback for progress updates
+ * @returns {*} Result from the first successful operation
+ */
+async function executeWithFallback(operation, models, retryConfig, onProgress = null) {
+    const { maxRetries, initialDelayMs, maxDelayMs, backoffMultiplier } = retryConfig;
+    let lastError;
+
+    for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+        const model = models[modelIndex];
+        // Extract short model name for display
+        const shortName = model.replace('gemini-', '').replace('-preview', '');
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`[FREE-TIER] Trying model: ${model} (attempt ${attempt + 1}/${maxRetries + 1})`);
+
+                // Notify UI of attempt
+                if (onProgress) {
+                    onProgress({
+                        status: 'trying',
+                        model: shortName,
+                        modelIndex: modelIndex + 1,
+                        totalModels: models.length,
+                        attempt: attempt + 1,
+                        maxAttempts: maxRetries + 1
+                    });
+                }
+
+                const result = await operation(model);
+                console.log(`[FREE-TIER] Success with model: ${model}`);
+
+                // Notify UI of success
+                if (onProgress) {
+                    onProgress({
+                        status: 'success',
+                        model: shortName
+                    });
+                }
+
+                return result;
+            } catch (error) {
+                lastError = error;
+                console.error(`[FREE-TIER] Error on ${model}:`, error.message);
+
+                if (!isRetryableError(error)) {
+                    console.log(`[FREE-TIER] Non-retryable error, trying next model...`);
+                    break; // Try next model
+                }
+
+                if (attempt < maxRetries) {
+                    const delay = Math.min(
+                        initialDelayMs * Math.pow(backoffMultiplier, attempt),
+                        maxDelayMs
+                    );
+                    console.log(`[FREE-TIER] Rate limited on ${model}, retrying in ${delay}ms...`);
+
+                    // Notify UI of retry
+                    if (onProgress) {
+                        onProgress({
+                            status: 'retrying',
+                            model: shortName,
+                            attempt: attempt + 1,
+                            maxAttempts: maxRetries + 1,
+                            delayMs: delay
+                        });
+                    }
+
+                    await sleep(delay);
+                } else {
+                    console.log(`[FREE-TIER] Max retries reached for ${model}, trying next model...`);
+
+                    // Notify UI of model switch
+                    if (onProgress && modelIndex < models.length - 1) {
+                        onProgress({
+                            status: 'switching',
+                            model: shortName,
+                            nextModel: models[modelIndex + 1].replace('gemini-', '').replace('-preview', '')
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // All models exhausted - create a user-friendly error
+    const quotaError = new Error('FREE_QUOTA_EXHAUSTED');
+    quotaError.isQuotaError = true;
+    quotaError.userMessage = 'Quota do plano gratuito atingida. Tente novamente mais tarde ou considere usar um plano pago para mais requisições.';
+    throw quotaError;
+}
+
+// ==========================================
 // Transcription (Gemini Audio Understanding)
 // ==========================================
 
 /**
- * Transcribe audio using Google Gemini
- * Gemini processes audio as multimodal input
+ * Internal function to transcribe audio with a single model
+ */
+async function transcribeAudioWithModel(audioBuffer, apiKey, model, base64Audio, mimeType) {
+    const genAI = getGoogleClient(apiKey);
+    const geminiModel = genAI.getGenerativeModel({ model });
+
+    const transcriptionPrompt = `Transcribe ALL the spoken words in this audio file COMPLETELY, word for word.
+Do NOT summarize or shorten the content.
+Do NOT skip any parts of the audio.
+Include everything that is said from beginning to end.
+Return ONLY the transcription text, nothing else.`;
+
+    const result = await geminiModel.generateContent([
+        {
+            inlineData: {
+                mimeType: mimeType,
+                data: base64Audio
+            }
+        },
+        { text: transcriptionPrompt }
+    ]);
+
+    const response = await result.response;
+    return response.text().trim();
+}
+
+/**
+ * Transcribe audio using Google Gemini with fallback support
  * @param {Buffer|Uint8Array} audioBuffer - Audio data
  * @param {string} apiKey - Google API key
- * @param {string} model - Gemini model to use
+ * @param {string|string[]} modelOrModels - Single model or array of models to try in order
+ * @param {object} retryConfig - Optional retry configuration for fallback
+ * @param {Function} onProgress - Optional callback for progress updates
  * @returns {string} Transcribed text
  */
-async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-flash-lite') {
-    const genAI = getGoogleClient(apiKey);
-
+async function transcribeAudioGoogle(audioBuffer, apiKey, modelOrModels = 'gemini-2.0-flash-lite', retryConfig = null, onProgress = null) {
     const buffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
-    
+
     // Detect audio format from header
     let mimeType = 'audio/webm';
     let fileExt = 'webm';
-    
+
     // Check for WAV header (RIFF....WAVE)
-    if (buffer.length > 12 && 
+    if (buffer.length > 12 &&
         buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
         buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45) {
         mimeType = 'audio/wav';
@@ -50,29 +203,21 @@ async function transcribeAudioGoogle(audioBuffer, apiKey, model = 'gemini-2.0-fl
         const audioData = await fsPromises.readFile(tempFile);
         const base64Audio = audioData.toString('base64');
 
-        // Get the model
-        const geminiModel = genAI.getGenerativeModel({ model });
+        // Handle array of models with fallback
+        const models = Array.isArray(modelOrModels) ? modelOrModels : [modelOrModels];
 
-        // Create the request with audio data
-        // Use a more explicit prompt to get complete transcription
-        const transcriptionPrompt = `Transcribe ALL the spoken words in this audio file COMPLETELY, word for word.
-Do NOT summarize or shorten the content.
-Do NOT skip any parts of the audio.
-Include everything that is said from beginning to end.
-Return ONLY the transcription text, nothing else.`;
-
-        const result = await geminiModel.generateContent([
-            {
-                inlineData: {
-                    mimeType: mimeType,
-                    data: base64Audio
-                }
-            },
-            { text: transcriptionPrompt }
-        ]);
-
-        const response = await result.response;
-        return response.text().trim();
+        if (models.length > 1 && retryConfig) {
+            // Use fallback logic for multiple models
+            return await executeWithFallback(
+                (model) => transcribeAudioWithModel(audioBuffer, apiKey, model, base64Audio, mimeType),
+                models,
+                retryConfig,
+                onProgress
+            );
+        } else {
+            // Single model, direct call
+            return await transcribeAudioWithModel(audioBuffer, apiKey, models[0], base64Audio, mimeType);
+        }
 
     } finally {
         try {
@@ -145,26 +290,51 @@ async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, lan
 // ==========================================
 
 /**
- * Get AI response from Google Gemini
- * @param {object} params - Parameters including message, apiKey, model, etc.
+ * Get AI response from Google Gemini with fallback support
+ * @param {object} params - Parameters including message, apiKey, model/models, etc.
  * @returns {object} Response object with response text
  */
 async function getGoogleAIResponse({ transcription, params }) {
-    const { apiKey, model, systemPrompt, language, history, tierConfig } = params;
+    const { apiKey, model, models, systemPrompt, language, history, tierConfig, retryConfig, onProgress } = params;
+
+    // Support both single model and model array
+    const modelList = models || (Array.isArray(model) ? model : [model]);
 
     try {
-        const response = await getChatCompletionGoogle(
-            transcription,
-            apiKey,
-            model,
-            systemPrompt,
-            language,
-            history,
-            tierConfig || {},
-            params.briefMode || false
-        );
-
-        return { response, threadId: null };
+        if (modelList.length > 1 && retryConfig) {
+            // Use fallback logic for multiple models
+            const response = await executeWithFallback(
+                async (modelName) => {
+                    return await getChatCompletionGoogle(
+                        transcription,
+                        apiKey,
+                        modelName,
+                        systemPrompt,
+                        language,
+                        history,
+                        tierConfig || {},
+                        params.briefMode || false
+                    );
+                },
+                modelList,
+                retryConfig,
+                onProgress
+            );
+            return { response, threadId: null };
+        } else {
+            // Single model, direct call
+            const response = await getChatCompletionGoogle(
+                transcription,
+                apiKey,
+                modelList[0],
+                systemPrompt,
+                language,
+                history,
+                tierConfig || {},
+                params.briefMode || false
+            );
+            return { response, threadId: null };
+        }
     } catch (error) {
         console.error('[ERROR] Google AI Response failed:', error);
         throw error;

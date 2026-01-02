@@ -149,6 +149,10 @@ async function init() {
             resetZoom();
         }
     });
+
+    // Listen for free-tier-retry events (only for free tier)
+    window.electronAPI.onFreeTierRetry(handleFreeTierRetry);
+
     // Start bounds tracking for click-through
     startBoundsTracking();
 
@@ -1035,11 +1039,7 @@ async function finalizeLinuxSystemAudio() {
         try {
             const aiResult = await window.electronAPI.getAIResponse(fullTranscription);
 
-            if (aiResult.error) {
-                showResponse(`Error: ${aiResult.error}`);
-                updateStatus('AI response failed', 'error');
-                return;
-            }
+            if (handleApiError(aiResult)) return;
 
             showResponse(aiResult.response);
             updateStatus('Done', 'idle');
@@ -1072,8 +1072,12 @@ async function finalizeRecording() {
         const transcriptionResult = await window.electronAPI.transcribeAudio(Array.from(audioBuffer));
 
         if (transcriptionResult.error) {
-            showTranscription(`Error: ${transcriptionResult.error}`);
-            updateStatus('Transcription failed', 'error');
+            if (transcriptionResult.isQuotaError) {
+                showQuotaError();
+            } else {
+                showTranscription(`Error: ${transcriptionResult.error}`);
+                updateStatus('Transcription failed', 'error');
+            }
             return;
         }
 
@@ -1086,11 +1090,7 @@ async function finalizeRecording() {
 
         const aiResult = await window.electronAPI.getAIResponse(fullTranscription);
 
-        if (aiResult.error) {
-            showResponse(`Error: ${aiResult.error}`);
-            updateStatus('AI response failed', 'error');
-            return;
-        }
+        if (handleApiError(aiResult)) return;
 
         showResponse(aiResult.response);
         updateStatus('Ready', 'ready');
@@ -1204,6 +1204,43 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Show a user-friendly quota error with upgrade option
+ */
+function showQuotaError() {
+    const message = config.language === 'pt-br'
+        ? '⚠️ Quota do plano gratuito atingida.\n\nTente novamente mais tarde ou considere usar um plano pago para mais requisições.'
+        : config.language === 'es'
+            ? '⚠️ Cuota del plan gratuito alcanzada.\n\nIntenta de nuevo más tarde o considera usar un plan de pago para más solicitudes.'
+            : '⚠️ Free tier quota reached.\n\nPlease try again later or consider upgrading to a paid plan for more requests.';
+
+    showResponse(message);
+    updateStatus('Quota limit reached', 'error');
+
+    // Reset the model display
+    if (elements.statusModel) {
+        elements.statusModel.textContent = 'Free ⚠️';
+        elements.statusModel.classList.remove('retrying');
+    }
+}
+
+/**
+ * Handle API result errors, checking for quota errors
+ * @returns {boolean} true if error was handled (caller should return)
+ */
+function handleApiError(result) {
+    if (result.error) {
+        if (result.isQuotaError) {
+            showQuotaError();
+        } else {
+            showResponse(`Error: ${result.error}`);
+            updateStatus('Error', 'error');
+        }
+        return true;
+    }
+    return false;
 }
 
 // ==========================================
@@ -1584,11 +1621,7 @@ async function handleInputSubmit() {
     try {
         const aiResult = await window.electronAPI.getAIResponse(text);
 
-        if (aiResult.error) {
-            showResponse(`Error: ${aiResult.error}`);
-            updateStatus('AI response failed', 'error');
-            return;
-        }
+        if (handleApiError(aiResult)) return;
 
         showResponse(aiResult.response);
         updateStatus('Ready', 'ready');
@@ -1901,6 +1934,59 @@ function updateModelDisplay() {
     const currentTier = config.tier || 'balanced';
     if (elements.statusModel) {
         elements.statusModel.textContent = getTierLabel(currentTier, config.provider);
+        // Reset any retry styling
+        elements.statusModel.classList.remove('retrying');
+    }
+}
+
+// ==========================================
+// Free Tier Retry Feedback
+// ==========================================
+
+let retryResetTimeout = null;
+
+/**
+ * Handle free-tier-retry events from main process
+ * Shows visual feedback during model retries for free tier
+ */
+function handleFreeTierRetry(data) {
+    if (!elements.statusModel) return;
+
+    // Clear any pending reset timeout
+    if (retryResetTimeout) {
+        clearTimeout(retryResetTimeout);
+        retryResetTimeout = null;
+    }
+
+    switch (data.status) {
+        case 'trying':
+            // Show current model being tried with hourglass
+            elements.statusModel.textContent = `⏳ ${data.model}`;
+            elements.statusModel.classList.add('retrying');
+            break;
+
+        case 'retrying':
+            // Show retry indicator with attempt number
+            elements.statusModel.textContent = `⏳ ${data.model} (${data.attempt}/${data.maxAttempts})`;
+            elements.statusModel.classList.add('retrying');
+            break;
+
+        case 'switching':
+            // Show model switch with arrow
+            elements.statusModel.textContent = `⏳ ${data.nextModel}...`;
+            elements.statusModel.classList.add('retrying');
+            break;
+
+        case 'success':
+            // Show success briefly, then reset
+            elements.statusModel.textContent = `✓ Free`;
+            elements.statusModel.classList.remove('retrying');
+
+            // Reset to normal display after a short delay
+            retryResetTimeout = setTimeout(() => {
+                updateModelDisplay();
+            }, 2000);
+            break;
     }
 }
 
@@ -1925,11 +2011,7 @@ async function handleKeyboardSubmit() {
         // Get AI response directly (skip transcription)
         const aiResult = await window.electronAPI.getAIResponse(text);
 
-        if (aiResult.error) {
-            showResponse(`Error: ${aiResult.error}`);
-            updateStatus('AI response failed', 'error');
-            return;
-        }
+        if (handleApiError(aiResult)) return;
 
         showResponse(aiResult.response);
         updateStatus('Ready', 'ready');

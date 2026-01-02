@@ -59,6 +59,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('zoom-shortcut', (event, key) => callback(key));
     },
 
+    // Free tier retry notifications
+    onFreeTierRetry: (callback) => {
+        ipcRenderer.on('free-tier-retry', (event, data) => callback(data));
+    },
+
     // Window controls
     closeWindow: () => ipcRenderer.send('close-window'),
     minimizeWindow: () => ipcRenderer.send('minimize-window'),

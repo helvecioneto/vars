@@ -79,6 +79,39 @@ function getSpecialModel(provider = 'openai', type = 'realtime') {
     return models.providers?.[provider]?.[type] || null;
 }
 
+/**
+ * Get model list for fallback (for tiers with multiple models like 'free')
+ * @param {string} provider - 'openai' or 'google'
+ * @param {string} tier - tier name
+ * @param {string} type - 'analyze' or 'transcribe'
+ * @returns {string[]} List of models in priority order
+ */
+function getModelListForTier(provider = 'google', tier = 'free', type = 'analyze') {
+    const tierConfig = models.providers?.[provider]?.[tier];
+    if (!tierConfig) return [];
+
+    const modelValue = tierConfig[type];
+
+    // If it's an array, return as-is; if string, wrap in array
+    return Array.isArray(modelValue) ? modelValue : [modelValue];
+}
+
+/**
+ * Get retry configuration for a tier
+ * @param {string} provider - 'openai' or 'google'
+ * @param {string} tier - tier name
+ * @returns {object} Retry configuration with maxRetries, delays, etc.
+ */
+function getRetryConfig(provider = 'google', tier = 'free') {
+    const tierConfig = models.providers?.[provider]?.[tier];
+    return tierConfig?.retryConfig || {
+        maxRetries: 2,
+        initialDelayMs: 1000,
+        maxDelayMs: 5000,
+        backoffMultiplier: 2
+    };
+}
+
 function getPromptForLanguage(promptPath, language = 'en') {
     // Navigate the prompt path (e.g., 'defaults.systemPrompt')
     const parts = promptPath.split('.');
@@ -175,7 +208,9 @@ module.exports = {
     getTiers,
     getProviders,
     getModelForTier,
+    getModelListForTier,
     getTierConfig,
+    getRetryConfig,
     getSpecialModel,
     CONFIG_DIR,
     CONFIG_FILE
