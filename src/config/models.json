@@ -3,24 +3,23 @@
         "openai": {
             "fast": {
                 "analyze": "gpt-4o-mini",
-                "transcribe": "gpt-4o-mini-transcribe",
+                "transcribe": "whisper-1",
                 "temperature": 0.5,
-                "maxOutputTokens": 500
+                "maxOutputTokens": 1024
             },
             "balanced": {
                 "analyze": "gpt-4o",
-                "transcribe": "gpt-4o-transcribe",
-                "temperature": 0.4,
-                "maxOutputTokens": 1500
+                "transcribe": "whisper-1",
+                "temperature": 0.5,
+                "maxOutputTokens": 4096
             },
             "quality": {
-                "analyze": "gpt-4o",
-                "transcribe": "gpt-4o-transcribe",
-                "temperature": 0.3,
-                "maxOutputTokens": 2048
-            },
-            "realtime": "gpt-4o-transcribe",
-            "assistant": "gpt-4o-mini"
+                "analyze": "gpt-5.2",
+                "transcribe": "whisper-1",
+                "temperature": 1,
+                "maxOutputTokens": 16384,
+                "topP": 1
+            }
         },
         "google": {
             "free": {
