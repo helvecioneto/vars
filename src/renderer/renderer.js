@@ -1580,6 +1580,14 @@ function toggleSettings() {
 // Settings Tabs Navigation
 // ==========================================
 
+// QR Code carousel state
+let qrCodeInterval = null;
+let currentQRIndex = 0;
+const QR_CODES = [
+    { id: 'paypal', label: 'PayPal', indicatorId: 'indicator-paypal' },
+    { id: 'pix', label: 'Pix (Brasil)', indicatorId: 'indicator-pix' }
+];
+
 function setupSettingsTabs() {
     const tabs = document.querySelectorAll('.settings-tab');
     const tabContents = document.querySelectorAll('.settings-tab-content');
@@ -1598,8 +1606,122 @@ function setupSettingsTabs() {
             if (targetContent) {
                 targetContent.classList.add('active');
             }
+
+            // Handle QR code carousel for About tab
+            if (targetTab === 'about') {
+                startQRCodeCarousel();
+            } else {
+                stopQRCodeCarousel();
+            }
         });
     });
+}
+
+/**
+ * Start the QR code carousel - alternates between PayPal and Pix every 5 seconds
+ */
+function startQRCodeCarousel() {
+    // Clear any existing interval
+    stopQRCodeCarousel();
+    
+    // Reset to first QR code
+    currentQRIndex = 0;
+    updateQRCodeDisplay();
+    
+    // Setup navigation buttons
+    setupQRNavButtons();
+    
+    // Start the interval
+    qrCodeInterval = setInterval(() => {
+        currentQRIndex = (currentQRIndex + 1) % QR_CODES.length;
+        updateQRCodeDisplay();
+    }, 5000);
+}
+
+/**
+ * Stop the QR code carousel
+ */
+function stopQRCodeCarousel() {
+    if (qrCodeInterval) {
+        clearInterval(qrCodeInterval);
+        qrCodeInterval = null;
+    }
+}
+
+/**
+ * Setup navigation buttons for QR code carousel
+ */
+function setupQRNavButtons() {
+    const prevBtn = document.getElementById('qr-prev-btn');
+    const nextBtn = document.getElementById('qr-next-btn');
+    
+    if (prevBtn) {
+        prevBtn.onclick = () => navigateQRCode(-1);
+    }
+    if (nextBtn) {
+        nextBtn.onclick = () => navigateQRCode(1);
+    }
+}
+
+/**
+ * Navigate QR code carousel manually
+ * @param {number} direction - -1 for previous, 1 for next
+ */
+function navigateQRCode(direction) {
+    // Stop auto-carousel temporarily
+    stopQRCodeCarousel();
+    
+    // Update index
+    currentQRIndex = (currentQRIndex + direction + QR_CODES.length) % QR_CODES.length;
+    updateQRCodeDisplay();
+    
+    // Restart carousel after 10 seconds of inactivity
+    qrCodeInterval = setInterval(() => {
+        currentQRIndex = (currentQRIndex + 1) % QR_CODES.length;
+        updateQRCodeDisplay();
+    }, 5000);
+}
+
+/**
+ * Update the QR code display based on current index
+ */
+function updateQRCodeDisplay() {
+    const qrPaypal = document.getElementById('qr-paypal');
+    const qrPix = document.getElementById('qr-pix');
+    const qrLabel = document.getElementById('qr-label');
+    const indicatorPaypal = document.getElementById('indicator-paypal');
+    const indicatorPix = document.getElementById('indicator-pix');
+    const donationMessage = document.getElementById('donation-message');
+    
+    if (!qrPaypal || !qrPix || !qrLabel) return;
+    
+    const current = QR_CODES[currentQRIndex];
+    
+    // Update QR code visibility
+    if (current.id === 'paypal') {
+        qrPaypal.classList.remove('hidden');
+        qrPaypal.classList.add('visible');
+        qrPix.classList.add('hidden');
+        qrPix.classList.remove('visible');
+        indicatorPaypal?.classList.add('active');
+        indicatorPix?.classList.remove('active');
+        if (donationMessage) {
+            donationMessage.textContent = '💜 Support this project with a donation!';
+        }
+    } else {
+        qrPix.classList.remove('hidden');
+        qrPix.classList.add('visible');
+        qrPaypal.classList.add('hidden');
+        qrPaypal.classList.remove('visible');
+        indicatorPix?.classList.add('active');
+        indicatorPaypal?.classList.remove('active');
+        if (donationMessage) {
+            donationMessage.textContent = '💚 Apoie este projeto com uma doação via Pix!';
+        }
+    }
+    
+    // Update label
+    qrLabel.textContent = current.label;
 }
 
 // ==========================================

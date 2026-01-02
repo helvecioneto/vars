@@ -192,6 +192,17 @@
           </span>
           <span class="tab-label">Audio</span>
         </button>
+        <button class="settings-tab" data-tab="about" title="About & Donate">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </span>
+          <span class="tab-label">About</span>
+        </button>
       </div>
 
       <!-- Tab Content: API & Providers -->
@@ -366,6 +377,53 @@
           <strong>System Audio:</strong> Used in Computer Audio mode. Select a "Monitor" device to capture what you
           hear.
         </p>
+      </div>
+
+      <!-- Tab Content: About -->
+      <div class="settings-tab-content" id="tab-about">
+        <div class="about-content">
+          <div class="about-header">
+            <div class="about-logo">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"></path>
+              </svg>
+            </div>
+            <h2 class="about-title">VARS</h2>
+            <p class="about-version">Virtual Agent for Real-time Support</p>
+            <p class="about-description">
+              An AI-powered desktop assistant that listens to your system audio or microphone,
+              captures your screen, and provides intelligent responses using cutting-edge AI models.
+            </p>
+          </div>
+
+          <div class="donation-section">
+            <p class="donation-message" id="donation-message">💜 Support this project with a donation!</p>
+            <div class="qr-container">
+              <div class="qr-carousel">
+                <button class="qr-nav-btn" id="qr-prev-btn" title="Previous">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <div class="qr-wrapper" id="qr-wrapper">
+                  <img src="../assets/paypal.jpg" alt="PayPal QR Code" class="qr-code" id="qr-paypal">
+                  <img src="../assets/pix.png" alt="Pix QR Code" class="qr-code hidden" id="qr-pix">
+                </div>
+                <button class="qr-nav-btn" id="qr-next-btn" title="Next">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              </div>
+              <p class="qr-label" id="qr-label">PayPal</p>
+              <div class="qr-indicators">
+                <span class="qr-indicator active" id="indicator-paypal"></span>
+                <span class="qr-indicator" id="indicator-pix"></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Settings Footer -->

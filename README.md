@@ -11,7 +11,7 @@
 
 [Download](#-download) • [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Build](#%EF%B8%8F-building-from-source) • [Donate](#-support-the-project)
 
-![VARS Demo](src/assets/icon.png)
+![VARS Demo](src/assets/icon.png){width=64px height=64px}
 
 </div>
 
