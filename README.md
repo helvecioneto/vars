@@ -23,10 +23,10 @@ Download the latest version for your operating system from the [Releases page](h
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| **Windows** | x64 | [VARS-x.x.x-win-x64.exe](https://github.com/helvecioneto/vars/releases/latest) |
-| **macOS** | Apple Silicon (M1/M2/M3) | [VARS-x.x.x-mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
-| **macOS** | Intel | [VARS-x.x.x-mac-x64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
-| **Linux** | x64 | [VARS-x.x.x-linux-x64.AppImage](https://github.com/helvecioneto/vars/releases/latest) |
+| **Windows** | x64 | [VARS-win-x64.exe](https://github.com/helvecioneto/vars/releases/latest) |
+| **macOS** | Apple Silicon (M1/M2/M3) | [VARS--mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
+| **macOS** | Intel | [VARS-mac-x64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
+| **Linux** | x64 | [VARS-linux-x64.AppImage](https://github.com/helvecioneto/vars/releases/latest) |
 
 ---
 
