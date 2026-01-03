@@ -672,3 +672,34 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+---
+
+ADDITIONAL TERMS AND NOTICES (Added under Section 7)
+
+1. Usage Responsibility and Legal Compliance
+
+This software includes features for audio recording and screen capture. It is the 
+sole responsibility of the user to ensure that their use of this software complies 
+with all applicable local, state, national, and international laws regarding 
+recording, privacy, and data protection. 
+
+In many jurisdictions, recording conversations without the consent of all parties 
+is illegal. The author of this software does not condone, support, or encourage 
+the use of this tool for illegal activities, academic dishonesty, fraud, or for 
+violating the privacy rights of others. By using this software, you agree to hold 
+the author harmless from any legal consequences arising from your use of the tool.
+
+2. Privacy and Open Source Transparency
+
+As this project is Open Source, all data processing logic, including audio and 
+screen capture handling, is transparent and available for verification in the 
+source code. Users concerned about privacy are encouraged to audit the code 
+to verify that no data is transmitted to unauthorized third parties or stored 
+without user consent, beyond the AI providers configured by the user.
+
+3. Donations
+
+Accepting donations to support the development of this project does not constitute 
+commercial use. Users and supporters are welcome to contribute financially to help 
+maintain and improve this software.

@@ -423,6 +423,9 @@ This license guarantees your freedom to share and change the software, ensuring 
 **Disclaimer:**
 This software is provided "as is", without warranty of any kind. Please see the [LICENSE](LICENSE) file for the full license text and important legal disclaimers regarding the use of recording features.
 
+**Privacy & Open Source Transparency:**
+Since this tool is Open Source, all privacy-related logic (audio and screen capture) can be verified directly in the source code. We encourage users to audit the code to ensure transparency and trust regarding how their data is handled.
+
 ---
 
 <div align="center">
