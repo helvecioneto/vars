@@ -120,7 +120,7 @@ jobs:
   # macOS Build - Apple Silicon (arm64)
   # ==========================================
   build-mac-arm64:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -165,13 +165,28 @@ jobs:
           npx electron-builder --mac --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Disable code signing for now (app will need quarantine removal on first run)
+          # Use ad-hoc signing (required for ARM64 binaries)
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Optional: Apple notarization (requires secrets)
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # CSC_LINK: ${{ secrets.CSC_LINK }}
-          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_LINK: ""
+
+      - name: Ad-hoc sign the app (required for ARM64)
+        run: |
+          APP_PATH=$(find dist -name "*.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            echo "Ad-hoc signing: $APP_PATH"
+            codesign --force --deep --sign - "$APP_PATH"
+            echo "Verifying signature..."
+            codesign --verify --verbose "$APP_PATH"
+          fi
+
+      - name: Recreate DMG with signed app
+        run: |
+          # Remove old DMG and recreate with signed app
+          rm -f dist/*.dmg
+          npx electron-builder --mac --arm64 --publish never --prepackaged "dist/mac-arm64/VARS.app"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS ARM64 artifact
         uses: actions/upload-artifact@v4
@@ -184,7 +199,7 @@ jobs:
   # macOS Build - Intel (x64)
   # ==========================================
   build-mac-x64:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -229,13 +244,7 @@ jobs:
           npx electron-builder --mac --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Disable code signing for now (app will need quarantine removal on first run)
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Optional: Apple notarization (requires secrets)
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # CSC_LINK: ${{ secrets.CSC_LINK }}
-          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
       - name: Upload macOS x64 artifact
         uses: actions/upload-artifact@v4
@@ -283,16 +292,20 @@ jobs:
             2. Se aparecer "Windows protegeu seu PC", clique em "Mais informações" → "Executar assim mesmo"
 
             ### macOS
-            ⚠️ **Nota:** Como o app não está notarizado pela Apple, você precisa remover o atributo de quarentena.
+            ⚠️ **Nota:** Como o app não está assinado/notarizado pela Apple, o macOS exibirá uma mensagem de que o app "está danificado". Isso é esperado para aplicativos de código aberto.
 
             Para instalar no macOS:
-            1. Baixe o arquivo `.dmg` correspondente à sua arquitetura (arm64 para M1/M2/M3, x64 para Intel)
+            1. Baixe o arquivo `.dmg` correspondente à sua arquitetura:
+               - **arm64** para Macs com chip Apple Silicon (M1/M2/M3/M4)
+               - **x64** para Macs com processador Intel
             2. Monte o DMG e arraste o app para a pasta Aplicativos
-            3. **Antes de abrir pela primeira vez**, execute no Terminal:
-               ```
+            3. **IMPORTANTE - Antes de abrir pela primeira vez**, abra o Terminal e execute:
+               ```bash
                xattr -cr /Applications/VARS.app
                ```
             4. Agora você pode abrir o aplicativo normalmente
+
+            > 💡 **Por que isso acontece?** O macOS aplica um atributo de "quarentena" em apps baixados da internet. Sem assinatura de desenvolvedor Apple ($99/ano), esse comando é necessário para remover a quarentena.
 
             ### Linux
             1. Baixe o arquivo `.AppImage`
