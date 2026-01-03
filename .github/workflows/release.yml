@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   # ==========================================
-  # Windows Build
+  # Windows Build (ASSINADO)
   # ==========================================
   build-windows:
     runs-on: windows-latest
@@ -55,10 +55,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # --- ALTERAÇÃO AQUI ---
+      # Injetamos o certificado (CSC_LINK) e a senha (CSC_KEY_PASSWORD)
+      # O electron-builder detecta isso automaticamente e assina o .exe
       - name: Build Windows
         run: npm run build:win -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -283,27 +288,23 @@ jobs:
             ## Download e Instalação
 
             ### Windows
-            ⚠️ **Nota:** O Windows Defender pode exibir um aviso de segurança porque o aplicativo não está assinado digitalmente. Isso é esperado para aplicativos de código aberto sem certificado de assinatura de código.
+            ⚠️ **Nota:** O Windows Defender pode exibir um aviso de segurança. Isso ocorre porque usamos um certificado de software livre autoassinado (que ainda não tem reputação global na Microsoft), mas **garante que o arquivo é original e não foi alterado**.
 
             Para instalar:
             1. Baixe o arquivo `.exe`
             2. Se aparecer "Windows protegeu seu PC", clique em "Mais informações" → "Executar assim mesmo"
 
             ### macOS
-            ⚠️ **Nota:** Como o app não está assinado/notarizado pela Apple, o macOS exibirá uma mensagem de que o app "está danificado". Isso é esperado para aplicativos de código aberto.
+            ⚠️ **Nota:** Como o app não está notarizado pela Apple (requer licença paga), o macOS pode dizer que o app "está danificado".
 
             Para instalar no macOS:
-            1. Baixe o arquivo `.dmg` correspondente à sua arquitetura:
-               - **arm64** para Macs com chip Apple Silicon (M1/M2/M3/M4)
-               - **x64** para Macs com processador Intel
+            1. Baixe o arquivo `.dmg` (arm64 para M1/M2/M3 ou x64 para Intel)
             2. Monte o DMG e arraste o app para a pasta Aplicativos
-            3. **IMPORTANTE - Antes de abrir pela primeira vez**, abra o Terminal e execute:
+            3. **IMPORTANTE:** Antes de abrir, rode no Terminal:
                ```bash
                xattr -cr /Applications/VARS.app
                ```
-            4. Agora você pode abrir o aplicativo normalmente
-
-            > 💡 **Por que isso acontece?** O macOS aplica um atributo de "quarentena" em apps baixados da internet. Sem assinatura de desenvolvedor Apple ($99/ano), esse comando é necessário para remover a quarentena.
+            4. Abra o aplicativo normalmente
 
             ### Linux
             1. Baixe o arquivo `.AppImage`

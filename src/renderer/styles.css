@@ -201,9 +201,12 @@ html {
 }
 
 @keyframes pulse-screenshot {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
   }
@@ -329,9 +332,12 @@ html {
 }
 
 @keyframes retry-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -507,11 +513,17 @@ html {
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
 }
 
 .settings-mode-title.hidden {
   display: none;
+}
+
+.settings-title-text {
+  font-weight: 500;
 }
 
 /* Settings Panel - full focus mode */
@@ -1551,6 +1563,7 @@ html {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -1562,8 +1575,130 @@ html {
     opacity: 1;
     transform: scale(1);
   }
+
   to {
     opacity: 0;
     transform: scale(0.95);
   }
+}
+
+/* ==========================================
+   Visibility Toggle & Visible Mode Styles
+   ========================================== */
+
+/* Visibility Toggle Button */
+.visibility-toggle {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.visibility-toggle:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: var(--success);
+}
+
+/* Visibility label text */
+.visibility-label {
+  white-space: nowrap;
+}
+
+/* Icon states - Hidden mode (default): show eye-off icon */
+.visibility-toggle .visible-icon {
+  display: none;
+}
+
+.visibility-toggle .hidden-icon {
+  display: block;
+}
+
+/* Visible mode: show eye icon, change to warning/danger color */
+.visibility-toggle.visible .visible-icon {
+  display: block;
+}
+
+.visibility-toggle.visible .hidden-icon {
+  display: none;
+}
+
+.visibility-toggle.visible {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.visibility-toggle.visible:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* Visible Mode Border Effect - RED warning to indicate visibility */
+.app-container.visible-mode {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.7),
+    0 0 15px rgba(239, 68, 68, 0.5),
+    0 0 30px rgba(239, 68, 68, 0.3),
+    0 0 45px rgba(239, 68, 68, 0.15),
+    0 4px 24px rgba(0, 0, 0, 0.4);
+  animation: visible-glow-warning 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes visible-glow-warning {
+  from {
+    box-shadow:
+      0 0 0 3px rgba(239, 68, 68, 0.7),
+      0 0 15px rgba(239, 68, 68, 0.5),
+      0 0 30px rgba(239, 68, 68, 0.3),
+      0 0 45px rgba(239, 68, 68, 0.15),
+      0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 4px rgba(239, 68, 68, 0.9),
+      0 0 25px rgba(239, 68, 68, 0.7),
+      0 0 50px rgba(239, 68, 68, 0.4),
+      0 0 70px rgba(239, 68, 68, 0.2),
+      0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ==========================================
+   Custom Tooltip (protected from screen sharing)
+   ========================================== */
+
+.custom-tooltip {
+  position: fixed;
+  z-index: 10000;
+  padding: 6px 10px;
+  background: rgba(30, 30, 30, 0.95);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
 }

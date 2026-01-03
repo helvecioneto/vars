@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences, desktopCapturer } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences, desktopCapturer, ipcMain } = require('electron');
 const path = require('path');
 const { loadConfig, saveConfig } = require('./config');
 const { setupIPCHandlers } = require('./ipc-handlers');
@@ -198,7 +198,7 @@ function registerGlobalShortcut() {
 
     const screenshotRet = globalShortcut.register(screenshotKey, () => {
         console.log('Screenshot shortcut triggered');
-        
+
         if (mainWindow) {
             // Send event to renderer to capture screenshot
             mainWindow.webContents.send('screenshot-capture');
@@ -285,12 +285,12 @@ app.whenReady().then(async () => {
         if (['media', 'audioCapture', 'microphone'].includes(permission)) {
             const result = checkMicPermission();
             callback(result !== 'denied' && result !== 'restricted');
-        } 
+        }
         // Allow display/screen capture permissions (for system audio)
         else if (['display-capture', 'screen'].includes(permission)) {
             const result = checkScreenPermission();
             callback(result !== 'denied' && result !== 'restricted');
-        } 
+        }
         else {
             callback(true);
         }
@@ -300,16 +300,16 @@ app.whenReady().then(async () => {
     session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
         console.log('[DisplayMedia] Request received:', request);
         try {
-            const sources = await desktopCapturer.getSources({ 
+            const sources = await desktopCapturer.getSources({
                 types: ['screen'],
                 thumbnailSize: { width: 1, height: 1 }
             });
-            
+
             console.log('[DisplayMedia] Available sources:', sources.map(s => s.id));
-            
+
             // Find the first screen source
             const screenSource = sources.find(s => s.id.startsWith('screen:')) || sources[0];
-            
+
             if (screenSource) {
                 console.log('[DisplayMedia] Using source:', screenSource.id, 'with loopback audio');
                 // 'loopback' tells Electron to capture system audio
@@ -339,6 +339,14 @@ app.whenReady().then(async () => {
         getConfig: () => config,
         setConfig: (newConfig) => { config = newConfig; },
         toggleRecording: toggleRecordingState
+    });
+
+    // Handle content protection toggle (visibility mode)
+    ipcMain.on('set-content-protection', (event, enabled) => {
+        if (mainWindow && (process.platform === 'darwin' || process.platform === 'win32')) {
+            mainWindow.setContentProtection(enabled);
+            console.log(`Content protection set to: ${enabled}`);
+        }
     });
 
     app.on('activate', () => {

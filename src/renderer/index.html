@@ -32,7 +32,24 @@
       <!-- Center: Input or Settings Title -->
       <div class="toolbar-center">
         <input type="text" class="input-field" id="input-field" placeholder="Ask me anything..." autocomplete="off">
-        <span class="settings-mode-title hidden" id="settings-mode-title">Settings</span>
+        <div class="settings-mode-title hidden" id="settings-mode-title">
+          <span class="settings-title-text">Settings</span>
+          <button class="visibility-toggle" id="visibility-toggle">
+            <svg class="visibility-icon visible-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg class="visibility-icon hidden-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <span class="visibility-label">Hidden</span>
+          </button>
+        </div>
       </div>
 
       <!-- Right: Actions -->
@@ -47,7 +64,7 @@
             </svg>
           </span>
         </button>
-        <button class="icon-btn" id="screenshot-btn" title="Capture Screen">
+        <button class="icon-btn" id="screenshot-btn" data-tooltip="Capture Screen">
           <span class="icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -109,17 +126,17 @@
           <span class="screenshot-title" id="screenshot-title">Screen captured</span>
         </div>
         <div class="screenshot-buttons">
-          <button class="action-btn" id="action-answers" title="Find and answer questions (Press 1)">
+          <button class="action-btn" id="action-answers" data-tooltip="Find and answer questions (Press 1)">
             <span class="action-key">1</span>
             <span class="action-icon">❓</span>
             <span>Answers</span>
           </button>
-          <button class="action-btn" id="action-code" title="Analyze and explain code (Press 2)">
+          <button class="action-btn" id="action-code" data-tooltip="Analyze and explain code (Press 2)">
             <span class="action-key">2</span>
             <span class="action-icon">💻</span>
             <span>Code</span>
           </button>
-          <button class="action-btn" id="action-summary" title="Summarize visible content (Press 3)">
+          <button class="action-btn" id="action-summary" data-tooltip="Summarize visible content (Press 3)">
             <span class="action-key">3</span>
             <span class="action-icon">📝</span>
             <span>Summary</span>
@@ -127,7 +144,7 @@
         </div>
         <div class="screenshot-ask">
           <input type="text" class="ask-input" id="screenshot-ask-input" placeholder="Ask about the image...">
-          <button class="action-btn ask-btn" id="action-ask" title="Ask a custom question (Enter)">
+          <button class="action-btn ask-btn" id="action-ask" data-tooltip="Ask a custom question (Enter)">
             <span>Ask</span>
           </button>
         </div>
@@ -148,7 +165,7 @@
     <div class="settings-panel" id="settings-panel">
       <!-- Settings Tabs Navigation -->
       <div class="settings-tabs">
-        <button class="settings-tab active" data-tab="api" title="API Keys & Providers">
+        <button class="settings-tab active" data-tab="api" data-tooltip="API Keys & Providers">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -158,7 +175,7 @@
           </span>
           <span class="tab-label">API</span>
         </button>
-        <button class="settings-tab" data-tab="behavior" title="Language & Response">
+        <button class="settings-tab" data-tab="behavior" data-tooltip="Language & Response">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -170,7 +187,7 @@
           </span>
           <span class="tab-label">Behavior</span>
         </button>
-        <button class="settings-tab" data-tab="knowledge" title="Knowledge Base Files">
+        <button class="settings-tab" data-tab="knowledge" data-tooltip="Knowledge Base Files">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -180,7 +197,7 @@
           </span>
           <span class="tab-label">Knowledge</span>
         </button>
-        <button class="settings-tab" data-tab="audio" title="Audio Input">
+        <button class="settings-tab" data-tab="audio" data-tooltip="Audio Input">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -192,7 +209,7 @@
           </span>
           <span class="tab-label">Audio</span>
         </button>
-        <button class="settings-tab" data-tab="about" title="About & Donate">
+        <button class="settings-tab" data-tab="about" data-tooltip="About & Donate">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -242,7 +259,7 @@
             </label>
             <div class="api-key-input-row">
               <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
-              <button type="button" id="test-api-btn" class="test-api-btn" title="Test API Connection">
+              <button type="button" id="test-api-btn" class="test-api-btn" data-tooltip="Test API Connection">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -265,7 +282,7 @@
             </label>
             <div class="api-key-input-row">
               <input type="password" id="google-api-key" placeholder="AIzaSy..." autocomplete="off">
-              <button type="button" id="test-google-api-btn" class="test-api-btn" title="Test API Connection">
+              <button type="button" id="test-google-api-btn" class="test-api-btn" data-tooltip="Test API Connection">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -361,7 +378,7 @@
               <select id="system-audio-device">
                 <option value="">Click refresh to load devices</option>
               </select>
-              <button type="button" id="refresh-audio-btn" class="icon-btn small-btn" title="Refresh devices">
+              <button type="button" id="refresh-audio-btn" class="icon-btn small-btn" data-tooltip="Refresh devices">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="23 4 23 10 17 10"></polyline>
@@ -401,8 +418,9 @@
             <p class="donation-message" id="donation-message">💜 Support this project with a donation!</p>
             <div class="qr-container">
               <div class="qr-carousel">
-                <button class="qr-nav-btn" id="qr-prev-btn" title="Previous">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button class="qr-nav-btn" id="qr-prev-btn" data-tooltip="Previous">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 18 9 12 15 6"></polyline>
                   </svg>
                 </button>
@@ -410,8 +428,9 @@
                   <img src="../assets/paypal.jpg" alt="PayPal QR Code" class="qr-code" id="qr-paypal">
                   <img src="../assets/pix.png" alt="Pix QR Code" class="qr-code hidden" id="qr-pix">
                 </div>
-                <button class="qr-nav-btn" id="qr-next-btn" title="Next">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button class="qr-nav-btn" id="qr-next-btn" data-tooltip="Next">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </button>
@@ -439,7 +458,7 @@
     <div class="onboarding-content">
       <div class="onboarding-header">
         <span class="onboarding-step" id="onboarding-step">Step 1 of 3</span>
-        <button class="onboarding-close" id="onboarding-skip" title="Skip tutorial">&times;</button>
+        <button class="onboarding-close" id="onboarding-skip" data-tooltip="Skip tutorial">&times;</button>
       </div>
       <p class="onboarding-message" id="onboarding-message">Welcome to VARS! Let's set up your AI assistant.</p>
       <div class="onboarding-actions">
@@ -462,6 +481,9 @@
   <div class="hidden" id="empty-state"></div>
   <div class="hidden" id="status-indicator"><span class="status-dot"></span><span class="status-text"></span></div>
   </div>
+
+  <!-- Custom Tooltip (rendered inside protected window, invisible to screen sharing) -->
+  <div id="custom-tooltip" class="custom-tooltip"></div>
 
   <script src="renderer.js"></script>
 </body>

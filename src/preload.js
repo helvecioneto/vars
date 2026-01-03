@@ -80,6 +80,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
     setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
 
+    // Content Protection (visibility mode toggle)
+    setContentProtection: (enabled) => ipcRenderer.send('set-content-protection', enabled),
+
+
     // Desktop Capturer for System Audio
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
 

@@ -25,6 +25,9 @@ let scriptProcessor = null;
 // Pending screenshot for action selection
 let pendingScreenshot = null;
 
+// Visibility mode state (default: invisible/hidden for screen sharing protection)
+let isVisibleMode = false;
+
 
 // DOM Elements
 const elements = {
@@ -140,8 +143,11 @@ async function init() {
     await populateDevices();
     await populateSystemAudioDevices();
 
-    // Update button tooltips based on OS
+    // Update button tooltips based on OS (uses custom tooltips for screen sharing protection)
     updateButtonTooltips();
+
+    // Initialize custom tooltip system (tooltips rendered inside protected window)
+    initCustomTooltips();
 
     // Setup event listeners
     setupEventListeners();
@@ -177,7 +183,10 @@ async function init() {
 
 /**
  * Updates button tooltips with OS-appropriate keyboard shortcuts
- * Uses native title attribute for browser tooltips
+ * Uses custom data-tooltip attribute instead of native title
+ * The custom tooltip is rendered inside the protected window,
+ * making it invisible to screen sharing while visible to the user
+ * 
  * macOS uses ⌥ (Option) for shortcuts
  * Windows/Linux uses Ctrl for shortcuts
  */
@@ -188,40 +197,244 @@ function updateButtonTooltips() {
 
     // Record button (global shortcut)
     if (elements.recBtn) {
-        elements.recBtn.title = `${mod}+Space: Record`;
+        elements.recBtn.setAttribute('data-tooltip', `${mod}+Space: Record`);
+        elements.recBtn.removeAttribute('title');
     }
 
     // Mode switch button (handled by updateInputModeUI for dynamic text)
 
     // History button (uses same modifier as other shortcuts)
     if (elements.historyBtn) {
-        elements.historyBtn.title = `${mod}+↑/↓: History`;
+        elements.historyBtn.setAttribute('data-tooltip', `${mod}+↑/↓: History`);
+        elements.historyBtn.removeAttribute('title');
     }
 
     // Screenshot button
     if (elements.screenshotBtn) {
-        elements.screenshotBtn.title = `${mod}+Shift+S: Capture Screen`;
+        elements.screenshotBtn.setAttribute('data-tooltip', `${mod}+Shift+S: Capture Screen`);
+        elements.screenshotBtn.removeAttribute('title');
     }
 
     // Settings button
     if (elements.settingsBtn) {
-        elements.settingsBtn.title = 'Settings';
+        elements.settingsBtn.setAttribute('data-tooltip', 'Settings');
+        elements.settingsBtn.removeAttribute('title');
     }
 
     // Drag button
     if (elements.dragBtn) {
-        elements.dragBtn.title = 'Move / Right-click: Menu';
+        elements.dragBtn.setAttribute('data-tooltip', 'Move / Right-click: Menu');
+        elements.dragBtn.removeAttribute('title');
+    }
+
+    // Mode button
+    if (elements.modeBtn) {
+        const modeConfig = INPUT_MODES[currentInputMode];
+        if (modeConfig) {
+            elements.modeBtn.setAttribute('data-tooltip', `${mod}+M: ${modeConfig.text}`);
+            elements.modeBtn.removeAttribute('title');
+        }
     }
 
     // Knowledge Base buttons (in settings)
     const addFileBtn = document.getElementById('add-file-btn');
-    if (addFileBtn) addFileBtn.title = 'Add Files';
+    if (addFileBtn) {
+        addFileBtn.setAttribute('data-tooltip', 'Add Files');
+        addFileBtn.removeAttribute('title');
+    }
 
     const trainBtn = document.getElementById('train-btn');
-    if (trainBtn) trainBtn.title = 'Train KB';
+    if (trainBtn) {
+        trainBtn.setAttribute('data-tooltip', 'Train KB');
+        trainBtn.removeAttribute('title');
+    }
 
     const resetKbBtn = document.getElementById('reset-kb-btn');
-    if (resetKbBtn) resetKbBtn.title = 'Clear KB';
+    if (resetKbBtn) {
+        resetKbBtn.setAttribute('data-tooltip', 'Clear KB');
+        resetKbBtn.removeAttribute('title');
+    }
+
+    // Visibility toggle button
+    const visibilityToggle = document.getElementById('visibility-toggle');
+    if (visibilityToggle) {
+        const tooltipText = isVisibleMode
+            ? 'App is VISIBLE (click to hide)'
+            : 'App is HIDDEN (click to show)';
+        visibilityToggle.setAttribute('data-tooltip', tooltipText);
+        visibilityToggle.removeAttribute('title');
+    }
+
+    // Remove all native title attributes to prevent system tooltips
+    removeAllNativeTitles();
+}
+
+/**
+ * Remove all native title attributes to ensure system tooltips don't appear
+ */
+function removeAllNativeTitles() {
+    const elementsWithTitles = document.querySelectorAll('[title]');
+    elementsWithTitles.forEach(el => {
+        // Convert title to data-tooltip if not already set
+        if (!el.hasAttribute('data-tooltip') && el.title) {
+            el.setAttribute('data-tooltip', el.title);
+        }
+        el.removeAttribute('title');
+    });
+}
+
+/**
+ * Initialize custom tooltip system
+ * Shows tooltips on hover that are rendered inside the protected window
+ */
+function initCustomTooltips() {
+    const tooltip = document.getElementById('custom-tooltip');
+    if (!tooltip) return;
+
+    let hideTimeout = null;
+    let showTimeout = null;
+
+    // Show tooltip on mouseenter for elements with data-tooltip
+    document.addEventListener('mouseenter', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (!target) return;
+
+        const text = target.getAttribute('data-tooltip');
+        if (!text) return;
+
+        // Clear any pending hide/show
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+        }
+        if (showTimeout) {
+            clearTimeout(showTimeout);
+            showTimeout = null;
+        }
+
+        // Set text first to calculate size
+        tooltip.textContent = text;
+        tooltip.classList.remove('visible');
+
+        // Use setTimeout to allow browser to calculate tooltip dimensions
+        showTimeout = setTimeout(() => {
+            // Position tooltip smartly within viewport
+            const rect = target.getBoundingClientRect();
+            const tooltipWidth = tooltip.offsetWidth || 100;
+            const tooltipHeight = tooltip.offsetHeight || 24;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const padding = 8; // Minimum padding from edges
+
+            let top, left;
+            let transformX = '-50%';
+
+            // Calculate horizontal center position
+            left = rect.left + (rect.width / 2);
+
+            // Check if centered tooltip would overflow horizontally
+            const halfWidth = tooltipWidth / 2;
+            if (left - halfWidth < padding) {
+                // Too far left, align to left edge
+                left = padding;
+                transformX = '0';
+            } else if (left + halfWidth > viewportWidth - padding) {
+                // Too far right, align to right edge
+                left = viewportWidth - padding;
+                transformX = '-100%';
+            }
+
+            // Prefer showing above the element
+            top = rect.top - tooltipHeight - 8;
+
+            // If would go above viewport, show below
+            if (top < padding) {
+                top = rect.bottom + 8;
+            }
+
+            // If would go below viewport, show beside the element
+            if (top + tooltipHeight > viewportHeight - padding) {
+                // Show to the right or left of the element
+                top = Math.max(padding, Math.min(rect.top, viewportHeight - tooltipHeight - padding));
+
+                // Prefer right side
+                if (rect.right + tooltipWidth + padding < viewportWidth) {
+                    left = rect.right + 8;
+                    transformX = '0';
+                } else {
+                    // Show on left side
+                    left = rect.left - 8;
+                    transformX = '-100%';
+                }
+            }
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.style.transform = `translateX(${transformX})`;
+
+            tooltip.classList.add('visible');
+        }, 300);
+
+    }, true);
+
+    // Hide tooltip on mouseleave
+    document.addEventListener('mouseleave', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (!target) return;
+
+        if (showTimeout) {
+            clearTimeout(showTimeout);
+            showTimeout = null;
+        }
+
+        hideTimeout = setTimeout(() => {
+            tooltip.classList.remove('visible');
+        }, 100);
+    }, true);
+
+    // Also hide on scroll or window resize
+    window.addEventListener('scroll', () => {
+        if (showTimeout) clearTimeout(showTimeout);
+        tooltip.classList.remove('visible');
+    }, true);
+
+    window.addEventListener('resize', () => {
+        if (showTimeout) clearTimeout(showTimeout);
+        tooltip.classList.remove('visible');
+    });
+}
+
+/**
+ * Toggle visibility mode between hidden (invisible to screen sharing) and visible
+ * When visible, applies a glowing border effect to indicate the app can be seen
+ */
+function toggleVisibilityMode() {
+    isVisibleMode = !isVisibleMode;
+
+    const toggle = document.getElementById('visibility-toggle');
+    const appContainer = document.getElementById('app-container');
+    const label = document.querySelector('.visibility-label');
+
+    if (isVisibleMode) {
+        // Switch to visible mode
+        if (toggle) toggle.classList.add('visible');
+        if (appContainer) appContainer.classList.add('visible-mode');
+        if (label) label.textContent = 'Visible';
+    } else {
+        // Switch to hidden mode (default)
+        if (toggle) toggle.classList.remove('visible');
+        if (appContainer) appContainer.classList.remove('visible-mode');
+        if (label) label.textContent = 'Hidden';
+    }
+
+    // Update tooltip text for visibility toggle
+    updateButtonTooltips();
+
+    // Communicate with main process to toggle content protection
+    // Content protection enabled = invisible to screen sharing
+    window.electronAPI.setContentProtection(!isVisibleMode);
+
+    console.log(`Visibility mode: ${isVisibleMode ? 'VISIBLE' : 'HIDDEN'}`);
 }
 
 function startBoundsTracking() {
@@ -278,6 +491,12 @@ function setupEventListeners() {
 
     // Settings tabs navigation
     setupSettingsTabs();
+
+    // Visibility toggle button
+    const visibilityToggle = document.getElementById('visibility-toggle');
+    if (visibilityToggle) {
+        visibilityToggle.addEventListener('click', toggleVisibilityMode);
+    }
 
     // API Key help link
     const apiKeyHelp = document.getElementById('api-key-help');
@@ -442,7 +661,7 @@ function setupEventListeners() {
         if (elements.screenshotActions?.classList.contains('hidden')) return;
         if (document.activeElement === elements.screenshotAskInput) return;
         if (document.activeElement === elements.inputField) return;
-        
+
         switch (e.key) {
             case '1':
                 e.preventDefault();
@@ -738,13 +957,13 @@ async function captureLinuxSystemAudio(sampleRate) {
  */
 async function captureDesktopAudio(sampleRate) {
     console.log('[SystemAudio] Starting captureDesktopAudio, platform:', window.electronAPI.platform);
-    
+
     try {
         // On macOS, check screen recording permission first
         if (window.electronAPI.platform === 'darwin') {
             const permResult = await window.electronAPI.permissions.checkScreen();
             console.log('[SystemAudio] Screen permission status:', JSON.stringify(permResult));
-            
+
             if (!permResult.granted) {
                 const errorMsg = `Permissão de Gravação de Tela necessária.
 
@@ -755,14 +974,14 @@ Para capturar áudio do sistema no macOS:
 4. IMPORTANTE: Feche e reabra o VARS completamente
 
 Status atual: ${permResult.status}`;
-                
+
                 await window.electronAPI.permissions.openSystemPreferences('screen');
                 throw new Error(errorMsg);
             }
         }
 
         let stream;
-        
+
         // Use getDisplayMedia - the main process handler will provide loopback audio
         console.log('[SystemAudio] Calling getDisplayMedia...');
         try {
@@ -770,24 +989,24 @@ Status atual: ${permResult.status}`;
                 video: true,
                 audio: true
             });
-            
+
             console.log('[SystemAudio] getDisplayMedia returned');
             console.log('[SystemAudio] Video tracks:', stream.getVideoTracks().map(t => t.label));
             console.log('[SystemAudio] Audio tracks:', stream.getAudioTracks().map(t => t.label));
-            
+
         } catch (displayError) {
             console.error('[SystemAudio] getDisplayMedia failed:', displayError.name, displayError.message);
-            
+
             // Fallback to getUserMedia with chromeMediaSource
             console.log('[SystemAudio] Falling back to getUserMedia...');
-            
+
             const sources = await window.electronAPI.getDesktopSources();
             const screenSource = sources.find(s => s.id.startsWith('screen:'));
-            
+
             if (!screenSource) {
                 throw new Error('No screen source available');
             }
-            
+
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -808,7 +1027,7 @@ Status atual: ${permResult.status}`;
                 console.log('[SystemAudio] Audio tracks:', stream.getAudioTracks().length);
             } catch (mediaError) {
                 console.error('[SystemAudio] getUserMedia failed:', mediaError.name, mediaError.message);
-                
+
                 if (window.electronAPI.platform === 'darwin') {
                     throw new Error(`Captura de áudio do sistema não disponível.
 
@@ -832,7 +1051,7 @@ Erro técnico: ${mediaError.name}`);
 
         const audioTracks = stream.getAudioTracks();
         console.log('[SystemAudio] Final audio tracks:', audioTracks.length);
-        
+
         if (audioTracks.length === 0) {
             throw new Error(`Nenhum áudio do sistema disponível.
 
@@ -1679,14 +1898,14 @@ function setupSettingsTabs() {
 function startQRCodeCarousel() {
     // Clear any existing interval
     stopQRCodeCarousel();
-    
+
     // Reset to first QR code
     currentQRIndex = 0;
     updateQRCodeDisplay();
-    
+
     // Setup navigation buttons
     setupQRNavButtons();
-    
+
     // Start the interval
     qrCodeInterval = setInterval(() => {
         currentQRIndex = (currentQRIndex + 1) % QR_CODES.length;
@@ -1710,7 +1929,7 @@ function stopQRCodeCarousel() {
 function setupQRNavButtons() {
     const prevBtn = document.getElementById('qr-prev-btn');
     const nextBtn = document.getElementById('qr-next-btn');
-    
+
     if (prevBtn) {
         prevBtn.onclick = () => navigateQRCode(-1);
     }
@@ -1726,11 +1945,11 @@ function setupQRNavButtons() {
 function navigateQRCode(direction) {
     // Stop auto-carousel temporarily
     stopQRCodeCarousel();
-    
+
     // Update index
     currentQRIndex = (currentQRIndex + direction + QR_CODES.length) % QR_CODES.length;
     updateQRCodeDisplay();
-    
+
     // Restart carousel after 10 seconds of inactivity
     qrCodeInterval = setInterval(() => {
         currentQRIndex = (currentQRIndex + 1) % QR_CODES.length;
@@ -1748,11 +1967,11 @@ function updateQRCodeDisplay() {
     const indicatorPaypal = document.getElementById('indicator-paypal');
     const indicatorPix = document.getElementById('indicator-pix');
     const donationMessage = document.getElementById('donation-message');
-    
+
     if (!qrPaypal || !qrPix || !qrLabel) return;
-    
+
     const current = QR_CODES[currentQRIndex];
-    
+
     // Update QR code visibility
     if (current.id === 'paypal') {
         qrPaypal.classList.remove('hidden');
@@ -1775,7 +1994,7 @@ function updateQRCodeDisplay() {
             donationMessage.textContent = '💚 Apoie este projeto com uma doação via Pix!';
         }
     }
-    
+
     // Update label
     qrLabel.textContent = current.label;
 }
@@ -1911,7 +2130,7 @@ async function captureAndAnalyzeScreen() {
     if (elements.screenshotBtn) {
         elements.screenshotBtn.classList.add('capturing');
     }
-    
+
     updateStatus('📸 Capturing screen...', 'processing');
 
     try {
@@ -1934,7 +2153,7 @@ async function captureAndAnalyzeScreen() {
 
         // Show the action panel
         showScreenshotActions(pendingScreenshot.windowTitle);
-        
+
         updateStatus('Select an action', 'ready');
 
     } catch (error) {
@@ -1955,11 +2174,11 @@ async function captureAndAnalyzeScreen() {
 function showScreenshotActions(title) {
     // Show content area if hidden
     elements.contentArea?.classList.remove('hidden');
-    
+
     // Hide transcription and response sections
     elements.transcriptionSection?.classList.add('hidden');
     elements.responseSection?.classList.add('hidden');
-    
+
     // Update title and show actions panel
     if (elements.screenshotTitle) {
         elements.screenshotTitle.textContent = title;
@@ -1988,7 +2207,7 @@ async function processScreenshotAction(actionType, customPrompt = '') {
 
     // Hide action panel
     hideScreenshotActions();
-    
+
     // Show processing state
     updateStatus('🔍 Analyzing...', 'processing');
     showTranscription(`📸 ${pendingScreenshot.windowTitle}`);
