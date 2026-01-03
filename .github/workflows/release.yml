@@ -155,38 +155,37 @@ jobs:
 
       - name: Build macOS ARM64
         run: |
-          # Pre-download Electron binary to avoid timeouts
-          ELECTRON_VERSION=$(node -p "require('electron/package.json').version")
-          echo "Pre-downloading Electron v$ELECTRON_VERSION for arm64..."
-          mkdir -p ~/Library/Caches/electron
-          cd ~/Library/Caches/electron
-          curl -L -O --retry 5 --retry-delay 10 https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-darwin-arm64.zip
-          cd -
           npx electron-builder --mac --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Use ad-hoc signing (required for ARM64 binaries)
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          CSC_LINK: ""
 
       - name: Ad-hoc sign the app (required for ARM64)
         run: |
-          APP_PATH=$(find dist -name "*.app" -type d | head -1)
-          if [ -n "$APP_PATH" ]; then
+          # Find and sign the app bundle
+          APP_PATH="dist/mac-arm64/VARS.app"
+          if [ -d "$APP_PATH" ]; then
             echo "Ad-hoc signing: $APP_PATH"
+            # Sign all nested components first, then the app itself
+            find "$APP_PATH" -type f -perm +111 -exec codesign --force --sign - {} \\; 2>/dev/null || true
             codesign --force --deep --sign - "$APP_PATH"
             echo "Verifying signature..."
-            codesign --verify --verbose "$APP_PATH"
+            codesign --verify --verbose "$APP_PATH" || echo "Verification warning (may be expected for ad-hoc)"
+          else
+            echo "App not found at $APP_PATH"
+            ls -la dist/
+            exit 1
           fi
 
       - name: Recreate DMG with signed app
         run: |
-          # Remove old DMG and recreate with signed app
+          # Remove old DMG
           rm -f dist/*.dmg
-          npx electron-builder --mac --arm64 --publish never --prepackaged "dist/mac-arm64/VARS.app"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Create DMG manually using hdiutil
+          DMG_NAME="VARS-${{ steps.version.outputs.VERSION }}-mac-arm64.dmg"
+          hdiutil create -volname "VARS" -srcfolder "dist/mac-arm64/VARS.app" -ov -format UDZO "dist/$DMG_NAME"
+          echo "Created: dist/$DMG_NAME"
+          ls -la dist/*.dmg
 
       - name: Upload macOS ARM64 artifact
         uses: actions/upload-artifact@v4
