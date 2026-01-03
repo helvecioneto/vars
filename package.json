@@ -68,7 +68,7 @@
     "whisper"
   ],
   "author": "",
-  "license": "CC BY-NC-SA 4.0",
+  "license": "GPL-3.0",
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",

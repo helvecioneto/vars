@@ -3,7 +3,7 @@
 # 🎧 VARS (Virtual Agent for Real-time Support)
 
 [![GitHub release](https://img.shields.io/github/v/release/helvecioneto/vars?style=flat-square)](https://github.com/helvecioneto/vars/releases)
-[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
 [![Electron](https://img.shields.io/badge/Electron-28.0-47848F?style=flat-square&logo=electron)](https://www.electronjs.org/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-❤️-ea4aaa?style=flat-square)](https://github.com/sponsors/helvecioneto)
 
@@ -15,7 +15,21 @@
 
 ---
 
-## 📥 Download
+## 💡 Motivation / Motivação
+
+The motivation behind this project came from observing the growing popularity of Desktop Virtual Agents designed to assist candidates during job interviews. However, most of these tools are either paid or have limited features. This inspired me to create a free and accessible solution, recognizing that many job seekers—especially in developing countries like Brazil—may not have the financial means to afford expensive services while searching for employment.
+
+Additionally, this project aims to accelerate changes in recruitment processes. Current selection methodologies often suffer from structural flaws, eliminating excellent candidates while selecting those who merely fit a "non-human" or artificial standard. By leveling the playing field, we hope to encourage a shift towards more authentic and effective evaluation methods.
+
+---
+
+A motivação para criar este projeto surgiu ao observar a crescente popularização de Agentes Virtuais de Desktop projetados para auxiliar candidatos em entrevistas de emprego. No entanto, a maioria dessas ferramentas é paga ou possui recursos limitados. Isso me inspirou a desenvolver uma solução gratuita e acessível, pois entendo que muitos candidatos, especialmente em países em desenvolvimento como o Brasil, podem não ter condições financeiras para arcar com custos elevados enquanto buscam uma oportunidade no mercado de trabalho.
+
+Além disso, este projeto visa acelerar mudanças nos processos seletivos. As metodologias de seleção atuais muitas vezes sofrem de falhas estruturais, eliminando excelentes candidatos enquanto selecionam aqueles que apenas se encaixam em um padrão "não humano" ou artificial. Ao nivelar o campo de jogo, esperamos incentivar uma mudança em direção a métodos de avaliação mais autênticos e eficazes.
+
+---
+
+## �📥 Download
 
 ### Pre-built Binaries
 
@@ -391,20 +405,23 @@ Contributions are welcome! Please read the contributing guidelines before submit
 
 ## 📄 License
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)**.
 
-You are free to:
-- **Share** — copy and redistribute the material
-- **Adapt** — remix, transform, and build upon the material
+This license guarantees your freedom to share and change the software, ensuring it remains free software for all its users.
 
-Under the following terms:
-- **Attribution** — You must give appropriate credit
-- **NonCommercial** — You may not use the material for commercial purposes
-- **ShareAlike** — Modifications must use the same license
+**Key Permissions:**
+- ✅ Commercial use
+- ✅ Modification
+- ✅ Distribution
+- ✅ Private use
 
-Donations to support development are welcome and do not constitute commercial use.
+**Conditions:**
+- ℹ️ Disclose source
+- ℹ️ License and copyright notice
+- ℹ️ Same license (Copyleft)
 
-See the [LICENSE](LICENSE) file for details or visit [Creative Commons](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+**Disclaimer:**
+This software is provided "as is", without warranty of any kind. Please see the [LICENSE](LICENSE) file for the full license text and important legal disclaimers regarding the use of recording features.
 
 ---
 
