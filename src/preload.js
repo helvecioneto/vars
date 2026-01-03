@@ -99,5 +99,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getAudioFinal: () => ipcRenderer.invoke('system-audio:get-audio-final'),
         getBufferSize: () => ipcRenderer.invoke('system-audio:get-buffer-size'),
         isCapturing: () => ipcRenderer.invoke('system-audio:is-capturing')
+    },
+
+    // Permission handling (macOS)
+    permissions: {
+        checkScreen: () => ipcRenderer.invoke('check-screen-permission'),
+        checkMicrophone: () => ipcRenderer.invoke('check-microphone-permission'),
+        requestMicrophone: () => ipcRenderer.invoke('request-microphone-permission'),
+        openSystemPreferences: (panel) => ipcRenderer.invoke('open-system-preferences', panel)
     }
 });

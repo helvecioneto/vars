@@ -12,5 +12,7 @@
     <true/>
     <key>com.apple.security.device.microphone</key>
     <true/>
+    <key>com.apple.security.device.camera</key>
+    <false/>
   </dict>
 </plist>

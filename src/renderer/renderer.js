@@ -737,61 +737,117 @@ async function captureLinuxSystemAudio(sampleRate) {
  * Capture desktop audio on Windows/macOS using desktopCapturer
  */
 async function captureDesktopAudio(sampleRate) {
+    console.log('[SystemAudio] Starting captureDesktopAudio, platform:', window.electronAPI.platform);
+    
     try {
-        // Check if a screen source is configured
-        const configuredSource = config.systemAudioDeviceId;
+        // On macOS, check screen recording permission first
+        if (window.electronAPI.platform === 'darwin') {
+            const permResult = await window.electronAPI.permissions.checkScreen();
+            console.log('[SystemAudio] Screen permission status:', JSON.stringify(permResult));
+            
+            if (!permResult.granted) {
+                const errorMsg = `Permissão de Gravação de Tela necessária.
 
-        const sources = await window.electronAPI.getDesktopSources();
+Para capturar áudio do sistema no macOS:
+1. Abra Ajustes do Sistema → Privacidade e Segurança
+2. Vá em "Gravação do Áudio do Sistema e da Tela"
+3. Ative o toggle para "VARS"
+4. IMPORTANTE: Feche e reabra o VARS completamente
 
-        if (!sources || sources.length === 0) {
-            throw new Error('No capture sources available');
-        }
-
-        // Find the configured source or use the first screen source
-        let screenSource;
-        if (configuredSource) {
-            screenSource = sources.find(s => s.id === configuredSource);
-        }
-        if (!screenSource) {
-            screenSource = sources.find(s => s.id.startsWith('screen:'));
-        }
-
-        if (!screenSource) {
-            throw new Error('No screen source available.\n\nPlease go to Settings > Audio and select a screen source.');
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                mandatory: {
-                    chromeMediaSource: 'desktop',
-                    chromeMediaSourceId: screenSource.id
-                }
-            },
-            video: {
-                mandatory: {
-                    chromeMediaSource: 'desktop',
-                    chromeMediaSourceId: screenSource.id,
-                    maxWidth: 1,
-                    maxHeight: 1,
-                    maxFrameRate: 1
-                }
+Status atual: ${permResult.status}`;
+                
+                await window.electronAPI.permissions.openSystemPreferences('screen');
+                throw new Error(errorMsg);
             }
-        });
+        }
 
-        // Stop video tracks
+        let stream;
+        
+        // Use getDisplayMedia - the main process handler will provide loopback audio
+        console.log('[SystemAudio] Calling getDisplayMedia...');
+        try {
+            stream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: true
+            });
+            
+            console.log('[SystemAudio] getDisplayMedia returned');
+            console.log('[SystemAudio] Video tracks:', stream.getVideoTracks().map(t => t.label));
+            console.log('[SystemAudio] Audio tracks:', stream.getAudioTracks().map(t => t.label));
+            
+        } catch (displayError) {
+            console.error('[SystemAudio] getDisplayMedia failed:', displayError.name, displayError.message);
+            
+            // Fallback to getUserMedia with chromeMediaSource
+            console.log('[SystemAudio] Falling back to getUserMedia...');
+            
+            const sources = await window.electronAPI.getDesktopSources();
+            const screenSource = sources.find(s => s.id.startsWith('screen:'));
+            
+            if (!screenSource) {
+                throw new Error('No screen source available');
+            }
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop'
+                        }
+                    },
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: screenSource.id,
+                            maxWidth: 1,
+                            maxHeight: 1
+                        }
+                    }
+                });
+                console.log('[SystemAudio] getUserMedia succeeded');
+                console.log('[SystemAudio] Audio tracks:', stream.getAudioTracks().length);
+            } catch (mediaError) {
+                console.error('[SystemAudio] getUserMedia failed:', mediaError.name, mediaError.message);
+                
+                if (window.electronAPI.platform === 'darwin') {
+                    throw new Error(`Captura de áudio do sistema não disponível.
+
+No macOS, tente:
+1. Verificar se a permissão está ativada em Ajustes do Sistema
+2. Reiniciar o VARS completamente (Cmd+Q)
+3. Usar o modo Microfone (pressione Alt+M)
+
+Erro técnico: ${mediaError.name}`);
+                }
+                throw mediaError;
+            }
+        }
+
+        // Stop video tracks - we only need audio
         stream.getVideoTracks().forEach(track => {
+            console.log('[SystemAudio] Stopping video track:', track.label);
             track.stop();
             stream.removeTrack(track);
         });
 
-        if (stream.getAudioTracks().length === 0) {
-            throw new Error('No audio captured');
+        const audioTracks = stream.getAudioTracks();
+        console.log('[SystemAudio] Final audio tracks:', audioTracks.length);
+        
+        if (audioTracks.length === 0) {
+            throw new Error(`Nenhum áudio do sistema disponível.
+
+No macOS Tahoe, a captura de áudio do sistema pode requerer:
+1. Usar o modo Microfone (Alt+M para alternar)
+2. Ou instalar um driver de áudio virtual como BlackHole
+
+Tente pressionar Alt+M para usar o microfone.`);
         }
 
+        console.log('[SystemAudio] Success! Audio track:', audioTracks[0]?.label);
         return stream;
 
     } catch (error) {
-        console.error('[SystemAudio] Desktop capture failed:', error);
+        console.error('[SystemAudio] Desktop capture failed:', error.name, error.message);
         throw error;
     }
 }

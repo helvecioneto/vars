@@ -668,6 +668,73 @@ Be direct and helpful. Focus on actionable information.`;
             return { error: error.message };
         }
     });
+
+    // ==========================================
+    // Permission Check Handlers (macOS)
+    // ==========================================
+
+    ipcMain.handle('check-screen-permission', async () => {
+        const { systemPreferences } = require('electron');
+        
+        if (process.platform !== 'darwin') {
+            return { granted: true, status: 'granted' };
+        }
+
+        const status = systemPreferences.getMediaAccessStatus('screen');
+        return { 
+            granted: status === 'granted',
+            status: status 
+        };
+    });
+
+    ipcMain.handle('check-microphone-permission', async () => {
+        const { systemPreferences } = require('electron');
+        
+        if (process.platform !== 'darwin') {
+            return { granted: true, status: 'granted' };
+        }
+
+        const status = systemPreferences.getMediaAccessStatus('microphone');
+        return { 
+            granted: status === 'granted',
+            status: status 
+        };
+    });
+
+    ipcMain.handle('request-microphone-permission', async () => {
+        const { systemPreferences } = require('electron');
+        
+        if (process.platform !== 'darwin') {
+            return { granted: true };
+        }
+
+        try {
+            const granted = await systemPreferences.askForMediaAccess('microphone');
+            return { granted };
+        } catch (error) {
+            console.error('[Permission] Error requesting microphone:', error);
+            return { granted: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('open-system-preferences', async (event, panel) => {
+        const { shell } = require('electron');
+        
+        if (process.platform === 'darwin') {
+            // Open System Preferences to the appropriate panel
+            if (panel === 'screen') {
+                // Screen Recording is in Privacy & Security
+                shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+            } else if (panel === 'microphone') {
+                shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+            } else {
+                shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy');
+            }
+            return { success: true };
+        }
+        
+        return { success: false, error: 'Not macOS' };
+    });
 }
 
 module.exports = { setupIPCHandlers };

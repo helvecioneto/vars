@@ -15,6 +15,7 @@ let tray = null;
 let isRecording = false;
 let config = null;
 let microphonePermissionGranted = false; // Cache permission state to prevent loops
+let screenPermissionGranted = false; // Cache screen recording permission state
 
 function createWindow() {
     const windowOptions = {
@@ -250,11 +251,31 @@ app.whenReady().then(async () => {
         return true;
     };
 
+    // Screen Recording permission handling (macOS only)
+    // Required for system audio capture via desktopCapturer
+    const checkScreenPermission = () => {
+        if (screenPermissionGranted) return true;
+        if (process.platform === 'darwin') {
+            const status = systemPreferences.getMediaAccessStatus('screen');
+            if (status === 'granted') {
+                screenPermissionGranted = true;
+                return true;
+            }
+            return status;
+        }
+        // Windows/Linux: Always grant
+        screenPermissionGranted = true;
+        return true;
+    };
+
     // Permission handlers for getUserMedia and getDisplayMedia
     session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
         // Allow audio, screen capture, and display capture
-        if (['media', 'audioCapture', 'microphone', 'display-capture', 'screen'].includes(permission)) {
+        if (['media', 'audioCapture', 'microphone'].includes(permission)) {
             checkMicPermission();
+        }
+        if (['display-capture', 'screen'].includes(permission)) {
+            checkScreenPermission();
         }
         return true;
     });
@@ -267,14 +288,44 @@ app.whenReady().then(async () => {
         } 
         // Allow display/screen capture permissions (for system audio)
         else if (['display-capture', 'screen'].includes(permission)) {
-            callback(true);
+            const result = checkScreenPermission();
+            callback(result !== 'denied' && result !== 'restricted');
         } 
         else {
             callback(true);
         }
     });
 
+    // Handle getDisplayMedia requests (for system audio capture on macOS 13+)
+    session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
+        console.log('[DisplayMedia] Request received:', request);
+        try {
+            const sources = await desktopCapturer.getSources({ 
+                types: ['screen'],
+                thumbnailSize: { width: 1, height: 1 }
+            });
+            
+            console.log('[DisplayMedia] Available sources:', sources.map(s => s.id));
+            
+            // Find the first screen source
+            const screenSource = sources.find(s => s.id.startsWith('screen:')) || sources[0];
+            
+            if (screenSource) {
+                console.log('[DisplayMedia] Using source:', screenSource.id, 'with loopback audio');
+                // 'loopback' tells Electron to capture system audio
+                callback({ video: screenSource, audio: 'loopback' });
+            } else {
+                console.log('[DisplayMedia] No source found');
+                callback({ video: null, audio: null });
+            }
+        } catch (error) {
+            console.error('[DisplayMedia] Error:', error);
+            callback({ video: null, audio: null });
+        }
+    });
+
     checkMicPermission();
+    checkScreenPermission();
 
     // Load config
     config = await loadConfig();
