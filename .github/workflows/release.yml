@@ -166,8 +166,7 @@ jobs:
           APP_PATH="dist/mac-arm64/VARS.app"
           if [ -d "$APP_PATH" ]; then
             echo "Ad-hoc signing: $APP_PATH"
-            # Sign all nested components first, then the app itself
-            find "$APP_PATH" -type f -perm +111 -exec codesign --force --sign - {} \\; 2>/dev/null || true
+            # Sign the app with ad-hoc signature
             codesign --force --deep --sign - "$APP_PATH"
             echo "Verifying signature..."
             codesign --verify --verbose "$APP_PATH" || echo "Verification warning (may be expected for ad-hoc)"
