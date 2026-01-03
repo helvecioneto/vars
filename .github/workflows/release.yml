@@ -297,10 +297,7 @@ jobs:
             Para instalar no macOS:
             1. Baixe o arquivo `.dmg` (arm64 para M1/M2/M3 ou x64 para Intel)
             2. Monte o DMG e arraste o app para a pasta Aplicativos
-            3. **IMPORTANTE:** Antes de abrir, rode no Terminal:
-               ```bash
-               xattr -cr /Applications/VARS.app
-               ```
+            3. **IMPORTANTE:** Antes de abrir, vá em Preferências do Sistema → Segurança e Privacidade → Geral e clique em "Abrir mesmo assim" para permitir que o app seja executado.
             4. Abra o aplicativo normalmente
 
             ### Linux
