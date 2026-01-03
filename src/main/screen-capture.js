@@ -12,12 +12,139 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 
 /**
+ * Linux native screenshot tools in order of preference
+ * Works across Ubuntu, Arch, Fedora, OpenSUSE, etc.
+ */
+const LINUX_SCREENSHOT_TOOLS = [
+    { cmd: 'gnome-screenshot', args: ['-f'], name: 'GNOME Screenshot' },
+    { cmd: 'spectacle', args: ['-b', '-n', '-o'], name: 'KDE Spectacle' },
+    { cmd: 'scrot', args: [], name: 'Scrot' },
+    { cmd: 'import', args: ['-window', 'root'], name: 'ImageMagick' }
+];
+
+// Cache detected screenshot tool
+let detectedScreenshotTool = null;
+let screenshotToolChecked = false;
+
+/**
+ * Detect available screenshot tool on Linux
+ * @returns {object|null} Tool configuration or null if none found
+ */
+function detectLinuxScreenshotTool() {
+    if (screenshotToolChecked) {
+        return detectedScreenshotTool;
+    }
+
+    screenshotToolChecked = true;
+
+    for (const tool of LINUX_SCREENSHOT_TOOLS) {
+        try {
+            execSync(`which ${tool.cmd}`, { stdio: 'ignore' });
+            console.log(`[ScreenCapture] Found Linux screenshot tool: ${tool.name}`);
+            detectedScreenshotTool = tool;
+            return tool;
+        } catch (e) {
+            // Tool not found, try next
+        }
+    }
+
+    console.warn('[ScreenCapture] No native screenshot tool found on Linux');
+    return null;
+}
+
+/**
+ * Capture screen using native Linux tools
+ * @returns {Promise<{imageData: string, windowTitle: string}|null>}
+ */
+async function captureScreenLinuxNative() {
+    const tool = detectLinuxScreenshotTool();
+
+    if (!tool) {
+        return null;
+    }
+
+    const tempFile = path.join(os.tmpdir(), `vars-screenshot-${Date.now()}.png`);
+
+    try {
+        // Build command based on tool
+        let command;
+        switch (tool.cmd) {
+            case 'gnome-screenshot':
+                command = `gnome-screenshot -f "${tempFile}"`;
+                break;
+            case 'spectacle':
+                command = `spectacle -b -n -o "${tempFile}"`;
+                break;
+            case 'scrot':
+                command = `scrot "${tempFile}"`;
+                break;
+            case 'import':
+                command = `import -window root "${tempFile}"`;
+                break;
+            default:
+                return null;
+        }
+
+        console.log(`[ScreenCapture] Using native Linux tool: ${tool.name}`);
+
+        // Execute screenshot command
+        await new Promise((resolve, reject) => {
+            exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // Wait a bit for file to be written
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Check if file exists
+        if (!fs.existsSync(tempFile)) {
+            throw new Error('Screenshot file not created');
+        }
+
+        // Read and convert to base64
+        const imageBuffer = await fsPromises.readFile(tempFile);
+        const base64Image = imageBuffer.toString('base64');
+        const imageData = `data:image/png;base64,${base64Image}`;
+
+        // Get window info for title
+        const windowInfo = await getForegroundWindowInfo();
+        const windowTitle = windowInfo.title !== 'Unknown' ? windowInfo.title : 'Desktop Screen';
+
+        console.log('[ScreenCapture] Native capture completed');
+
+        return {
+            imageData,
+            windowTitle
+        };
+
+    } catch (error) {
+        console.error('[ScreenCapture] Native capture error:', error.message);
+        return null;
+    } finally {
+        // Cleanup temp file
+        try {
+            if (fs.existsSync(tempFile)) {
+                fs.unlinkSync(tempFile);
+            }
+        } catch (e) {
+            // Ignore cleanup errors
+        }
+    }
+}
+
+/**
  * Get the foreground window information
  * @returns {Promise<{title: string, bounds: object|null}>}
  */
+
 async function getForegroundWindowInfo() {
     const platform = process.platform;
-    
+
     try {
         if (platform === 'win32') {
             return await getWindowInfoWindows();
@@ -61,22 +188,22 @@ $rect = New-Object Win32+RECT
 [void][Win32]::GetWindowRect($hwnd, [ref]$rect)
 Write-Output "$($sb.ToString())|$($rect.Left)|$($rect.Top)|$($rect.Right - $rect.Left)|$($rect.Bottom - $rect.Top)"
 `;
-        
+
         // Write script to temp file and execute
         const tempScript = path.join(os.tmpdir(), `vars-capture-${Date.now()}.ps1`);
-        
+
         fs.writeFileSync(tempScript, script, 'utf8');
-        
+
         exec(`powershell -ExecutionPolicy Bypass -File "${tempScript}"`, { timeout: 5000 }, (error, stdout, stderr) => {
             // Clean up temp file
-            try { fs.unlinkSync(tempScript); } catch (e) {}
-            
+            try { fs.unlinkSync(tempScript); } catch (e) { }
+
             if (error) {
                 console.error('[ScreenCapture] PowerShell error:', stderr || error.message);
                 resolve({ title: 'Active Window', bounds: null });
                 return;
             }
-            
+
             const parts = stdout.trim().split('|');
             if (parts.length >= 5 && parts[0]) {
                 resolve({
@@ -118,14 +245,14 @@ async function getWindowInfoMacOS() {
                 end try
             end tell
         `;
-        
+
         exec(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`, (error, stdout, stderr) => {
             if (error) {
                 console.error('[ScreenCapture] AppleScript error:', stderr);
                 resolve({ title: 'Unknown', bounds: null });
                 return;
             }
-            
+
             const parts = stdout.trim().split('|');
             if (parts.length >= 6) {
                 const width = parseInt(parts[4]);
@@ -157,7 +284,7 @@ async function getWindowInfoLinux() {
         getWindowInfoLinuxWmctrl,
         getWindowInfoLinuxXprop
     ];
-    
+
     for (const method of methods) {
         try {
             const result = await method();
@@ -168,7 +295,7 @@ async function getWindowInfoLinux() {
             // Try next method
         }
     }
-    
+
     return { title: 'Unknown', bounds: null };
 }
 
@@ -182,16 +309,16 @@ async function getWindowInfoLinuxXdotool() {
                 reject(error);
                 return;
             }
-            
+
             const title = stdout.trim();
-            
+
             // Try to get geometry
             exec('xdotool getactivewindow getwindowgeometry --shell', (geoError, geoStdout) => {
                 if (geoError) {
                     resolve({ title, bounds: null });
                     return;
                 }
-                
+
                 // Parse geometry output
                 const lines = geoStdout.split('\n');
                 const geo = {};
@@ -201,7 +328,7 @@ async function getWindowInfoLinuxXdotool() {
                         geo[key.trim()] = parseInt(value.trim());
                     }
                 });
-                
+
                 resolve({
                     title,
                     bounds: {
@@ -226,7 +353,7 @@ async function getWindowInfoLinuxWmctrl() {
                 reject(error);
                 return;
             }
-            
+
             // Parse wmctrl output
             const match = stdout.match(/Using window: (0x[0-9a-f]+)\s+(.+)/i);
             if (match) {
@@ -248,21 +375,21 @@ async function getWindowInfoLinuxXprop() {
                 reject(error);
                 return;
             }
-            
+
             const match = stdout.match(/window id # (0x[0-9a-f]+)/i);
             if (!match) {
                 reject(new Error('Could not get active window ID'));
                 return;
             }
-            
+
             const windowId = match[1];
-            
+
             exec(`xprop -id ${windowId} WM_NAME`, (nameError, nameStdout) => {
                 if (nameError) {
                     resolve({ title: 'Unknown', bounds: null });
                     return;
                 }
-                
+
                 const nameMatch = nameStdout.match(/WM_NAME\([^)]+\)\s*=\s*"(.+)"/);
                 resolve({
                     title: nameMatch ? nameMatch[1] : 'Unknown',
@@ -279,31 +406,44 @@ async function getWindowInfoLinuxXprop() {
  */
 async function captureForegroundWindow() {
     try {
+        // On Linux, prefer native screenshot tools to avoid PipeWire issues
+        if (process.platform === 'linux') {
+            try {
+                const result = await captureScreenLinuxNative();
+                if (result && result.imageData) {
+                    return result;
+                }
+            } catch (error) {
+                console.log('[ScreenCapture] Native capture failed, trying desktopCapturer:', error.message);
+            }
+        }
+
         // Get info about the foreground window
         const windowInfo = await getForegroundWindowInfo();
         console.log('[ScreenCapture] Foreground window:', windowInfo);
-        
+
         // Get all available sources
         const sources = await desktopCapturer.getSources({
             types: ['window', 'screen'],
             thumbnailSize: { width: 1920, height: 1080 },
             fetchWindowIcons: false
         });
-        
+
         // Check if VARS window is in focus - if so, capture the screen instead
+
         const isVarsInFocus = windowInfo.title && windowInfo.title.toLowerCase().includes('vars');
-        
+
         // Try to find the matching window source (skip if VARS is in focus)
         let targetSource = null;
-        
+
         if (!isVarsInFocus && windowInfo.title && windowInfo.title !== 'Unknown' && windowInfo.title !== 'Active Window') {
             // Try exact match first
-            targetSource = sources.find(s => 
-                s.name === windowInfo.title || 
+            targetSource = sources.find(s =>
+                s.name === windowInfo.title ||
                 s.name.includes(windowInfo.title) ||
                 windowInfo.title.includes(s.name)
             );
-            
+
             // Try partial match
             if (!targetSource) {
                 const titleWords = windowInfo.title.toLowerCase().split(/[\s\-–—|:]+/);
@@ -315,27 +455,27 @@ async function captureForegroundWindow() {
                 });
             }
         }
-        
+
         // If VARS is in focus or no window match found, capture the primary screen
         if (!targetSource) {
             console.log('[ScreenCapture] Capturing screen (VARS in focus or no window match)');
             targetSource = sources.find(s => s.id.startsWith('screen:'));
-            
+
             // Update window info title for screen capture
             if (targetSource && isVarsInFocus) {
                 windowInfo.title = 'Desktop Screen';
             }
         }
-        
+
         if (!targetSource) {
             return { error: 'Could not find a valid capture source' };
         }
-        
+
         console.log('[ScreenCapture] Using source:', targetSource.name);
-        
+
         // Get the thumbnail from desktopCapturer
         let imageData;
-        
+
         if (targetSource.thumbnail && !targetSource.thumbnail.isEmpty()) {
             // Use the thumbnail directly (already captured)
             const dataUrl = targetSource.thumbnail.toDataURL();
@@ -345,10 +485,10 @@ async function captureForegroundWindow() {
             // This is a fallback when thumbnail is not available
             imageData = await captureWithMediaStream(targetSource.id, windowInfo.bounds);
         }
-        
+
         // Determine the best title to use
         let finalTitle = 'Screen';
-        
+
         if (windowInfo.title && windowInfo.title !== 'Unknown') {
             finalTitle = windowInfo.title;
         } else if (targetSource.name && targetSource.name !== 'Unknown') {
@@ -359,12 +499,12 @@ async function captureForegroundWindow() {
                 finalTitle = 'Desktop Screen';
             }
         }
-        
+
         return {
             imageData,
             windowTitle: finalTitle
         };
-        
+
     } catch (error) {
         console.error('[ScreenCapture] Error:', error);
         return { error: error.message };
@@ -388,7 +528,7 @@ async function captureWithMediaStream(sourceId, bounds) {
             contextIsolation: true
         }
     });
-    
+
     try {
         // Load a simple HTML page that will capture
         const captureScript = `
@@ -439,20 +579,20 @@ async function captureWithMediaStream(sourceId, bounds) {
             </body>
             </html>
         `;
-        
+
         await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(captureScript)}`);
-        
+
         // Wait for capture to complete
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const result = await captureWindow.webContents.executeJavaScript('window.captureResult');
-        
+
         if (result && result.error) {
             throw new Error(result.error);
         }
-        
+
         return result;
-        
+
     } finally {
         captureWindow.destroy();
     }
