@@ -3,7 +3,7 @@
 # 🎧 VARS (Virtual Agent for Real-time Support)
 
 [![GitHub release](https://img.shields.io/github/v/release/helvecioneto/vars?style=flat-square)](https://github.com/helvecioneto/vars/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Electron](https://img.shields.io/badge/Electron-28.0-47848F?style=flat-square&logo=electron)](https://www.electronjs.org/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-❤️-ea4aaa?style=flat-square)](https://github.com/sponsors/helvecioneto)
 
@@ -24,7 +24,7 @@ Download the latest version for your operating system from the [Releases page](h
 | Platform | Architecture | Download |
 |----------|-------------|----------|
 | **Windows** | x64 | [VARS-win-x64.exe](https://github.com/helvecioneto/vars/releases/latest) |
-| **macOS** | Apple Silicon (M1/M2/M3) | [VARS--mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
+| **macOS** | Apple Silicon (M1/M2/M3) | [VARS-mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
 | **macOS** | Intel | [VARS-mac-x64.dmg](https://github.com/helvecioneto/vars/releases/latest) |
 | **Linux** | x64 | [VARS-linux-x64.AppImage](https://github.com/helvecioneto/vars/releases/latest) |
 
@@ -391,7 +391,20 @@ Contributions are welcome! Please read the contributing guidelines before submit
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+
+You are free to:
+- **Share** — copy and redistribute the material
+- **Adapt** — remix, transform, and build upon the material
+
+Under the following terms:
+- **Attribution** — You must give appropriate credit
+- **NonCommercial** — You may not use the material for commercial purposes
+- **ShareAlike** — Modifications must use the same license
+
+Donations to support development are welcome and do not constitute commercial use.
+
+See the [LICENSE](LICENSE) file for details or visit [Creative Commons](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ---
 
