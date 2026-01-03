@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   # ==========================================
-  # Windows Build (ASSINADO)
+  # Windows Build 
   # ==========================================
   build-windows:
     runs-on: windows-latest
@@ -55,9 +55,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # --- ALTERAÇÃO AQUI ---
-      # Injetamos o certificado (CSC_LINK) e a senha (CSC_KEY_PASSWORD)
-      # O electron-builder detecta isso automaticamente e assina o .exe
       - name: Build Windows
         run: npm run build:win -- --publish never
         env:
