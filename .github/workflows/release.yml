@@ -173,20 +173,11 @@ jobs:
           # CSC_LINK: ${{ secrets.CSC_LINK }}
           # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
-      - name: Rename artifact for clarity
-        run: |
-          cd dist
-          for f in *.dmg; do
-            if [[ ! "$f" =~ arm64 ]]; then
-              mv "$f" "${f%.dmg}-arm64.dmg"
-            fi
-          done
-
       - name: Upload macOS ARM64 artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64-build
-          path: dist/*.dmg
+          path: dist/*-arm64.dmg
           retention-days: 1
 
   # ==========================================
@@ -246,20 +237,11 @@ jobs:
           # CSC_LINK: ${{ secrets.CSC_LINK }}
           # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
-      - name: Rename artifact for clarity
-        run: |
-          cd dist
-          for f in *.dmg; do
-            if [[ ! "$f" =~ x64 ]]; then
-              mv "$f" "${f%.dmg}-x64.dmg"
-            fi
-          done
-
       - name: Upload macOS x64 artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-x64-build
-          path: dist/*.dmg
+          path: dist/*-x64.dmg
           retention-days: 1
 
   # ==========================================
