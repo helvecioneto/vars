@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🎧 VARS (Virtual Agent for Real-time Support)
+<img src="src/assets/icon.png" alt="VARS Logo" width="128" height="128">
+
+# VARS (Virtual Agent for Real-time Support)
 
 [![GitHub release](https://img.shields.io/github/v/release/helvecioneto/vars?style=flat-square)](https://github.com/helvecioneto/vars/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
@@ -9,7 +11,9 @@
 
 **AI-powered assistant that listens to your calls and provides intelligent, knowledge-based answers — completely invisible to screen sharing.**
 
-[Download](#-download) • [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Build](#%EF%B8%8F-building-from-source) • [Donate](#-support-the-project)
+🌐 **[Visit our Website](https://helvecioneto.github.io/vars/)** • [Download](#-download) • [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Donate](#-support-the-project)
+
+<img src="docs/img/main.png" alt="VARS Application Screenshot" width="600">
 
 </div>
 

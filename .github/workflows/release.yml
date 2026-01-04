@@ -182,8 +182,8 @@ jobs:
         run: |
           # Remove old DMG
           rm -f dist/*.dmg
-          # Create DMG manually using hdiutil
-          DMG_NAME="VARS-${{ steps.version.outputs.VERSION }}-mac-arm64.dmg"
+          # Create DMG manually using hdiutil with consistent filename (no version)
+          DMG_NAME="VARS-mac-arm64.dmg"
           hdiutil create -volname "VARS" -srcfolder "dist/mac-arm64/VARS.app" -ov -format UDZO "dist/$DMG_NAME"
           echo "Created: dist/$DMG_NAME"
           ls -la dist/*.dmg
