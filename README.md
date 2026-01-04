@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/img/icon-readme.png" alt="VARS Logo" width="100" height="100">
-
 # VARS (Virtual Agent for Real-time Support)
 
 [![GitHub release](https://img.shields.io/github/v/release/helvecioneto/vars?style=flat-square)](https://github.com/helvecioneto/vars/releases)
