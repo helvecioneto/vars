@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VARS - Virtual Agent for Real-time Support | AI-Powered Meeting Assistant</title>
+    <meta name="description"
+        content="VARS is a free, open-source AI assistant that listens to your calls and provides intelligent answers — completely invisible to screen sharing.">
+    <meta name="keywords"
+        content="AI assistant, meeting helper, real-time transcription, screen capture, OpenAI, Gemini, free, open source">
+    <meta name="author" content="helvecioneto">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="VARS - Virtual Agent for Real-time Support">
+    <meta property="og:description"
+        content="AI-powered assistant for your calls. Free, open-source, and invisible to screen sharing.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://helvecioneto.github.io/vars/">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="img/icon.png" alt="VARS" class="logo-img">
+                <span class="logo-text">VARS</span>
+            </a>
+
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#demo" class="nav-link">Demo</a></li>
+                <li><a href="#download" class="nav-link">Download</a></li>
+                <li><a href="#mission" class="nav-link">Mission</a></li>
+                <li><a href="#donate" class="nav-link">Donate</a></li>
+                <li><a href="https://github.com/helvecioneto/vars" class="nav-link nav-github" target="_blank">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                        </svg>
+                        GitHub
+                    </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="hero">
+        <div class="hero-bg">
+            <div class="hero-gradient"></div>
+            <div class="hero-pattern"></div>
+        </div>
+
+        <div class="hero-content" data-aos="fade-up" data-aos-duration="1000">
+            <h1 class="hero-title">
+                Your Invisible
+                <span class="gradient-text">AI Assistant</span>
+                for Calls & Meetings
+            </h1>
+
+            <p class="hero-subtitle">
+                VARS listens to your calls and provides intelligent, knowledge-based answers —
+                completely invisible to screen sharing. Powered by OpenAI & Google Gemini.
+            </p>
+
+            <div class="hero-cta">
+                <a href="#download" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download Now
+                </a>
+                <a href="#demo" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Watch Demo
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-value">100%</span>
+                    <span class="stat-label">Free Forever</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-value">GPLv3</span>
+                    <span class="stat-label">Open Source</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-value">3</span>
+                    <span class="stat-label">Platforms</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-image" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
+            <div class="hero-image-glow"></div>
+            <img src="img/main.png" alt="VARS Application Interface" class="app-screenshot">
+            <p class="hero-image-caption">VARS Application Interface</p>
+        </div>
+
+        <div class="scroll-indicator">
+            <span>Scroll to explore</span>
+            <div class="scroll-arrow"></div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Powerful Features</span>
+                <h2 class="section-title">Everything You Need</h2>
+                <p class="section-subtitle">VARS combines cutting-edge AI with a privacy-first design to help you
+                    succeed.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" x2="12" y1="19" y2="22"></line>
+                        </svg>
+                    </div>
+                    <h3>Multi-Provider AI</h3>
+                    <p>Choose between OpenAI (GPT-4o, GPT-5) or Google Gemini with free tier support. Smart fallback
+                        ensures reliability.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
+                    </div>
+                    <h3>Audio Capture</h3>
+                    <p>Capture system audio from any app or use your microphone. Real-time transcription with live
+                        streaming API.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                            <circle cx="9" cy="9" r="2"></circle>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                        </svg>
+                    </div>
+                    <h3>Screen Analysis</h3>
+                    <p>Capture any window and let AI analyze it. Summarize content, extract code, or ask custom
+                        questions.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                    </div>
+                    <h3>Knowledge Base</h3>
+                    <p>Upload your documents and let AI use them for contextual answers. Powered by vector search
+                        technology.</p>
+                </div>
+
+                <div class="feature-card featured" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            <path d="m9 12 2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <h3>Privacy & Stealth</h3>
+                    <p>Invisible to screen sharing on macOS & Windows. Always-on-top with minimal, frameless design.</p>
+                    <span class="feature-badge">Key Feature</span>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" x2="22" y1="12" y2="12"></line>
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3>Multi-Language</h3>
+                    <p>Interface and responses in English, Portuguese, and Spanish. Configurable transcription language.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Gallery Section -->
+    <section class="demo" id="demo">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">See It In Action</span>
+                <h2 class="section-title">Demo Gallery</h2>
+                <p class="section-subtitle">Explore the intuitive interface and powerful features of VARS.</p>
+            </div>
+
+            <div class="demo-gallery" data-aos="fade-up" data-aos-delay="200">
+                <div class="gallery-main">
+                    <img src="img/main.png" alt="VARS Main Interface" id="gallery-main-img">
+                    <div class="gallery-caption" id="gallery-caption">Main Interface — Clean, minimal toolbar design
+                    </div>
+                </div>
+
+                <div class="gallery-thumbnails">
+                    <button class="thumbnail active" data-img="img/main.png"
+                        data-caption="Main Interface — Clean, minimal toolbar design">
+                        <img src="img/main.png" alt="Main Interface">
+                    </button>
+                    <button class="thumbnail" data-img="img/demo_question.png"
+                        data-caption="AI Response — Get intelligent answers in real-time">
+                        <img src="img/demo_question.png" alt="Demo Question">
+                    </button>
+                    <button class="thumbnail" data-img="img/api_config.png"
+                        data-caption="API Configuration — Easy setup for OpenAI and Google">
+                        <img src="img/api_config.png" alt="API Configuration">
+                    </button>
+                    <button class="thumbnail" data-img="img/audio_config.png"
+                        data-caption="Audio Settings — Choose input source and device">
+                        <img src="img/audio_config.png" alt="Audio Configuration">
+                    </button>
+                    <button class="thumbnail" data-img="img/behavior_config.png"
+                        data-caption="Behavior Settings — Customize AI responses">
+                        <img src="img/behavior_config.png" alt="Behavior Configuration">
+                    </button>
+                    <button class="thumbnail" data-img="img/knoledge.png"
+                        data-caption="Knowledge Base — Upload documents for context">
+                        <img src="img/knoledge.png" alt="Knowledge Base">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Section -->
+    <section class="video-section" id="video">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Watch & Learn</span>
+                <h2 class="section-title">Video Demo</h2>
+                <p class="section-subtitle">See VARS in action and learn how it can help you succeed.</p>
+            </div>
+
+            <div class="video-wrapper" data-aos="zoom-in" data-aos-delay="200">
+                <div class="video-glow"></div>
+                <div class="video-container">
+                    <iframe src="https://www.youtube-nocookie.com/embed/yrefLIwzIhA?rel=0&modestbranding=1"
+                        title="VARS Demo Video" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="download" id="download">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Get Started</span>
+                <h2 class="section-title">Download VARS</h2>
+                <p class="section-subtitle">Available for Windows, macOS, and Linux. No account required.</p>
+            </div>
+
+            <div class="download-cards" data-aos="fade-up" data-aos-delay="200">
+                <a href="https://github.com/helvecioneto/vars/releases/latest/download/VARS-win-x64.exe"
+                    class="download-card" id="download-windows">
+                    <div class="download-icon">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg/250px-Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg.png"
+                            alt="Windows" class="os-icon-img">
+                    </div>
+                    <h3>Windows</h3>
+                    <p>Windows 10 or later</p>
+                    <span class="download-arch">x64 Installer</span>
+                    <span class="download-btn">Download .exe</span>
+                </a>
+
+                <a href="https://github.com/helvecioneto/vars/releases/latest/download/VARS-mac-arm64.dmg"
+                    class="download-card" id="download-macos">
+                    <div class="download-icon">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Apple_Computer_Logo_rainbow.svg"
+                            alt="macOS" class="os-icon-img">
+                    </div>
+                    <h3>macOS</h3>
+                    <p>macOS 10.15 or later</p>
+                    <span class="download-arch">Intel & Apple Silicon</span>
+                    <span class="download-btn">Download .dmg</span>
+                </a>
+
+                <a href="https://github.com/helvecioneto/vars/releases/latest/download/VARS-linux-x86_64.AppImage"
+                    class="download-card" id="download-linux">
+                    <div class="download-icon">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Linux"
+                            class="os-icon-img">
+                    </div>
+                    <h3>Linux</h3>
+                    <p>Most distributions</p>
+                    <span class="download-arch">x64 AppImage</span>
+                    <span class="download-btn">Download .AppImage</span>
+                </a>
+            </div>
+
+
+            <div class="download-info" data-aos="fade-up" data-aos-delay="400">
+                <p>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    Requires an API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>
+                    or <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> (free tier
+                    available)
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission Section -->
+    <section class="mission" id="mission">
+        <div class="mission-bg">
+            <div class="mission-pattern"></div>
+        </div>
+
+        <div class="container">
+            <div class="mission-content" data-aos="fade-up">
+                <span class="section-tag">Our Mission</span>
+                <h2 class="section-title">Why We Built VARS</h2>
+
+                <div class="mission-text">
+                    <p>
+                        The motivation behind VARS came from observing the growing popularity of Desktop Virtual Agents
+                        designed to assist candidates during job interviews. However, most of these tools are either
+                        <strong>paid or have limited features</strong>.
+                    </p>
+
+                    <p>
+                        This inspired us to create a <strong>free and accessible solution</strong>, recognizing that
+                        many
+                        job seekers—especially in developing countries—may not have the financial means to afford
+                        expensive
+                        services while searching for employment.
+                    </p>
+
+                    <p>
+                        Additionally, VARS aims to <strong>accelerate changes in recruitment processes</strong>. Current
+                        selection
+                        methodologies often suffer from structural flaws, eliminating excellent candidates while
+                        selecting
+                        those who merely fit a "non-human" or artificial standard.
+                    </p>
+
+                    <p class="highlight">
+                        By leveling the playing field, we hope to encourage a shift towards more
+                        <strong>authentic and effective evaluation methods</strong>.
+                    </p>
+                </div>
+
+                <div class="mission-values">
+                    <div class="value-card" data-aos="fade-up" data-aos-delay="100">
+                        <span class="value-icon">💡</span>
+                        <h4>Accessibility</h4>
+                        <p>Free for everyone, everywhere</p>
+                    </div>
+                    <div class="value-card" data-aos="fade-up" data-aos-delay="200">
+                        <span class="value-icon">🤝</span>
+                        <h4>Fairness</h4>
+                        <p>Level the playing field</p>
+                    </div>
+                    <div class="value-card" data-aos="fade-up" data-aos-delay="300">
+                        <span class="value-icon">🔓</span>
+                        <h4>Transparency</h4>
+                        <p>Open source, auditable code</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Donate Section -->
+    <section class="donate" id="donate">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Support Development</span>
+                <h2 class="section-title">Donate & Sponsor</h2>
+                <p class="section-subtitle">If VARS helps you, consider supporting its development!</p>
+            </div>
+
+            <div class="donate-content" data-aos="fade-up" data-aos-delay="200">
+                <div class="donate-text">
+                    <p>Your support helps us:</p>
+                    <ul class="donate-benefits">
+                        <li>
+                            <span class="benefit-icon">🚀</span>
+                            Develop new features
+                        </li>
+                        <li>
+                            <span class="benefit-icon">🐛</span>
+                            Fix bugs faster
+                        </li>
+                        <li>
+                            <span class="benefit-icon">📚</span>
+                            Improve documentation
+                        </li>
+                        <li>
+                            <span class="benefit-icon">☕</span>
+                            Keep the developer caffeinated
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="donate-cards">
+                    <div class="donate-card">
+                        <h4>Pix (Brazil)</h4>
+                        <div class="qr-container">
+                            <img src="img/pix.png" alt="Pix QR Code" class="qr-code">
+                        </div>
+                        <p class="donate-desc">Scan with your bank app</p>
+                    </div>
+
+                    <div class="donate-card">
+                        <h4>PayPal</h4>
+                        <div class="qr-container">
+                            <img src="img/paypal.jpg" alt="PayPal QR Code" class="qr-code">
+                        </div>
+                        <p class="donate-desc">International donations</p>
+                    </div>
+
+                    <div class="donate-card github-sponsor">
+                        <h4>GitHub Sponsors</h4>
+                        <div class="sponsor-content">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="heart-icon">
+                                <path
+                                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                            <p>Become a sponsor on GitHub and get recognition!</p>
+                            <a href="https://github.com/sponsors/helvecioneto" class="btn btn-sponsor" target="_blank">
+                                ❤️ Sponsor on GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Open Source Section -->
+    <section class="open-source" id="open-source">
+        <div class="container">
+            <div class="os-grid">
+                <div class="os-content" data-aos="fade-right">
+                    <span class="section-tag">Community Driven</span>
+                    <h2 class="section-title">Free & Open Source</h2>
+
+                    <p>
+                        VARS is licensed under the <strong>GNU General Public License v3.0 (GPLv3)</strong>,
+                        guaranteeing your freedom to share and change the software.
+                    </p>
+
+                    <ul class="os-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Commercial use allowed
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Full source code available
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Modify and distribute freely
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            No tracking or telemetry
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Community contributions welcome
+                        </li>
+                    </ul>
+
+                    <div class="os-cta">
+                        <a href="https://github.com/helvecioneto/vars" class="btn btn-primary" target="_blank">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                            </svg>
+                            View on GitHub
+                        </a>
+                        <a href="https://github.com/sponsors/helvecioneto" class="btn btn-secondary" target="_blank">
+                            <span class="heart">❤️</span>
+                            Sponsor
+                        </a>
+                    </div>
+                </div>
+
+                <div class="os-visual" data-aos="fade-left">
+                    <div class="code-window">
+                        <div class="code-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                            <span class="code-title">terminal</span>
+                        </div>
+                        <div class="code-body">
+                            <pre><code><span class="comment"># Clone the repository</span>
+<span class="prompt">$</span> git clone https://github.com/helvecioneto/vars.git
+
+<span class="comment"># Install dependencies</span>
+<span class="prompt">$</span> cd vars && npm install
+
+<span class="comment"># Start VARS</span>
+<span class="prompt">$</span> npm start
+
+<span class="success">✓ VARS is ready!</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content" data-aos="fade-up">
+                <h2>Ready to supercharge your calls?</h2>
+                <p>Download VARS now and experience the power of AI assistance.</p>
+                <a href="#download" class="btn btn-primary btn-large">
+                    Get Started — It's Free
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <img src="img/icon.png" alt="VARS" class="logo-img">
+                        <span class="logo-text">VARS</span>
+                    </div>
+                    <p>Virtual Agent for Real-time Support</p>
+                </div>
+
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#demo">Demo</a>
+                        <a href="#download">Download</a>
+                    </div>
+
+                    <div class="footer-column">
+                        <h4>Resources</h4>
+                        <a href="https://github.com/helvecioneto/vars#-installation" target="_blank">Installation</a>
+                        <a href="https://github.com/helvecioneto/vars#-usage" target="_blank">Usage Guide</a>
+                        <a href="https://github.com/helvecioneto/vars#-troubleshooting"
+                            target="_blank">Troubleshooting</a>
+                    </div>
+
+                    <div class="footer-column">
+                        <h4>Community</h4>
+                        <a href="https://github.com/helvecioneto/vars" target="_blank">GitHub</a>
+                        <a href="https://github.com/helvecioneto/vars/discussions" target="_blank">Discussions</a>
+                        <a href="https://github.com/helvecioneto/vars/issues" target="_blank">Report Issues</a>
+                        <a href="https://github.com/sponsors/helvecioneto" target="_blank">Sponsor</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>Made with ❤️ for productive meetings</p>
+                <p class="footer-license">
+                    Licensed under <a href="https://github.com/helvecioneto/vars/blob/main/LICENSE"
+                        target="_blank">GPLv3</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

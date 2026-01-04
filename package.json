@@ -21,7 +21,7 @@
     "mac": {
       "target": "dmg",
       "icon": "src/assets/icon.png",
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "artifactName": "${productName}-mac-${arch}.${ext}",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "hardenedRuntime": true,
@@ -38,7 +38,7 @@
       "target": "nsis",
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -56,9 +56,9 @@
       "target": "AppImage",
       "icon": "src/assets/icon.png",
       "category": "Utility",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    "artifactName": "${productName}-${os}-${arch}.${ext}"
   },
   "keywords": [
     "electron",
