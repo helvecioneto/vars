@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/assets/icon.png" alt="VARS Logo" width="128" height="128">
+<img src="docs/img/icon-readme.png" alt="VARS Logo" width="100" height="100">
 
 # VARS (Virtual Agent for Real-time Support)
 
@@ -13,7 +13,7 @@
 
 🌐 **[Visit our Website](https://helvecioneto.github.io/vars/)** • [Download](#-download) • [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Donate](#-support-the-project)
 
-<img src="docs/img/main.png" alt="VARS Application Screenshot" width="600">
+<img src="docs/img/main.png" alt="VARS Application Screenshot" width="480">
 
 </div>
 
