@@ -161,32 +161,84 @@ async function getForegroundWindowInfo() {
 
 /**
  * Get foreground window info on Windows
- * Uses PowerShell to get window title and bounds
+ * Uses PowerShell to iterate through Z-order and find the first visible window that is NOT VARS
+ * This is necessary because VARS is always-on-top and would be returned by GetForegroundWindow
  */
 async function getWindowInfoWindows() {
     return new Promise((resolve, reject) => {
-        // Simpler PowerShell command using Get-Process
+        // PowerShell script that iterates through windows in Z-order,
+        // skipping VARS window to find the actual application window
         const script = `
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+
 public class Win32 {
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+    
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+    
     [DllImport("user32.dll")]
     public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+    
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+    
+    [DllImport("user32.dll")]
+    public static extern int GetWindowTextLength(IntPtr hWnd);
+    
+    public const uint GW_HWNDNEXT = 2;
+    
     public struct RECT { public int Left, Top, Right, Bottom; }
 }
 '@
+
 $hwnd = [Win32]::GetForegroundWindow()
-$sb = New-Object System.Text.StringBuilder 256
-[void][Win32]::GetWindowText($hwnd, $sb, 256)
-$rect = New-Object Win32+RECT
-[void][Win32]::GetWindowRect($hwnd, [ref]$rect)
-Write-Output "$($sb.ToString())|$($rect.Left)|$($rect.Top)|$($rect.Right - $rect.Left)|$($rect.Bottom - $rect.Top)"
+$found = $false
+$maxIterations = 50
+
+while ($hwnd -ne [IntPtr]::Zero -and -not $found -and $maxIterations -gt 0) {
+    $maxIterations--
+    
+    if ([Win32]::IsWindowVisible($hwnd)) {
+        $textLen = [Win32]::GetWindowTextLength($hwnd)
+        if ($textLen -gt 0) {
+            $sb = New-Object System.Text.StringBuilder ($textLen + 1)
+            [void][Win32]::GetWindowText($hwnd, $sb, $sb.Capacity)
+            $title = $sb.ToString()
+            
+            # Skip VARS window - check for exact match or prefix
+            if ($title -and $title -ne "VARS" -and -not $title.StartsWith("VARS")) {
+                $found = $true
+                $rect = New-Object Win32+RECT
+                [void][Win32]::GetWindowRect($hwnd, [ref]$rect)
+                $width = $rect.Right - $rect.Left
+                $height = $rect.Bottom - $rect.Top
+                
+                # Skip windows that are too small (likely system windows)
+                if ($width -gt 100 -and $height -gt 100) {
+                    Write-Output "$title|$($rect.Left)|$($rect.Top)|$width|$height"
+                } else {
+                    $found = $false
+                }
+            }
+        }
+    }
+    
+    if (-not $found) {
+        $hwnd = [Win32]::GetWindow($hwnd, [Win32]::GW_HWNDNEXT)
+    }
+}
+
+if (-not $found) {
+    Write-Output "Desktop|0|0|1920|1080"
+}
 `;
 
         // Write script to temp file and execute
@@ -224,25 +276,33 @@ Write-Output "$($sb.ToString())|$($rect.Left)|$($rect.Top)|$($rect.Right - $rect
 
 /**
  * Get foreground window info on macOS
- * Uses AppleScript to get window title and bounds
+ * Uses AppleScript to find the first visible window that is NOT VARS
+ * This iterates through visible application processes to skip our own window
  */
 async function getWindowInfoMacOS() {
     return new Promise((resolve, reject) => {
+        // AppleScript that iterates through visible processes, skipping VARS
         const script = `
             tell application "System Events"
-                set frontApp to first application process whose frontmost is true
-                set appName to name of frontApp
-                try
-                    tell frontApp
-                        set frontWindow to first window
-                        set winName to name of frontWindow
-                        set winPos to position of frontWindow
-                        set winSize to size of frontWindow
-                        return appName & "|" & winName & "|" & (item 1 of winPos) & "|" & (item 2 of winPos) & "|" & (item 1 of winSize) & "|" & (item 2 of winSize)
-                    end tell
-                on error
-                    return appName & "|" & appName & "|0|0|0|0"
-                end try
+                set visibleProcesses to application processes whose visible is true
+                repeat with proc in visibleProcesses
+                    set procName to name of proc
+                    -- Skip VARS application
+                    if procName is not "VARS" and procName is not "Electron" then
+                        try
+                            tell proc
+                                if (count of windows) > 0 then
+                                    set frontWindow to first window
+                                    set winName to name of frontWindow
+                                    set winPos to position of frontWindow
+                                    set winSize to size of frontWindow
+                                    return procName & "|" & winName & "|" & (item 1 of winPos) & "|" & (item 2 of winPos) & "|" & (item 1 of winSize) & "|" & (item 2 of winSize)
+                                end if
+                            end tell
+                        end try
+                    end if
+                end repeat
+                return "Desktop|Desktop|0|0|1920|1080"
             end tell
         `;
 
@@ -301,9 +361,11 @@ async function getWindowInfoLinux() {
 
 /**
  * Get window info using xdotool (most common)
+ * Searches for visible windows and skips VARS window
  */
 async function getWindowInfoLinuxXdotool() {
     return new Promise((resolve, reject) => {
+        // First get the active window
         exec('xdotool getactivewindow getwindowname', (error, stdout) => {
             if (error) {
                 reject(error);
@@ -312,33 +374,92 @@ async function getWindowInfoLinuxXdotool() {
 
             const title = stdout.trim();
 
-            // Try to get geometry
-            exec('xdotool getactivewindow getwindowgeometry --shell', (geoError, geoStdout) => {
-                if (geoError) {
-                    resolve({ title, bounds: null });
-                    return;
-                }
-
-                // Parse geometry output
-                const lines = geoStdout.split('\n');
-                const geo = {};
-                lines.forEach(line => {
-                    const [key, value] = line.split('=');
-                    if (key && value) {
-                        geo[key.trim()] = parseInt(value.trim());
+            // If the active window is VARS, search for another window
+            if (title === 'VARS' || title.startsWith('VARS')) {
+                // Use xdotool to search for all visible windows and find one that's not VARS
+                exec('xdotool search --onlyvisible --name "." 2>/dev/null', (searchError, searchStdout) => {
+                    if (searchError || !searchStdout.trim()) {
+                        resolve({ title: 'Desktop', bounds: null });
+                        return;
                     }
-                });
 
-                resolve({
-                    title,
-                    bounds: {
-                        x: geo.X || 0,
-                        y: geo.Y || 0,
-                        width: geo.WIDTH || 0,
-                        height: geo.HEIGHT || 0
-                    }
+                    const windowIds = searchStdout.trim().split('\n');
+
+                    // Find first window that's not VARS
+                    const checkNextWindow = (index) => {
+                        if (index >= windowIds.length) {
+                            resolve({ title: 'Desktop', bounds: null });
+                            return;
+                        }
+
+                        const wid = windowIds[index];
+                        exec(`xdotool getwindowname ${wid}`, (nameError, nameStdout) => {
+                            const winTitle = nameStdout ? nameStdout.trim() : '';
+
+                            if (winTitle && winTitle !== 'VARS' && !winTitle.startsWith('VARS')) {
+                                // Get geometry for this window
+                                exec(`xdotool getwindowgeometry --shell ${wid}`, (geoError, geoStdout) => {
+                                    if (geoError) {
+                                        resolve({ title: winTitle, bounds: null });
+                                        return;
+                                    }
+
+                                    const lines = geoStdout.split('\n');
+                                    const geo = {};
+                                    lines.forEach(line => {
+                                        const [key, value] = line.split('=');
+                                        if (key && value) {
+                                            geo[key.trim()] = parseInt(value.trim());
+                                        }
+                                    });
+
+                                    resolve({
+                                        title: winTitle,
+                                        bounds: {
+                                            x: geo.X || 0,
+                                            y: geo.Y || 0,
+                                            width: geo.WIDTH || 0,
+                                            height: geo.HEIGHT || 0
+                                        }
+                                    });
+                                });
+                            } else {
+                                checkNextWindow(index + 1);
+                            }
+                        });
+                    };
+
+                    checkNextWindow(0);
                 });
-            });
+            } else {
+                // Active window is not VARS, use it directly
+                exec('xdotool getactivewindow getwindowgeometry --shell', (geoError, geoStdout) => {
+                    if (geoError) {
+                        resolve({ title, bounds: null });
+                        return;
+                    }
+
+                    // Parse geometry output
+                    const lines = geoStdout.split('\n');
+                    const geo = {};
+                    lines.forEach(line => {
+                        const [key, value] = line.split('=');
+                        if (key && value) {
+                            geo[key.trim()] = parseInt(value.trim());
+                        }
+                    });
+
+                    resolve({
+                        title,
+                        bounds: {
+                            x: geo.X || 0,
+                            y: geo.Y || 0,
+                            width: geo.WIDTH || 0,
+                            height: geo.HEIGHT || 0
+                        }
+                    });
+                });
+            }
         });
     });
 }
