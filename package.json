@@ -37,7 +37,6 @@
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false,
       "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
     "nsis": {
@@ -50,9 +49,7 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico",
-      "shortcutName": "VARS",
-      "menuCategory": false,
-      "include": "build/installer.nsh"
+      "shortcutName": "VARS"
     },
     "linux": {
       "target": "AppImage",
