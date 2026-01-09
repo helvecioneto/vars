@@ -50,7 +50,7 @@ Download the latest version for your operating system from the [Releases page](h
 
 ### 🎙️ Multi-Provider AI Support
 - **OpenAI Integration**: GPT-4o, GPT-4o-mini, GPT-5.2, Whisper transcription
-- **Google Gemini Integration**: Gemini 2.5/3.0 Flash & Pro models with free tier support
+- **Google Gemini Integration**: Gemini 2.5/3.0 Flash & Pro models with free tier support.
 - **Configurable Quality Tiers**: Free, Fast, Balanced, and Quality modes
 - **Automatic Fallback**: Smart retry with model fallback for free tier
 
