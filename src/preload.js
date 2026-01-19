@@ -80,6 +80,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
     setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
 
+    // Window size control for mode switching
+    setWindowHeight: (height) => ipcRenderer.send('set-window-height', height),
+    getWindowSize: () => ipcRenderer.invoke('get-window-size'),
+    forceResizeToContent: (bounds) => ipcRenderer.send('force-resize-to-content', bounds),
+
     // Content Protection (visibility mode toggle)
     setContentProtection: (enabled) => ipcRenderer.send('set-content-protection', enabled),
 

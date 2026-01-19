@@ -485,6 +485,38 @@ function setupIPCHandlers(context) {
         }
     });
 
+    // Explicit window height control for mode switching (bypasses cooldown)
+    ipcMain.on('set-window-height', (event, height) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow && height > 0) {
+            const currentBounds = mainWindow.getBounds();
+            mainWindow.setSize(currentBounds.width, Math.ceil(height));
+            // Reset the cooldown so normal bounds tracking works immediately after
+            lastResizeTime = 0;
+        }
+    });
+
+    // Force resize to content bounds - bypasses cooldown for mode switching
+    ipcMain.on('force-resize-to-content', (event, bounds) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow && bounds.height > 0) {
+            const currentBounds = mainWindow.getBounds();
+            mainWindow.setSize(currentBounds.width, Math.ceil(bounds.height));
+            // Reset cooldown
+            lastResizeTime = 0;
+        }
+    });
+
+    // Get current window size
+    ipcMain.handle('get-window-size', async () => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+            const bounds = mainWindow.getBounds();
+            return { width: bounds.width, height: bounds.height };
+        }
+        return { width: 450, height: 60 };
+    });
+
     // Window dragging state
     let isDragging = false;
     let dragStartPos = { x: 0, y: 0 };

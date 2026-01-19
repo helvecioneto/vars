@@ -28,6 +28,11 @@ let pendingScreenshot = null;
 // Visibility mode state (default: invisible/hidden for screen sharing protection)
 let isVisibleMode = false;
 
+// Window height state for different modes (toolbar vs settings)
+let toolbarModeHeight = 60;  // Default compact toolbar height
+let settingsModeHeight = 350; // Default settings panel height
+let currentMode = 'toolbar'; // 'toolbar' or 'settings'
+
 
 // DOM Elements
 const elements = {
@@ -1867,6 +1872,9 @@ function toggleSettings() {
     const contentArea = elements.contentArea;
 
     if (isVisible) {
+        // Switching TO settings mode
+        currentMode = 'settings';
+
         // Settings open: hide all icons except gear, show settings title
         if (toolbarLeft) toolbarLeft.classList.add('hidden');
         if (inputField) inputField.classList.add('hidden');
@@ -1877,6 +1885,9 @@ function toggleSettings() {
         const otherButtons = toolbarRight?.querySelectorAll('.icon-btn:not(#settings-btn):not(#close-btn):not(#drag-btn)');
         otherButtons?.forEach(btn => btn.classList.add('hidden'));
     } else {
+        // Switching TO toolbar mode
+        currentMode = 'toolbar';
+
         // Settings closed: restore everything
         if (toolbarLeft) toolbarLeft.classList.remove('hidden');
         if (inputField) inputField.classList.remove('hidden');
@@ -1886,6 +1897,18 @@ function toggleSettings() {
         const otherButtons = toolbarRight?.querySelectorAll('.icon-btn');
         otherButtons?.forEach(btn => btn.classList.remove('hidden'));
     }
+
+    // Force immediate content bounds update after DOM changes settle
+    // This bypasses the normal cooldown to ensure window resizes correctly
+    setTimeout(() => {
+        if (elements.appContainer) {
+            const rect = elements.appContainer.getBoundingClientRect();
+            window.electronAPI.forceResizeToContent({
+                width: rect.width,
+                height: rect.height
+            });
+        }
+    }, 100);
 }
 
 // ==========================================
