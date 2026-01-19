@@ -1527,8 +1527,11 @@ function updateRecordingUI() {
 }
 
 function updateStatus(text, type = 'ready') {
-    // Override "Ready" state if Knowledge Base is active
-    if (type === 'ready' && config.vectorStoreId) {
+    // Override "Ready" state if Knowledge Base is active for current provider
+    const hasKnowledgeBase = (config.provider === 'google' && config.fileSearchStoreName) ||
+        (config.provider !== 'google' && config.vectorStoreId);
+
+    if (type === 'ready' && hasKnowledgeBase) {
         text = 'Ready / Knowledge Base';
         type = 'knowledge';
     }
@@ -1825,6 +1828,8 @@ async function handleTrainKB() {
             config = await window.electronAPI.getConfig();
 
             if (elements.kbStatus) elements.kbStatus.innerText = `✅ Success! Indexed ${result.count} files.`;
+            // Refresh main status bar
+            updateStatus('Ready', 'ready');
             // Flash success color
             setTimeout(() => { if (elements.kbStatus) elements.kbStatus.innerText = 'Ready. Knowledge Base Active.'; }, 5000);
         } else {
@@ -1848,6 +1853,8 @@ async function handleResetKB() {
         if (result.success) {
             config = await window.electronAPI.getConfig(); // Sync state
             if (elements.kbStatus) elements.kbStatus.innerText = '✅ Knowledge Base Cleared.';
+            // Refresh main status bar
+            updateStatus('Ready', 'ready');
         } else {
             if (elements.kbStatus) elements.kbStatus.innerText = `❌ Error: ${result.error}`;
         }

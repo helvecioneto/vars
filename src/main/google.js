@@ -303,76 +303,84 @@ async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, lan
  * @returns {Promise<string>} AI response
  */
 async function getChatCompletionWithFileSearch(message, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}, briefMode = false, fileSearchStoreName) {
+    const ai = getGenAIClient(apiKey);
+
+    // Get language instruction from configuration
     const langInstructions = getPromptForLanguage('language.responseInstruction', language);
     const briefModeInstruction = briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '';
     const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant.') + langInstructions + briefModeInstruction;
 
-    // Build contents array with history
-    const contents = [];
+    // Convert OpenAI-style history to Gemini format (user/model)
+    // SDK expects: [{ role: 'user', parts: [{ text: '...' }] }]
+    const geminiHistory = (history || []).map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+    }));
 
-    // Add history
-    for (const msg of (history || [])) {
-        contents.push({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-        });
-    }
-
-    // Add current message
-    contents.push({
-        role: 'user',
-        parts: [{ text: message }]
-    });
-
-    // Build request body with File Search tool
-    const requestBody = {
-        contents: contents,
-        systemInstruction: {
-            parts: [{ text: fullSystemPrompt }]
-        },
-        generationConfig: {
-            temperature: tierConfig.temperature ?? 0.7,
-            maxOutputTokens: tierConfig.maxOutputTokens ?? 1500,
-            topK: tierConfig.topK ?? 40,
-            topP: tierConfig.topP ?? 0.95
-        },
-        tools: [
-            {
-                fileSearch: {
-                    fileSearchStoreNames: [fileSearchStoreName]
+    try {
+        const result = await ai.models.generateContent({
+            model: model,
+            contents: [
+                ...geminiHistory,
+                {
+                    role: 'user',
+                    parts: [{ text: message }]
                 }
+            ],
+            config: {
+                systemInstruction: fullSystemPrompt,
+                temperature: tierConfig.temperature ?? 0.7,
+                maxOutputTokens: tierConfig.maxOutputTokens ?? 1500,
+                topK: tierConfig.topK ?? 40,
+                topP: tierConfig.topP ?? 0.95,
+                tools: [
+                    {
+                        fileSearch: {
+                            fileSearchStoreNames: [fileSearchStoreName]
+                        }
+                    }
+                ]
             }
-        ]
-    };
+        });
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+        // Check if response is valid (structure for @google/genai SDK)
+        if (!result || !result.candidates) {
+            console.error('[File Search] Invalid response from SDK:', result);
+            throw new Error('Received empty response from Gemini API');
+        }
 
-    console.log(`[File Search] Querying with store: ${fileSearchStoreName}`);
+        // Check for safety blocks or empty content
+        if (result.candidates.length === 0) {
+            console.warn('[File Search] No candidates returned (possibly blocked or empty retrieval). Prompt feedback:', result.promptFeedback);
+            return "I couldn't find relevant information in the knowledge base to answer your question.";
+        }
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-    });
+        // Try to get text safely
+        let text = '';
+        try {
+            // SDK v2 usually has .text() on the response object
+            text = result.text();
+        } catch (e) {
+            // Fallback for manual access if helper fails
+            text = result.candidates[0]?.content?.parts?.[0]?.text || '';
+        }
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`File Search query failed: ${error.error?.message || response.statusText}`);
+        if (!text) {
+            // Might be a pure citation response or blocked
+            return "I found some sources but couldn't generate a text response.";
+        }
+
+        // Log grounding metadata if available (for debugging)
+        const grounding = result.candidates?.[0]?.groundingMetadata;
+        if (grounding?.groundingChunks) {
+            console.log(`[File Search] Cited ${grounding.groundingChunks.length} sources.`);
+        }
+
+        return text;
+    } catch (error) {
+        console.error('[File Search] Generation error:', error);
+        throw new Error(`File Search generation failed: ${error.message}`);
     }
-
-    const data = await response.json();
-
-    // Extract text from response
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    // Log citations if available
-    if (data.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-        console.log('[File Search] Sources used:', data.candidates[0].groundingMetadata.groundingChunks.length);
-    }
-
-    return text;
 }
 
 /**
@@ -543,10 +551,18 @@ async function analyzeImageGoogle({
 }
 
 // ==========================================
-// File Search Store (Knowledge Base) - REST API
+// File Search Store (Knowledge Base) - SDK Implementation (@google/genai)
 // ==========================================
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const { GoogleGenAI } = require('@google/genai');
+
+/**
+ * Helper to get initialized GenAI V2 client
+ * @param {string} apiKey 
+ */
+function getGenAIClient(apiKey) {
+    return new GoogleGenAI({ apiKey });
+}
 
 /**
  * Create a new File Search Store
@@ -555,26 +571,20 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
  * @returns {Promise<string>} File Search Store name (ID)
  */
 async function createFileSearchStore(apiKey, displayName = 'VARS Knowledge Base') {
-    const url = `${GEMINI_API_BASE}/fileSearchStores?key=${apiKey}`;
+    const ai = getGenAIClient(apiKey);
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            displayName: displayName
-        })
-    });
+    try {
+        const store = await ai.fileSearchStores.create({
+            config: {
+                displayName: displayName
+            }
+        });
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to create File Search Store: ${error.error?.message || response.statusText}`);
+        console.log('[File Search] Created store:', store.name);
+        return store.name;
+    } catch (error) {
+        throw new Error(`Failed to create File Search Store: ${error.message}`);
     }
-
-    const data = await response.json();
-    console.log('[File Search] Created store:', data.name);
-    return data.name; // e.g., "fileSearchStores/abc123"
 }
 
 /**
@@ -584,24 +594,13 @@ async function createFileSearchStore(apiKey, displayName = 'VARS Knowledge Base'
  * @returns {Promise<object|null>} Store object or null if not found
  */
 async function getFileSearchStore(apiKey, storeName) {
-    const url = `${GEMINI_API_BASE}/${storeName}?key=${apiKey}`;
+    const ai = getGenAIClient(apiKey);
 
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const store = await ai.fileSearchStores.get({
+            name: storeName
         });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
-            }
-            throw new Error(`Failed to get File Search Store: ${response.statusText}`);
-        }
-
-        return await response.json();
+        return store;
     } catch (error) {
         console.warn('[File Search] Store not found:', storeName);
         return null;
@@ -616,84 +615,79 @@ async function getFileSearchStore(apiKey, storeName) {
  * @returns {Promise<object>} Operation object
  */
 async function uploadToFileSearchStore(apiKey, storeName, filePath) {
-    const fileName = path.basename(filePath);
-    const fileContent = await fsPromises.readFile(filePath);
-    const mimeType = getMimeType(filePath);
+    const ai = getGenAIClient(apiKey);
+    const originalFileName = path.basename(filePath);
 
-    // Use multipart upload
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+    // SDK (or Node's http client) fails if the FILE PATH contains non-ascii characters in headers.
+    // Solution: Copy to a temp file with pure ASCII name, upload, then delete.
+    const tempDir = require('os').tmpdir();
+    // Generate a safe name: 'upload_' + timestamp + random + '.ext'
+    const safeName = `upload_${Date.now()}_${Math.floor(Math.random() * 1000)}${path.extname(filePath)}`;
+    const tempFilePath = path.join(tempDir, safeName);
 
-    // Build metadata part
-    const metadata = {
-        displayName: fileName
-    };
+    // Sanitize display name for the store (API metadata)
+    const sanitizedDisplayName = originalFileName.replace(/[^\x00-\x7F]/g, '_');
 
-    // Build multipart body
-    let body = '';
-    body += `--${boundary}\r\n`;
-    body += 'Content-Type: application/json; charset=UTF-8\r\n\r\n';
-    body += JSON.stringify(metadata) + '\r\n';
-    body += `--${boundary}\r\n`;
-    body += `Content-Type: ${mimeType}\r\n\r\n`;
+    console.log(`[File Search] Staging ${originalFileName} to ${safeName} for safe upload...`);
 
-    // Convert file content to base64 for proper encoding
-    const base64Content = fileContent.toString('base64');
+    try {
+        // Copy file to temp location
+        await fsPromises.copyFile(filePath, tempFilePath);
 
-    // Use the upload endpoint with inline file data
-    const uploadUrl = `${GEMINI_API_BASE}/${storeName}/documents?key=${apiKey}`;
+        console.log(`[File Search] Uploading staged file to ${storeName}...`);
 
-    // Alternative: Use inline data approach
-    const inlineResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            displayName: fileName,
-            inlineData: {
-                mimeType: mimeType,
-                data: base64Content
+        // Upload the temp file
+        let operation = await ai.fileSearchStores.uploadToFileSearchStore({
+            file: tempFilePath,
+            fileSearchStoreName: storeName,
+            config: {
+                displayName: sanitizedDisplayName,
             }
-        })
-    });
+        });
 
-    if (!inlineResponse.ok) {
-        const error = await inlineResponse.json();
-        throw new Error(`Failed to upload file ${fileName}: ${error.error?.message || inlineResponse.statusText}`);
+        // Loop wait for completion (Best Effort)
+        if (operation.name) {
+            console.log(`[File Search] Upload initiated:`, operation.name);
+            const opName = operation.name;
+            let pollErrors = 0;
+
+            // Poll safely
+            while (true) {
+                // If operation object says done, we are good
+                if (operation.done) break;
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                try {
+                    const updatedOp = await ai.operations.get({ name: opName });
+                    if (updatedOp) {
+                        operation = updatedOp;
+                    }
+                } catch (e) {
+                    console.warn('[File Search] Polling warning:', e.message);
+                    pollErrors++;
+                    // If we fail to check status multiple times, assume SDK issue and break to let flow continue
+                    // The upload likely continues on server side
+                    if (pollErrors >= 3) {
+                        console.log('[File Search] Stopping status check due to SDK errors. Upload continues in background.');
+                        break;
+                    }
+                }
+            }
+            console.log(`[File Search] File upload sequence completed.`);
+        }
+
+        return operation;
+    } catch (error) {
+        throw new Error(`Failed to upload file ${originalFileName}: ${error.message}`);
+    } finally {
+        // Clean up temp file
+        try {
+            await fsPromises.unlink(tempFilePath);
+        } catch (e) {
+            console.warn('Failed to cleanup temp file:', tempFilePath);
+        }
     }
-
-    const data = await inlineResponse.json();
-    console.log(`[File Search] Uploaded file ${fileName}:`, data.name || 'pending');
-    return data;
-}
-
-/**
- * Get MIME type from file extension
- * @param {string} filePath - Path to file
- * @returns {string} MIME type
- */
-function getMimeType(filePath) {
-    const ext = path.extname(filePath).toLowerCase();
-    const mimeTypes = {
-        '.txt': 'text/plain',
-        '.md': 'text/markdown',
-        '.pdf': 'application/pdf',
-        '.html': 'text/html',
-        '.htm': 'text/html',
-        '.json': 'application/json',
-        '.js': 'text/javascript',
-        '.ts': 'text/typescript',
-        '.py': 'text/x-python',
-        '.csv': 'text/csv',
-        '.xml': 'application/xml',
-        '.doc': 'application/msword',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.xls': 'application/vnd.ms-excel',
-        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        '.ppt': 'application/vnd.ms-powerpoint',
-        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    };
-    return mimeTypes[ext] || 'application/octet-stream';
 }
 
 /**
@@ -704,23 +698,21 @@ function getMimeType(filePath) {
  * @returns {Promise<void>}
  */
 async function deleteFileSearchStore(apiKey, storeName, force = true) {
-    if (!storeName) {
-        console.log('[File Search] No store to delete');
-        return;
+    if (!storeName) return;
+
+    const ai = getGenAIClient(apiKey);
+
+    try {
+        await ai.fileSearchStores.delete({
+            name: storeName,
+            config: {
+                force: force
+            }
+        });
+        console.log('[File Search] Deleted store:', storeName);
+    } catch (error) {
+        console.warn(`[File Search] Failed to delete store (might be already deleted): ${error.message}`);
     }
-
-    const url = `${GEMINI_API_BASE}/${storeName}?key=${apiKey}${force ? '&force=true' : ''}`;
-
-    const response = await fetch(url, {
-        method: 'DELETE'
-    });
-
-    if (!response.ok && response.status !== 404) {
-        const error = await response.json();
-        throw new Error(`Failed to delete File Search Store: ${error.error?.message || response.statusText}`);
-    }
-
-    console.log('[File Search] Deleted store:', storeName);
 }
 
 /**
@@ -748,16 +740,15 @@ async function createGoogleKnowledgeBase(apiKey, filePaths, existingStoreName = 
     }
 
     // Upload all files
+    // Use sequential upload to avoid rate limits and ensuring files exist
     for (const filePath of filePaths) {
         try {
-            // Check if file exists
             await fsPromises.access(filePath);
             await uploadToFileSearchStore(apiKey, storeName, filePath);
-            // Small delay between uploads to avoid rate limiting
+            // Small delay
             await sleep(500);
         } catch (error) {
             console.error(`[File Search] Error uploading ${filePath}:`, error.message);
-            // Continue with other files
         }
     }
 

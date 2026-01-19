@@ -333,12 +333,14 @@ function setupIPCHandlers(context) {
                 // Reset Google File Search Store
                 await resetGoogleKnowledgeBase(apiKey, config.fileSearchStoreName);
                 config.fileSearchStoreName = null;
-                console.log('[KB] Reset Google File Search Store');
+                // Clear conversation history to remove context from deleted files
+                config.conversationHistory = [];
+                console.log('[KB] Reset Google File Search Store and History');
             } else {
                 // Reset OpenAI Vector Store
                 await resetKnowledgeBase(apiKey, config.vectorStoreId);
                 config.vectorStoreId = null;
-                config.threadId = null;
+                config.threadId = null; // Clearing threadId effectively clears history
             }
 
             setConfig(config);
