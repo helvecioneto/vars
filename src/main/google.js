@@ -290,17 +290,120 @@ async function getChatCompletionGoogle(message, apiKey, model, systemPrompt, lan
 // ==========================================
 
 /**
+ * Get AI response using File Search (REST API)
+ * @param {string} message - User message
+ * @param {string} apiKey - Google API key
+ * @param {string} model - Model to use
+ * @param {string} systemPrompt - System prompt
+ * @param {string} language - Language code
+ * @param {Array} history - Conversation history
+ * @param {object} tierConfig - Tier configuration
+ * @param {boolean} briefMode - Whether to use brief mode
+ * @param {string} fileSearchStoreName - File Search Store name
+ * @returns {Promise<string>} AI response
+ */
+async function getChatCompletionWithFileSearch(message, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}, briefMode = false, fileSearchStoreName) {
+    const langInstructions = getPromptForLanguage('language.responseInstruction', language);
+    const briefModeInstruction = briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '';
+    const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant.') + langInstructions + briefModeInstruction;
+
+    // Build contents array with history
+    const contents = [];
+
+    // Add history
+    for (const msg of (history || [])) {
+        contents.push({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        });
+    }
+
+    // Add current message
+    contents.push({
+        role: 'user',
+        parts: [{ text: message }]
+    });
+
+    // Build request body with File Search tool
+    const requestBody = {
+        contents: contents,
+        systemInstruction: {
+            parts: [{ text: fullSystemPrompt }]
+        },
+        generationConfig: {
+            temperature: tierConfig.temperature ?? 0.7,
+            maxOutputTokens: tierConfig.maxOutputTokens ?? 1500,
+            topK: tierConfig.topK ?? 40,
+            topP: tierConfig.topP ?? 0.95
+        },
+        tools: [
+            {
+                fileSearch: {
+                    fileSearchStoreNames: [fileSearchStoreName]
+                }
+            }
+        ]
+    };
+
+    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+
+    console.log(`[File Search] Querying with store: ${fileSearchStoreName}`);
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`File Search query failed: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Extract text from response
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Log citations if available
+    if (data.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+        console.log('[File Search] Sources used:', data.candidates[0].groundingMetadata.groundingChunks.length);
+    }
+
+    return text;
+}
+
+/**
  * Get AI response from Google Gemini with fallback support
  * @param {object} params - Parameters including message, apiKey, model/models, etc.
  * @returns {object} Response object with response text
  */
 async function getGoogleAIResponse({ transcription, params }) {
-    const { apiKey, model, models, systemPrompt, language, history, tierConfig, retryConfig, onProgress } = params;
+    const { apiKey, model, models, systemPrompt, language, history, tierConfig, retryConfig, onProgress, fileSearchStoreName } = params;
 
     // Support both single model and model array
     const modelList = models || (Array.isArray(model) ? model : [model]);
 
     try {
+        // If File Search Store is available, use it
+        if (fileSearchStoreName) {
+            console.log('[File Search] Using knowledge base for response');
+            const response = await getChatCompletionWithFileSearch(
+                transcription,
+                apiKey,
+                modelList[0],
+                systemPrompt,
+                language,
+                history,
+                tierConfig || {},
+                params.briefMode || false,
+                fileSearchStoreName
+            );
+            return { response, threadId: null };
+        }
+
         if (modelList.length > 1 && retryConfig) {
             // Use fallback logic for multiple models
             const response = await executeWithFallback(
@@ -341,6 +444,7 @@ async function getGoogleAIResponse({ transcription, params }) {
     }
 }
 
+
 // ==========================================
 // Image Analysis (Gemini Vision)
 // ==========================================
@@ -380,7 +484,7 @@ async function analyzeImageGoogle({
     // Most Gemini models (gemini-pro-vision, gemini-1.5-pro, gemini-1.5-flash, etc.) support vision
     const visionModel = model.includes('gemini') ? model : 'gemini-1.5-flash';
 
-    const genModel = genAI.getGenerativeModel({ 
+    const genModel = genAI.getGenerativeModel({
         model: visionModel,
         generationConfig: {
             temperature: tierConfig.temperature ?? 0.7,
@@ -438,9 +542,247 @@ async function analyzeImageGoogle({
     return response.text();
 }
 
+// ==========================================
+// File Search Store (Knowledge Base) - REST API
+// ==========================================
+
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+/**
+ * Create a new File Search Store
+ * @param {string} apiKey - Google API key
+ * @param {string} displayName - Display name for the store
+ * @returns {Promise<string>} File Search Store name (ID)
+ */
+async function createFileSearchStore(apiKey, displayName = 'VARS Knowledge Base') {
+    const url = `${GEMINI_API_BASE}/fileSearchStores?key=${apiKey}`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            displayName: displayName
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to create File Search Store: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[File Search] Created store:', data.name);
+    return data.name; // e.g., "fileSearchStores/abc123"
+}
+
+/**
+ * Get existing File Search Store by name
+ * @param {string} apiKey - Google API key
+ * @param {string} storeName - File Search Store name
+ * @returns {Promise<object|null>} Store object or null if not found
+ */
+async function getFileSearchStore(apiKey, storeName) {
+    const url = `${GEMINI_API_BASE}/${storeName}?key=${apiKey}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null;
+            }
+            throw new Error(`Failed to get File Search Store: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('[File Search] Store not found:', storeName);
+        return null;
+    }
+}
+
+/**
+ * Upload a file to a File Search Store
+ * @param {string} apiKey - Google API key
+ * @param {string} storeName - File Search Store name (e.g., "fileSearchStores/abc123")
+ * @param {string} filePath - Path to the file to upload
+ * @returns {Promise<object>} Operation object
+ */
+async function uploadToFileSearchStore(apiKey, storeName, filePath) {
+    const fileName = path.basename(filePath);
+    const fileContent = await fsPromises.readFile(filePath);
+    const mimeType = getMimeType(filePath);
+
+    // Use multipart upload
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+
+    // Build metadata part
+    const metadata = {
+        displayName: fileName
+    };
+
+    // Build multipart body
+    let body = '';
+    body += `--${boundary}\r\n`;
+    body += 'Content-Type: application/json; charset=UTF-8\r\n\r\n';
+    body += JSON.stringify(metadata) + '\r\n';
+    body += `--${boundary}\r\n`;
+    body += `Content-Type: ${mimeType}\r\n\r\n`;
+
+    // Convert file content to base64 for proper encoding
+    const base64Content = fileContent.toString('base64');
+
+    // Use the upload endpoint with inline file data
+    const uploadUrl = `${GEMINI_API_BASE}/${storeName}/documents?key=${apiKey}`;
+
+    // Alternative: Use inline data approach
+    const inlineResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            displayName: fileName,
+            inlineData: {
+                mimeType: mimeType,
+                data: base64Content
+            }
+        })
+    });
+
+    if (!inlineResponse.ok) {
+        const error = await inlineResponse.json();
+        throw new Error(`Failed to upload file ${fileName}: ${error.error?.message || inlineResponse.statusText}`);
+    }
+
+    const data = await inlineResponse.json();
+    console.log(`[File Search] Uploaded file ${fileName}:`, data.name || 'pending');
+    return data;
+}
+
+/**
+ * Get MIME type from file extension
+ * @param {string} filePath - Path to file
+ * @returns {string} MIME type
+ */
+function getMimeType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.pdf': 'application/pdf',
+        '.html': 'text/html',
+        '.htm': 'text/html',
+        '.json': 'application/json',
+        '.js': 'text/javascript',
+        '.ts': 'text/typescript',
+        '.py': 'text/x-python',
+        '.csv': 'text/csv',
+        '.xml': 'application/xml',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.ppt': 'application/vnd.ms-powerpoint',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
+}
+
+/**
+ * Delete a File Search Store
+ * @param {string} apiKey - Google API key
+ * @param {string} storeName - File Search Store name
+ * @param {boolean} force - Force delete even if store has documents
+ * @returns {Promise<void>}
+ */
+async function deleteFileSearchStore(apiKey, storeName, force = true) {
+    if (!storeName) {
+        console.log('[File Search] No store to delete');
+        return;
+    }
+
+    const url = `${GEMINI_API_BASE}/${storeName}?key=${apiKey}${force ? '&force=true' : ''}`;
+
+    const response = await fetch(url, {
+        method: 'DELETE'
+    });
+
+    if (!response.ok && response.status !== 404) {
+        const error = await response.json();
+        throw new Error(`Failed to delete File Search Store: ${error.error?.message || response.statusText}`);
+    }
+
+    console.log('[File Search] Deleted store:', storeName);
+}
+
+/**
+ * Create knowledge base for Google (File Search Store)
+ * @param {string} apiKey - Google API key
+ * @param {string[]} filePaths - Array of file paths to upload
+ * @param {string|null} existingStoreName - Existing store name to reuse
+ * @returns {Promise<string>} File Search Store name
+ */
+async function createGoogleKnowledgeBase(apiKey, filePaths, existingStoreName = null) {
+    let storeName = existingStoreName;
+
+    // Check if existing store is still valid
+    if (storeName) {
+        const existing = await getFileSearchStore(apiKey, storeName);
+        if (!existing) {
+            console.log('[File Search] Existing store not found, creating new one');
+            storeName = null;
+        }
+    }
+
+    // Create new store if needed
+    if (!storeName) {
+        storeName = await createFileSearchStore(apiKey, 'VARS Knowledge Base');
+    }
+
+    // Upload all files
+    for (const filePath of filePaths) {
+        try {
+            // Check if file exists
+            await fsPromises.access(filePath);
+            await uploadToFileSearchStore(apiKey, storeName, filePath);
+            // Small delay between uploads to avoid rate limiting
+            await sleep(500);
+        } catch (error) {
+            console.error(`[File Search] Error uploading ${filePath}:`, error.message);
+            // Continue with other files
+        }
+    }
+
+    return storeName;
+}
+
+/**
+ * Reset (delete) Google knowledge base
+ * @param {string} apiKey - Google API key
+ * @param {string} storeName - File Search Store name
+ */
+async function resetGoogleKnowledgeBase(apiKey, storeName) {
+    await deleteFileSearchStore(apiKey, storeName, true);
+}
+
 module.exports = {
     transcribeAudioGoogle,
     getChatCompletionGoogle,
     getGoogleAIResponse,
-    analyzeImageGoogle
+    analyzeImageGoogle,
+    // File Search (Knowledge Base)
+    createFileSearchStore,
+    getFileSearchStore,
+    uploadToFileSearchStore,
+    deleteFileSearchStore,
+    createGoogleKnowledgeBase,
+    resetGoogleKnowledgeBase
 };

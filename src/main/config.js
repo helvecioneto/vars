@@ -152,10 +152,12 @@ function getDefaultConfig() {
         // System audio device ID (for Linux monitor devices)
         systemAudioDeviceId: '',
         conversationHistory: [], // Array of { role, content } pairs
-        // Assistants API settings
+        // Assistants API settings (OpenAI)
         assistantId: null,
         vectorStoreId: null,
         threadId: null,
+        // File Search Store (Google Gemini)
+        fileSearchStoreName: null,
         briefMode: true, // Force short answers
         hasCompletedOnboarding: false // Flag to track if user has seen the onboarding tutorial
     };

@@ -14,7 +14,7 @@ const {
     resetKnowledgeBase,
     analyzeImageOpenAI
 } = require('./openai');
-const { transcribeAudioGoogle, getGoogleAIResponse, analyzeImageGoogle } = require('./google');
+const { transcribeAudioGoogle, getGoogleAIResponse, analyzeImageGoogle, createGoogleKnowledgeBase, resetGoogleKnowledgeBase } = require('./google');
 const { RealtimeTranscription } = require('./realtime');
 const { GeminiRealtimeTranscription } = require('./gemini-realtime');
 const systemAudio = require('./system-audio');
@@ -162,7 +162,8 @@ function setupIPCHandlers(context) {
                             language: config.language || 'en',
                             history: config.conversationHistory || [],
                             tierConfig: tierConfig,
-                            briefMode: config.briefMode || false
+                            briefMode: config.briefMode || false,
+                            fileSearchStoreName: config.fileSearchStoreName || null
                         }
                     });
                 } else {
@@ -176,7 +177,8 @@ function setupIPCHandlers(context) {
                             language: config.language || 'en',
                             history: config.conversationHistory || [],
                             tierConfig: tierConfig,
-                            briefMode: config.briefMode || false
+                            briefMode: config.briefMode || false,
+                            fileSearchStoreName: config.fileSearchStoreName || null
                         }
                     });
                 }
@@ -275,26 +277,38 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('knowledge-base:create', async () => {
         const config = getConfig();
-        if (!config.apiKey) return { error: 'API key not configured' };
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         if (!config.knowledgeBasePaths || config.knowledgeBasePaths.length === 0) {
             return { error: 'No files to process' };
         }
 
         try {
-            // Initialize or retrieve Assistant
-            const assistant = await initializeAssistant(config.apiKey, config.assistantId);
-            config.assistantId = assistant.id;
+            if (provider === 'google') {
+                // Use Google File Search Store
+                const fileSearchStoreName = await createGoogleKnowledgeBase(
+                    apiKey,
+                    config.knowledgeBasePaths,
+                    config.fileSearchStoreName
+                );
+                config.fileSearchStoreName = fileSearchStoreName;
+                console.log('[KB] Created Google File Search Store:', fileSearchStoreName);
+            } else {
+                // Use OpenAI Assistants API
+                const assistant = await initializeAssistant(apiKey, config.assistantId);
+                config.assistantId = assistant.id;
 
-            // Create/Update Vector Store and upload files
-            const vectorStoreId = await createKnowledgeBase(
-                config.apiKey,
-                config.knowledgeBasePaths,
-                config.vectorStoreId
-            );
-            config.vectorStoreId = vectorStoreId;
+                const vectorStoreId = await createKnowledgeBase(
+                    apiKey,
+                    config.knowledgeBasePaths,
+                    config.vectorStoreId
+                );
+                config.vectorStoreId = vectorStoreId;
 
-            // Link Vector Store to Assistant
-            await updateAssistantVectorStore(config.apiKey, config.assistantId, vectorStoreId);
+                await updateAssistantVectorStore(apiKey, config.assistantId, vectorStoreId);
+            }
 
             // Persist updated config
             setConfig(config);
@@ -309,12 +323,24 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('knowledge-base:reset', async () => {
         const config = getConfig();
-        if (!config.apiKey) return { error: 'API key not configured' };
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
 
         try {
-            await resetKnowledgeBase(config.apiKey, config.vectorStoreId);
-            config.vectorStoreId = null;
-            config.threadId = null;
+            if (provider === 'google') {
+                // Reset Google File Search Store
+                await resetGoogleKnowledgeBase(apiKey, config.fileSearchStoreName);
+                config.fileSearchStoreName = null;
+                console.log('[KB] Reset Google File Search Store');
+            } else {
+                // Reset OpenAI Vector Store
+                await resetKnowledgeBase(apiKey, config.vectorStoreId);
+                config.vectorStoreId = null;
+                config.threadId = null;
+            }
+
             setConfig(config);
             await saveConfig(config);
             return { success: true };
