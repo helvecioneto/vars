@@ -485,8 +485,40 @@ function setupIPCHandlers(context) {
         }
     });
 
+    // Window dragging state
+    let isDragging = false;
+    let dragStartPos = { x: 0, y: 0 };
+
     ipcMain.on('set-dragging', (event, dragging) => {
-        // Kept for compatibility
+        const mainWindow = getMainWindow();
+        if (!mainWindow) return;
+
+        if (dragging && !isDragging) {
+            // Start dragging - capture current mouse position
+            isDragging = true;
+            const { screen } = require('electron');
+            const cursorPos = screen.getCursorScreenPoint();
+            const windowPos = mainWindow.getPosition();
+            dragStartPos = {
+                x: cursorPos.x - windowPos[0],
+                y: cursorPos.y - windowPos[1]
+            };
+
+            // Start tracking mouse movement
+            const trackMouse = () => {
+                if (!isDragging) return;
+
+                const currentPos = screen.getCursorScreenPoint();
+                const newX = currentPos.x - dragStartPos.x;
+                const newY = currentPos.y - dragStartPos.y;
+                mainWindow.setPosition(newX, newY);
+
+                setTimeout(trackMouse, 10); // ~100fps tracking
+            };
+            trackMouse();
+        } else if (!dragging) {
+            isDragging = false;
+        }
     });
 
     // ==========================================
@@ -607,15 +639,15 @@ function setupIPCHandlers(context) {
         try {
             const tier = config.tier || 'balanced';
             const tierConfig = getTierConfig(provider, tier);
-            
+
             // Build the analysis prompt
             // If user provided a specific question, use it with context
             // Otherwise, use a smart default that analyzes and answers what's visible
             let contextualPrompt;
-            
+
             if (prompt && prompt.trim()) {
                 // User has a specific question
-                contextualPrompt = windowTitle 
+                contextualPrompt = windowTitle
                     ? `[Screenshot: ${windowTitle}]\n\n${prompt}`
                     : prompt;
             } else {
@@ -633,7 +665,7 @@ Be direct and helpful. Focus on actionable information.`;
             }
 
             let response;
-            
+
             if (provider === 'google') {
                 const analyzeModel = getModelForTier(provider, tier, 'analyze');
                 response = await analyzeImageGoogle({
@@ -675,35 +707,35 @@ Be direct and helpful. Focus on actionable information.`;
 
     ipcMain.handle('check-screen-permission', async () => {
         const { systemPreferences } = require('electron');
-        
+
         if (process.platform !== 'darwin') {
             return { granted: true, status: 'granted' };
         }
 
         const status = systemPreferences.getMediaAccessStatus('screen');
-        return { 
+        return {
             granted: status === 'granted',
-            status: status 
+            status: status
         };
     });
 
     ipcMain.handle('check-microphone-permission', async () => {
         const { systemPreferences } = require('electron');
-        
+
         if (process.platform !== 'darwin') {
             return { granted: true, status: 'granted' };
         }
 
         const status = systemPreferences.getMediaAccessStatus('microphone');
-        return { 
+        return {
             granted: status === 'granted',
-            status: status 
+            status: status
         };
     });
 
     ipcMain.handle('request-microphone-permission', async () => {
         const { systemPreferences } = require('electron');
-        
+
         if (process.platform !== 'darwin') {
             return { granted: true };
         }
@@ -719,7 +751,7 @@ Be direct and helpful. Focus on actionable information.`;
 
     ipcMain.handle('open-system-preferences', async (event, panel) => {
         const { shell } = require('electron');
-        
+
         if (process.platform === 'darwin') {
             // Open System Preferences to the appropriate panel
             if (panel === 'screen') {
@@ -732,7 +764,7 @@ Be direct and helpful. Focus on actionable information.`;
             }
             return { success: true };
         }
-        
+
         return { success: false, error: 'Not macOS' };
     });
 }

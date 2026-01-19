@@ -66,12 +66,10 @@ html {
   display: flex;
   align-items: center;
   gap: 4px;
-  -webkit-app-region: no-drag;
 }
 
 .toolbar-center {
   flex: 1;
-  -webkit-app-region: no-drag;
 }
 
 /* Icon Buttons */
@@ -87,7 +85,6 @@ html {
   justify-content: center;
   color: var(--text-primary);
   transition: all 0.15s ease;
-  -webkit-app-region: no-drag;
 }
 
 .icon-btn .icon {
@@ -179,14 +176,13 @@ html {
   color: white;
 }
 
-/* Drag Handle Button */
-.drag-btn {
-  -webkit-app-region: drag;
-  cursor: grab;
-}
-
-.drag-btn:active {
-  cursor: grabbing;
+/* Only text input elements must not be draggable (to allow typing) */
+.input-field,
+.ask-input,
+.form-group input,
+.form-group select,
+.form-group textarea {
+  -webkit-app-region: no-drag;
 }
 
 /* Mode button */
@@ -533,7 +529,6 @@ html {
   border-top: 1px solid var(--border);
   animation: expand-down 0.2s ease;
   width: 100%;
-  -webkit-app-region: no-drag;
 }
 
 .settings-panel.visible {

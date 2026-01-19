@@ -481,10 +481,47 @@ function setupEventListeners() {
     setupDragButton(elements.dragBtn);
     setupDragButton(elements.settingsDragBtn);
 
+    // Global drag: Allow dragging the window from anywhere except text inputs
+    // Track if we're dragging vs clicking to prevent click events after drag
+    let dragStartPos = null;
+    let hasDragged = false;
+    const DRAG_THRESHOLD = 5; // pixels - movement beyond this is considered a drag
+
+    elements.appContainer.addEventListener('mousedown', (e) => {
+        // Only drag with left mouse button (0)
+        if (e.button !== 0) return;
+
+        // Start tracking for potential drag from anywhere
+        dragStartPos = { x: e.screenX, y: e.screenY };
+        hasDragged = false;
+        window.electronAPI.setDragging(true);
+    });
+
+    // Track mouse movement to detect if it's a drag
+    window.addEventListener('mousemove', (e) => {
+        if (dragStartPos && !hasDragged) {
+            const dx = Math.abs(e.screenX - dragStartPos.x);
+            const dy = Math.abs(e.screenY - dragStartPos.y);
+            if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+                hasDragged = true;
+            }
+        }
+    });
+
     // Global mouseup to release drag lock from anywhere
     window.addEventListener('mouseup', () => {
         window.electronAPI.setDragging(false);
+        dragStartPos = null;
     });
+
+    // Prevent click events if we were dragging (capture phase to intercept before buttons)
+    elements.appContainer.addEventListener('click', (e) => {
+        if (hasDragged) {
+            e.stopPropagation();
+            e.preventDefault();
+            hasDragged = false;
+        }
+    }, true); // true = capture phase
 
     // Settings toggle (click to open/close)
     elements.settingsBtn.addEventListener('click', toggleSettings);
