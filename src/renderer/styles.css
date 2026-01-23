@@ -2126,3 +2126,67 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Update Section */
+.update-section {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.update-section.hidden {
+  display: none;
+}
+
+.update-message {
+  font-size: 13px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.update-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.update-btn:hover {
+  background: var(--accent-light);
+}
+
+.update-btn.hidden {
+  display: none;
+}
+
+.check-update-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.check-update-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.check-update-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

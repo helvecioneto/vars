@@ -98,6 +98,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Desktop Capturer for System Audio
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
 
+    // Updates
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+
     // Screen Capture and Image Analysis
     captureScreen: () => ipcRenderer.invoke('capture-screen'),
     analyzeImage: (params) => ipcRenderer.invoke('analyze-image', params),

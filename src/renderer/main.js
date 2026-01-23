@@ -12,6 +12,7 @@ import { startBoundsTracking } from './utils/bounds.js';
 import { checkFirstRunOnboarding } from './onboarding/index.js';
 import { updateInputModeUI } from './input/index.js';
 import { updateModelDisplay } from './settings/model-selection.js';
+import { initUpdates } from './settings/updates.js';
 
 /**
  * Initialize application
@@ -37,6 +38,9 @@ async function init() {
 
         // Initialize tooltips system
         initCustomTooltips();
+
+        // Initialize updates
+        initUpdates();
 
         // Setup Event Listeners
         setupEventListeners();

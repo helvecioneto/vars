@@ -773,6 +773,61 @@ Be direct and helpful. Focus on actionable information.`;
     });
 
     // ==========================================
+    // Update Check Handler
+    // ==========================================
+
+    ipcMain.handle('check-for-updates', async () => {
+        const { app, net } = require('electron');
+        const currentVersion = app.getVersion();
+
+        // Helper to compare semantic versions
+        const versionCompare = (v1, v2) => {
+            const p1 = v1.replace(/^v/, '').split('.').map(Number);
+            const p2 = v2.replace(/^v/, '').split('.').map(Number);
+            for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+                const n1 = p1[i] || 0;
+                const n2 = p2[i] || 0;
+                if (n1 > n2) return 1;
+                if (n1 < n2) return -1;
+            }
+            return 0;
+        };
+
+        return new Promise((resolve) => {
+            const request = net.request('https://api.github.com/repos/helvecioneto/vars/releases/latest');
+            request.on('response', (response) => {
+                let data = '';
+                response.on('data', (chunk) => {
+                    data += chunk;
+                });
+                response.on('end', () => {
+                    try {
+                        const release = JSON.parse(data);
+                        const latestVersion = release.tag_name;
+                        const updateAvailable = versionCompare(latestVersion, currentVersion) > 0;
+
+                        resolve({
+                            updateAvailable,
+                            currentVersion,
+                            latestVersion,
+                            releaseUrl: release.html_url,
+                            releaseNotes: release.body
+                        });
+                    } catch (error) {
+                        console.error('Failed to parse release data:', error);
+                        resolve({ error: 'Failed to parse update information' });
+                    }
+                });
+            });
+            request.on('error', (error) => {
+                console.error('Failed to check for updates:', error);
+                resolve({ error: 'Network error checking for updates' });
+            });
+            request.end();
+        });
+    });
+
+    // ==========================================
     // Permission Check Handlers (macOS)
     // ==========================================
 

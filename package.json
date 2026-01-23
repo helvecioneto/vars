@@ -1,6 +1,6 @@
 {
   "name": "vars",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "VARS (Virtual Agent for Real-time Support) - AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing",
   "main": "src/main/index.js",
   "scripts": {

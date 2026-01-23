@@ -73,7 +73,14 @@ export function getElements() {
 
         // Interface Settings
         opacitySlider: document.getElementById('opacity-slider'),
+        opacitySlider: document.getElementById('opacity-slider'),
         opacityValue: document.getElementById('opacity-value'),
+
+        // Update Elements
+        updateSection: document.getElementById('update-section'),
+        updateMessage: document.getElementById('update-message'),
+        updateBtn: document.getElementById('update-btn'),
+        checkUpdateBtn: document.getElementById('check-update-btn'),
 
         // Brief Mode
         briefModeCheckbox: document.getElementById('brief-mode'),
