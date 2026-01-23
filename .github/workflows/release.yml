@@ -182,9 +182,17 @@ jobs:
         run: |
           # Remove old DMG
           rm -f dist/*.dmg
-          # Create DMG manually using hdiutil with consistent filename (no version)
+          
+          # Create a staging folder for the DMG content
+          mkdir -p dist/dmg-staging
+          cp -r "dist/mac-arm64/VARS.app" dist/dmg-staging/
+          
+          # Create a symbolic link to /Applications
+          ln -s /Applications dist/dmg-staging/Applications
+          
+          # Create DMG manually using hdiutil from the staging folder
           DMG_NAME="VARS-mac-arm64.dmg"
-          hdiutil create -volname "VARS" -srcfolder "dist/mac-arm64/VARS.app" -ov -format UDZO "dist/$DMG_NAME"
+          hdiutil create -volname "VARS" -srcfolder "dist/dmg-staging" -ov -format UDZO "dist/$DMG_NAME"
           echo "Created: dist/$DMG_NAME"
           ls -la dist/*.dmg
 
