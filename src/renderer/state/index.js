@@ -13,6 +13,9 @@ export const state = {
     // Configuration
     config: {},
 
+    // Window Opacity
+    opacity: 1.0,
+
     // Input mode: 'system', 'microphone', 'keyboard'
     currentInputMode: 'system',
 
@@ -233,4 +236,8 @@ export function setCurrentQRIndex(index) {
 
 export function setRetryResetTimeout(timeout) {
     state.retryResetTimeout = timeout;
+}
+
+export function setOpacity(value) {
+    state.opacity = value;
 }

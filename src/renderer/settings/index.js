@@ -11,6 +11,7 @@ import { populateProviderOptions, populateModelOptions, updateModelDisplay } fro
 import { populateDevices, populateSystemAudioDevices } from './devices.js';
 import { setupAutoSave } from './auto-save.js';
 import { updateFileList } from './knowledge-base.js';
+import { initInterfaceSettings } from './interface.js';
 
 /**
  * Initialize settings module
@@ -34,6 +35,9 @@ export async function initSettings() {
 
     // Setup tabs
     setupSettingsTabs();
+
+    // Init Interface Settings (Opacity)
+    initInterfaceSettings();
 }
 
 /**

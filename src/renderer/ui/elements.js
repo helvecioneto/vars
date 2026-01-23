@@ -71,6 +71,10 @@ export function getElements() {
         resetKbBtn: document.getElementById('reset-kb-btn'),
         kbStatus: document.getElementById('kb-status'),
 
+        // Interface Settings
+        opacitySlider: document.getElementById('opacity-slider'),
+        opacityValue: document.getElementById('opacity-value'),
+
         // Brief Mode
         briefModeCheckbox: document.getElementById('brief-mode'),
 

@@ -582,6 +582,17 @@ function setupIPCHandlers(context) {
     });
 
     // ==========================================
+    // Window Opacity Handler
+    // ==========================================
+
+    ipcMain.on('set-opacity', (event, opacity) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+            mainWindow.setOpacity(opacity);
+        }
+    });
+
+    // ==========================================
     // Desktop Capturer Handlers (for System Audio)
     // ==========================================
 

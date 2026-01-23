@@ -88,6 +88,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Content Protection (visibility mode toggle)
     setContentProtection: (enabled) => ipcRenderer.send('set-content-protection', enabled),
 
+    // Window Opacity
+    setOpacity: (opacity) => ipcRenderer.send('set-opacity', opacity),
+    onOpacityChanged: (callback) => {
+        ipcRenderer.on('opacity-changed', (event, opacity) => callback(opacity));
+    },
+
 
     // Desktop Capturer for System Audio
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),

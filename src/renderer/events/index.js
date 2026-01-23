@@ -218,6 +218,14 @@ function setupDragHandlers() {
     const DRAG_THRESHOLD = 5;
 
     elements.appContainer.addEventListener('mousedown', (e) => {
+        // Ignore sliders to allow value adjustment
+        // We allow dragging on INPUT/TEXTAREA as requested, preventing mouse text selection but allowing window move
+        if (e.target.type === 'range' ||
+            e.target.closest('.slider-container') ||
+            e.target.closest('.no-drag')) {
+            return;
+        }
+
         if (e.button !== 0) return;
         dragStartPos = { x: e.screenX, y: e.screenY };
         hasDragged = false;

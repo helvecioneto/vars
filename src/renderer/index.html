@@ -228,6 +228,18 @@
           </span>
           <span class="tab-label">Audio</span>
         </button>
+        <button class="settings-tab" data-tab="interface" data-tooltip="Appearance & Transparency">
+          <span class="tab-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+              </path>
+            </svg>
+          </span>
+          <span class="tab-label">Interface</span>
+        </button>
         <button class="settings-tab" data-tab="about" data-tooltip="About & Donate">
           <span class="tab-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -413,6 +425,25 @@
           <strong>System Audio:</strong> Used in Computer Audio mode. Select a "Monitor" device to capture what you
           hear.
         </p>
+      </div>
+
+      <!-- Tab Content: Interface -->
+      <div class="settings-tab-content" id="tab-interface">
+        <label
+          style="display: block; margin-bottom: 20px; font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">APPEARANCE</label>
+
+        <div class="form-group">
+          <label>Window Transparency</label>
+          <div class="slider-container">
+            <input type="range" id="opacity-slider" min="0.2" max="1.0" step="0.1" value="1.0" class="slider">
+            <span class="slider-value" id="opacity-value">100%</span>
+          </div>
+          <p class="settings-hint">
+            Control the window opacity. Use shortcuts to adjust globally:<br>
+            <strong>Mac:</strong> Alt + ] (Increase) / Alt + [ (Decrease)<br>
+            <strong>Win/Linux:</strong> Ctrl + Alt + ] / [
+          </p>
+        </div>
       </div>
 
       <!-- Tab Content: About -->

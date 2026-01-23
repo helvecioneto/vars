@@ -64,10 +64,8 @@ function createWindow() {
     // Allow window to be moved by dragging
     mainWindow.setMovable(true);
 
-    // Position window in bottom-right corner
-    const { screen } = require('electron');
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-    mainWindow.setPosition(width - 470, height - 620);
+    // Center the window on the primary display
+    mainWindow.center();
 
     // Dev tools in development mode
     if (process.argv.includes('--dev')) {
@@ -213,6 +211,44 @@ function registerGlobalShortcut() {
     if (!screenshotRet) {
         console.error('Failed to register global shortcut for screenshot');
     }
+
+    // Transparency Shortcuts
+
+    // Increase Opacity
+    let incKey;
+    if (isMac) {
+        incKey = 'Alt+]';
+    } else {
+        incKey = 'CommandOrControl+Alt+]';
+    }
+
+    globalShortcut.register(incKey, () => {
+        if (mainWindow) {
+            let opacity = mainWindow.getOpacity();
+            opacity = Math.min(opacity + 0.1, 1.0);
+            mainWindow.setOpacity(opacity);
+            // Notify renderer to update slider
+            mainWindow.webContents.send('opacity-changed', opacity);
+        }
+    });
+
+    // Decrease Opacity
+    let decKey;
+    if (isMac) {
+        decKey = 'Alt+[';
+    } else {
+        decKey = 'CommandOrControl+Alt+[';
+    }
+
+    globalShortcut.register(decKey, () => {
+        if (mainWindow) {
+            let opacity = mainWindow.getOpacity();
+            opacity = Math.max(opacity - 0.1, 0.2); // Min 20% opacity
+            mainWindow.setOpacity(opacity);
+            // Notify renderer to update slider
+            mainWindow.webContents.send('opacity-changed', opacity);
+        }
+    });
 }
 
 
