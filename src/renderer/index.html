@@ -137,14 +137,46 @@
         </div>
       </div>
 
-      <!-- Transcription -->
-      <div class="content-section transcription hidden" id="transcription-section">
-        <div class="content-text" id="transcription-content"></div>
+      <!-- Transcription (User Query) - Minimal inline -->
+      <div class="user-query hidden" id="transcription-section">
+        <span class="query-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </span>
+        <span class="query-text" id="transcription-content"></span>
+        <span class="query-time" id="transcription-timestamp"></span>
       </div>
 
-      <!-- AI Response -->
-      <div class="content-section response hidden" id="response-section">
-        <div class="content-text" id="response-content"></div>
+      <!-- AI Response - Content focused -->
+      <div class="ai-response hidden" id="response-section">
+        <div class="response-content" id="response-content"></div>
+        <div class="response-footer">
+          <button class="regen-btn" id="regen-response-btn" data-tooltip="Regenerate">
+            <svg class="regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <svg class="loading-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+            </svg>
+          </button>
+          <span class="response-time" id="response-timestamp"></span>
+          <button class="copy-btn" id="copy-response-btn" data-tooltip="Copy">
+            <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <svg class="check-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
