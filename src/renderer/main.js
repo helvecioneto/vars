@@ -13,6 +13,7 @@ import { checkFirstRunOnboarding } from './onboarding/index.js';
 import { updateInputModeUI } from './input/index.js';
 import { updateModelDisplay } from './settings/model-selection.js';
 import { initUpdates } from './settings/updates.js';
+import { initQuizSolver } from './quiz/index.js';
 
 /**
  * Initialize application
@@ -52,6 +53,9 @@ async function init() {
 
         // Check onboarding
         checkFirstRunOnboarding();
+
+        // Initialize Quiz Solver
+        initQuizSolver();
 
     } catch (error) {
         console.error('Failed to initialize application:', error);
