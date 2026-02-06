@@ -74,6 +74,16 @@
             </svg>
           </span>
         </button>
+        <button class="icon-btn" id="quiz-btn" data-tooltip="Quiz Auto-Solver (Ctrl+Shift+Q)">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </span>
+        </button>
         <button class="icon-btn" id="history-btn">
           <span class="icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -91,6 +101,19 @@
               <path
                 d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
               </path>
+            </svg>
+          </span>
+        </button>
+        <button class="icon-btn drag-btn" id="drag-btn">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="12" r="1"></circle>
+              <circle cx="9" cy="5" r="1"></circle>
+              <circle cx="9" cy="19" r="1"></circle>
+              <circle cx="15" cy="12" r="1"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <circle cx="15" cy="19" r="1"></circle>
             </svg>
           </span>
         </button>
@@ -137,46 +160,14 @@
         </div>
       </div>
 
-      <!-- Transcription (User Query) - Minimal inline -->
-      <div class="user-query hidden" id="transcription-section">
-        <span class="query-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </span>
-        <span class="query-text" id="transcription-content"></span>
-        <span class="query-time" id="transcription-timestamp"></span>
+      <!-- Transcription -->
+      <div class="content-section transcription hidden" id="transcription-section">
+        <div class="content-text" id="transcription-content"></div>
       </div>
 
-      <!-- AI Response - Content focused -->
-      <div class="ai-response hidden" id="response-section">
-        <div class="response-content" id="response-content"></div>
-        <div class="response-footer">
-          <button class="regen-btn" id="regen-response-btn" data-tooltip="Regenerate">
-            <svg class="regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            <svg class="loading-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-          </button>
-          <span class="response-time" id="response-timestamp"></span>
-          <button class="copy-btn" id="copy-response-btn" data-tooltip="Copy">
-            <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <svg class="check-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
-        </div>
+      <!-- AI Response -->
+      <div class="content-section response hidden" id="response-section">
+        <div class="content-text" id="response-content"></div>
       </div>
     </div>
 
@@ -227,18 +218,6 @@
             </svg>
           </span>
           <span class="tab-label">Audio</span>
-        </button>
-        <button class="settings-tab" data-tab="interface" data-tooltip="Appearance & Transparency">
-          <span class="tab-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
-              </path>
-            </svg>
-          </span>
-          <span class="tab-label">Interface</span>
         </button>
         <button class="settings-tab" data-tab="about" data-tooltip="About & Donate">
           <span class="tab-icon">
@@ -427,25 +406,6 @@
         </p>
       </div>
 
-      <!-- Tab Content: Interface -->
-      <div class="settings-tab-content" id="tab-interface">
-        <label
-          style="display: block; margin-bottom: 20px; font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">APPEARANCE</label>
-
-        <div class="form-group">
-          <label>Window Transparency</label>
-          <div class="slider-container">
-            <input type="range" id="opacity-slider" min="0.2" max="1.0" step="0.1" value="1.0" class="slider">
-            <span class="slider-value" id="opacity-value">100%</span>
-          </div>
-          <p class="settings-hint">
-            Control the window opacity. Use shortcuts to adjust globally:<br>
-            <strong>Mac:</strong> Alt + ] (Increase) / Alt + [ (Decrease)<br>
-            <strong>Win/Linux:</strong> Ctrl + Alt + ] / [
-          </p>
-        </div>
-      </div>
-
       <!-- Tab Content: About -->
       <div class="settings-tab-content" id="tab-about">
         <div class="about-content">
@@ -462,11 +422,6 @@
               An AI-powered desktop assistant that listens to your system audio or microphone,
               captures your screen, and provides intelligent responses using cutting-edge AI models.
             </p>
-            <div class="update-section hidden" id="update-section">
-              <p class="update-message" id="update-message"></p>
-              <button class="update-btn" id="update-btn">View Update</button>
-            </div>
-            <button class="check-update-btn" id="check-update-btn">Check for Updates</button>
           </div>
 
           <div class="donation-section">
@@ -540,7 +495,7 @@
   <!-- Custom Tooltip (rendered inside protected window, invisible to screen sharing) -->
   <div id="custom-tooltip" class="custom-tooltip"></div>
 
-  <script type="module" src="main.js"></script>
+  <script src="renderer.js"></script>
 </body>
 
 </html>

@@ -12,19 +12,30 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 
 /**
+ * Target resolution for AI analysis (smaller = fewer tokens)
+ * The original screen dimensions are preserved for coordinate mapping
+ */
+const TARGET_WIDTH = 1280;  // Target width for resized image
+const TARGET_HEIGHT = 720;  // Target height (maintains aspect ratio)
+const JPEG_QUALITY = 75;    // JPEG quality (0-100)
+
+/**
  * Linux native screenshot tools in order of preference
  * Works across Ubuntu, Arch, Fedora, OpenSUSE, etc.
+ * Note: spectacle requires -b -n -o flags for silent operation on KDE
  */
 const LINUX_SCREENSHOT_TOOLS = [
     { cmd: 'gnome-screenshot', args: ['-f'], name: 'GNOME Screenshot' },
     { cmd: 'spectacle', args: ['-b', '-n', '-o'], name: 'KDE Spectacle' },
     { cmd: 'scrot', args: [], name: 'Scrot' },
+    { cmd: 'maim', args: [], name: 'Maim' },
     { cmd: 'import', args: ['-window', 'root'], name: 'ImageMagick' }
 ];
 
 // Cache detected screenshot tool
 let detectedScreenshotTool = null;
 let screenshotToolChecked = false;
+
 
 /**
  * Detect available screenshot tool on Linux
@@ -53,6 +64,30 @@ function detectLinuxScreenshotTool() {
 }
 
 /**
+ * Resize image using ImageMagick convert
+ * @param {string} inputPath - Path to input image
+ * @param {string} outputPath - Path to save resized image
+ * @param {number} targetWidth - Target width
+ * @param {number} quality - JPEG quality (0-100)
+ * @returns {Promise<boolean>} true if successful
+ */
+async function resizeImage(inputPath, outputPath, targetWidth = TARGET_WIDTH, quality = JPEG_QUALITY) {
+    return new Promise((resolve) => {
+        // Use ImageMagick convert to resize maintaining aspect ratio
+        const cmd = `convert "${inputPath}" -resize ${targetWidth}x -quality ${quality} "${outputPath}"`;
+
+        exec(cmd, { timeout: 5000 }, (error) => {
+            if (error) {
+                console.log('[ScreenCapture] Resize failed, using original:', error.message);
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        });
+    });
+}
+
+/**
  * Capture screen using native Linux tools
  * @returns {Promise<{imageData: string, windowTitle: string}|null>}
  */
@@ -69,17 +104,21 @@ async function captureScreenLinuxNative() {
         // Build command based on tool
         let command;
         switch (tool.cmd) {
-            case 'gnome-screenshot':
-                command = `gnome-screenshot -f "${tempFile}"`;
-                break;
-            case 'spectacle':
-                command = `spectacle -b -n -o "${tempFile}"`;
-                break;
             case 'scrot':
-                command = `scrot "${tempFile}"`;
+                command = `scrot \"${tempFile}\"`;
+                break;
+            case 'maim':
+                command = `maim \"${tempFile}\"`;
                 break;
             case 'import':
-                command = `import -window root "${tempFile}"`;
+                command = `import -window root \"${tempFile}\"`;
+                break;
+            case 'gnome-screenshot':
+                command = `gnome-screenshot -f \"${tempFile}\"`;
+                break;
+            case 'spectacle':
+                // -b (background), -n (no notification), -o (output)
+                command = `spectacle -b -n -o \"${tempFile}\"`;
                 break;
             default:
                 return null;
@@ -99,23 +138,36 @@ async function captureScreenLinuxNative() {
         });
 
         // Wait a bit for file to be written
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Check if file exists
         if (!fs.existsSync(tempFile)) {
             throw new Error('Screenshot file not created');
         }
 
+        // Resize image to reduce tokens (uses ImageMagick convert)
+        const resizedFile = tempFile.replace('.png', '-resized.jpg');
+        const didResize = await resizeImage(tempFile, resizedFile);
+
+        // Use resized file if resize succeeded, otherwise use original
+        const fileToRead = didResize && fs.existsSync(resizedFile) ? resizedFile : tempFile;
+        const mimeType = didResize ? 'image/jpeg' : 'image/png';
+
         // Read and convert to base64
-        const imageBuffer = await fsPromises.readFile(tempFile);
+        const imageBuffer = await fsPromises.readFile(fileToRead);
         const base64Image = imageBuffer.toString('base64');
-        const imageData = `data:image/png;base64,${base64Image}`;
+        const imageData = `data:${mimeType};base64,${base64Image}`;
+
+        // Cleanup resized file
+        if (didResize && fs.existsSync(resizedFile)) {
+            try { fs.unlinkSync(resizedFile); } catch (e) { }
+        }
 
         // Get window info for title
         const windowInfo = await getForegroundWindowInfo();
         const windowTitle = windowInfo.title !== 'Unknown' ? windowInfo.title : 'Desktop Screen';
 
-        console.log('[ScreenCapture] Native capture completed');
+        console.log(`[ScreenCapture] Native capture completed (resized: ${didResize})`);
 
         return {
             imageData,
@@ -719,7 +771,89 @@ async function captureWithMediaStream(sourceId, bounds) {
     }
 }
 
+/**
+ * Capture the entire primary screen (for quiz solver)
+ * Returns image data and screen dimensions for accurate coordinate mapping
+ * @returns {Promise<{imageData: string, screenWidth: number, screenHeight: number, error?: string}>}
+ */
+async function captureFullScreen() {
+    try {
+        // Get primary display info
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.size;
+        const scaleFactor = primaryDisplay.scaleFactor || 1;
+
+        console.log(`[ScreenCapture] Primary display: ${screenWidth}x${screenHeight}, scale: ${scaleFactor}`);
+
+        // On Linux, ONLY use native screenshot tools - DO NOT fall back to desktopCapturer
+        // desktopCapturer triggers screen sharing dialogs on Wayland/KDE
+        if (process.platform === 'linux') {
+            try {
+                const result = await captureScreenLinuxNative();
+                if (result && result.imageData) {
+                    return {
+                        imageData: result.imageData,
+                        screenWidth,
+                        screenHeight,
+                        windowTitle: 'Full Screen'
+                    };
+                }
+            } catch (error) {
+                console.log('[ScreenCapture] Native capture failed:', error.message);
+            }
+
+            // On Linux, if native tools fail, return error - DO NOT use desktopCapturer
+            return {
+                error: 'Native screenshot tools not available. Install scrot, maim, or import (ImageMagick).'
+            };
+        }
+
+        // Use desktopCapturer for screen capture
+        const sources = await desktopCapturer.getSources({
+            types: ['screen'],
+            thumbnailSize: {
+                width: Math.round(screenWidth * scaleFactor),
+                height: Math.round(screenHeight * scaleFactor)
+            },
+            fetchWindowIcons: false
+        });
+
+        // Find primary screen
+        const screenSource = sources.find(s => s.id.startsWith('screen:')) || sources[0];
+
+        if (!screenSource) {
+            return { error: 'Could not find screen source' };
+        }
+
+        console.log('[ScreenCapture] Using screen source:', screenSource.name);
+
+        let imageData;
+        if (screenSource.thumbnail && !screenSource.thumbnail.isEmpty()) {
+            // Do NOT resize to 1024px. Use full resolution for better AI accuracy.
+            // OpenAI and Google verify resize automatically if needed, but we want max detail.
+            // Use JPEG with 80% quality to keep size manageable but high resolution.
+            const buffer = screenSource.thumbnail.toJPEG(80);
+            imageData = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+        } else {
+            return { error: 'Screen thumbnail is empty' };
+        }
+
+        return {
+            imageData,
+            screenWidth,
+            screenHeight,
+            windowTitle: 'Full Screen'
+        };
+
+    } catch (error) {
+        console.error('[ScreenCapture] Full screen capture error:', error);
+        return { error: error.message };
+    }
+}
+
 module.exports = {
     captureForegroundWindow,
+    captureFullScreen,
     getForegroundWindowInfo
 };
+

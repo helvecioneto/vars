@@ -14,11 +14,12 @@ const {
     resetKnowledgeBase,
     analyzeImageOpenAI
 } = require('./openai');
-const { transcribeAudioGoogle, getGoogleAIResponse, analyzeImageGoogle, createGoogleKnowledgeBase, resetGoogleKnowledgeBase } = require('./google');
+const { transcribeAudioGoogle, getGoogleAIResponse, analyzeImageGoogle } = require('./google');
 const { RealtimeTranscription } = require('./realtime');
 const { GeminiRealtimeTranscription } = require('./gemini-realtime');
 const systemAudio = require('./system-audio');
 const screenCapture = require('./screen-capture');
+const quizSolver = require('./quiz-solver');
 
 /**
  * Active realtime transcription session
@@ -162,8 +163,7 @@ function setupIPCHandlers(context) {
                             language: config.language || 'en',
                             history: config.conversationHistory || [],
                             tierConfig: tierConfig,
-                            briefMode: config.briefMode || false,
-                            fileSearchStoreName: config.fileSearchStoreName || null
+                            briefMode: config.briefMode || false
                         }
                     });
                 } else {
@@ -177,8 +177,7 @@ function setupIPCHandlers(context) {
                             language: config.language || 'en',
                             history: config.conversationHistory || [],
                             tierConfig: tierConfig,
-                            briefMode: config.briefMode || false,
-                            fileSearchStoreName: config.fileSearchStoreName || null
+                            briefMode: config.briefMode || false
                         }
                     });
                 }
@@ -277,38 +276,26 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('knowledge-base:create', async () => {
         const config = getConfig();
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
-
-        if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+        if (!config.apiKey) return { error: 'API key not configured' };
         if (!config.knowledgeBasePaths || config.knowledgeBasePaths.length === 0) {
             return { error: 'No files to process' };
         }
 
         try {
-            if (provider === 'google') {
-                // Use Google File Search Store
-                const fileSearchStoreName = await createGoogleKnowledgeBase(
-                    apiKey,
-                    config.knowledgeBasePaths,
-                    config.fileSearchStoreName
-                );
-                config.fileSearchStoreName = fileSearchStoreName;
-                console.log('[KB] Created Google File Search Store:', fileSearchStoreName);
-            } else {
-                // Use OpenAI Assistants API
-                const assistant = await initializeAssistant(apiKey, config.assistantId);
-                config.assistantId = assistant.id;
+            // Initialize or retrieve Assistant
+            const assistant = await initializeAssistant(config.apiKey, config.assistantId);
+            config.assistantId = assistant.id;
 
-                const vectorStoreId = await createKnowledgeBase(
-                    apiKey,
-                    config.knowledgeBasePaths,
-                    config.vectorStoreId
-                );
-                config.vectorStoreId = vectorStoreId;
+            // Create/Update Vector Store and upload files
+            const vectorStoreId = await createKnowledgeBase(
+                config.apiKey,
+                config.knowledgeBasePaths,
+                config.vectorStoreId
+            );
+            config.vectorStoreId = vectorStoreId;
 
-                await updateAssistantVectorStore(apiKey, config.assistantId, vectorStoreId);
-            }
+            // Link Vector Store to Assistant
+            await updateAssistantVectorStore(config.apiKey, config.assistantId, vectorStoreId);
 
             // Persist updated config
             setConfig(config);
@@ -323,26 +310,12 @@ function setupIPCHandlers(context) {
 
     ipcMain.handle('knowledge-base:reset', async () => {
         const config = getConfig();
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
-
-        if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+        if (!config.apiKey) return { error: 'API key not configured' };
 
         try {
-            if (provider === 'google') {
-                // Reset Google File Search Store
-                await resetGoogleKnowledgeBase(apiKey, config.fileSearchStoreName);
-                config.fileSearchStoreName = null;
-                // Clear conversation history to remove context from deleted files
-                config.conversationHistory = [];
-                console.log('[KB] Reset Google File Search Store and History');
-            } else {
-                // Reset OpenAI Vector Store
-                await resetKnowledgeBase(apiKey, config.vectorStoreId);
-                config.vectorStoreId = null;
-                config.threadId = null; // Clearing threadId effectively clears history
-            }
-
+            await resetKnowledgeBase(config.apiKey, config.vectorStoreId);
+            config.vectorStoreId = null;
+            config.threadId = null;
             setConfig(config);
             await saveConfig(config);
             return { success: true };
@@ -513,83 +486,8 @@ function setupIPCHandlers(context) {
         }
     });
 
-    // Explicit window height control for mode switching (bypasses cooldown)
-    ipcMain.on('set-window-height', (event, height) => {
-        const mainWindow = getMainWindow();
-        if (mainWindow && height > 0) {
-            const currentBounds = mainWindow.getBounds();
-            mainWindow.setSize(currentBounds.width, Math.ceil(height));
-            // Reset the cooldown so normal bounds tracking works immediately after
-            lastResizeTime = 0;
-        }
-    });
-
-    // Force resize to content bounds - bypasses cooldown for mode switching
-    ipcMain.on('force-resize-to-content', (event, bounds) => {
-        const mainWindow = getMainWindow();
-        if (mainWindow && bounds.height > 0) {
-            const currentBounds = mainWindow.getBounds();
-            mainWindow.setSize(currentBounds.width, Math.ceil(bounds.height));
-            // Reset cooldown
-            lastResizeTime = 0;
-        }
-    });
-
-    // Get current window size
-    ipcMain.handle('get-window-size', async () => {
-        const mainWindow = getMainWindow();
-        if (mainWindow) {
-            const bounds = mainWindow.getBounds();
-            return { width: bounds.width, height: bounds.height };
-        }
-        return { width: 450, height: 60 };
-    });
-
-    // Window dragging state
-    let isDragging = false;
-    let dragStartPos = { x: 0, y: 0 };
-
     ipcMain.on('set-dragging', (event, dragging) => {
-        const mainWindow = getMainWindow();
-        if (!mainWindow) return;
-
-        if (dragging && !isDragging) {
-            // Start dragging - capture current mouse position
-            isDragging = true;
-            const { screen } = require('electron');
-            const cursorPos = screen.getCursorScreenPoint();
-            const windowPos = mainWindow.getPosition();
-            dragStartPos = {
-                x: cursorPos.x - windowPos[0],
-                y: cursorPos.y - windowPos[1]
-            };
-
-            // Start tracking mouse movement
-            const trackMouse = () => {
-                if (!isDragging) return;
-
-                const currentPos = screen.getCursorScreenPoint();
-                const newX = currentPos.x - dragStartPos.x;
-                const newY = currentPos.y - dragStartPos.y;
-                mainWindow.setPosition(newX, newY);
-
-                setTimeout(trackMouse, 10); // ~100fps tracking
-            };
-            trackMouse();
-        } else if (!dragging) {
-            isDragging = false;
-        }
-    });
-
-    // ==========================================
-    // Window Opacity Handler
-    // ==========================================
-
-    ipcMain.on('set-opacity', (event, opacity) => {
-        const mainWindow = getMainWindow();
-        if (mainWindow) {
-            mainWindow.setOpacity(opacity);
-        }
+        // Kept for compatibility
     });
 
     // ==========================================
@@ -773,61 +671,6 @@ Be direct and helpful. Focus on actionable information.`;
     });
 
     // ==========================================
-    // Update Check Handler
-    // ==========================================
-
-    ipcMain.handle('check-for-updates', async () => {
-        const { app, net } = require('electron');
-        const currentVersion = app.getVersion();
-
-        // Helper to compare semantic versions
-        const versionCompare = (v1, v2) => {
-            const p1 = v1.replace(/^v/, '').split('.').map(Number);
-            const p2 = v2.replace(/^v/, '').split('.').map(Number);
-            for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-                const n1 = p1[i] || 0;
-                const n2 = p2[i] || 0;
-                if (n1 > n2) return 1;
-                if (n1 < n2) return -1;
-            }
-            return 0;
-        };
-
-        return new Promise((resolve) => {
-            const request = net.request('https://api.github.com/repos/helvecioneto/vars/releases/latest');
-            request.on('response', (response) => {
-                let data = '';
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
-                response.on('end', () => {
-                    try {
-                        const release = JSON.parse(data);
-                        const latestVersion = release.tag_name;
-                        const updateAvailable = versionCompare(latestVersion, currentVersion) > 0;
-
-                        resolve({
-                            updateAvailable,
-                            currentVersion,
-                            latestVersion,
-                            releaseUrl: release.html_url,
-                            releaseNotes: release.body
-                        });
-                    } catch (error) {
-                        console.error('Failed to parse release data:', error);
-                        resolve({ error: 'Failed to parse update information' });
-                    }
-                });
-            });
-            request.on('error', (error) => {
-                console.error('Failed to check for updates:', error);
-                resolve({ error: 'Network error checking for updates' });
-            });
-            request.end();
-        });
-    });
-
-    // ==========================================
     // Permission Check Handlers (macOS)
     // ==========================================
 
@@ -893,6 +736,97 @@ Be direct and helpful. Focus on actionable information.`;
 
         return { success: false, error: 'Not macOS' };
     });
+
+    // ==========================================
+    // Quiz Solver Handlers
+    // ==========================================
+
+    // Helper function to analyze image (shared with quiz solver)
+    async function analyzeImageInternal({ imageData, prompt, windowTitle }) {
+        const config = getConfig();
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+        }
+
+        try {
+            const tier = config.tier || 'balanced';
+            const tierConfig = getTierConfig(provider, tier);
+
+            // QUIZ SOLVER: Use temperature 0 for deterministic coordinate responses
+            const quizTierConfig = {
+                ...tierConfig,
+                temperature: 0,  // Deterministic for precise coordinates
+                maxOutputTokens: 2000  // Enough for JSON response
+            };
+
+            let response;
+            if (provider === 'google') {
+                const analyzeModel = getModelForTier(provider, tier, 'analyze');
+                response = await analyzeImageGoogle({
+                    imageData,
+                    prompt,
+                    apiKey,
+                    model: analyzeModel,
+                    systemPrompt: 'You are a precise screen analyzer. Return ONLY valid JSON without markdown formatting.',
+                    language: config.language || 'en',
+                    history: [],
+                    tierConfig: quizTierConfig,
+                    briefMode: false
+                });
+            } else {
+                const analyzeModel = getModelForTier(provider, tier, 'analyze');
+                response = await analyzeImageOpenAI({
+                    imageData,
+                    prompt,
+                    apiKey,
+                    model: analyzeModel,
+                    systemPrompt: 'You are a precise screen analyzer. Return ONLY valid JSON without markdown formatting.',
+                    language: config.language || 'en',
+                    history: [],
+                    tierConfig: quizTierConfig,
+                    briefMode: false
+                });
+            }
+
+            return { response };
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
+
+    // Initialize quiz solver with context
+    quizSolver.initialize({
+        getMainWindow,
+        getConfig,
+        analyzeImage: analyzeImageInternal
+    });
+
+    ipcMain.handle('quiz-solver:start', async () => {
+        try {
+            const result = await quizSolver.start();
+            return result;
+        } catch (error) {
+            console.error('[Quiz Solver] Start error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('quiz-solver:stop', async () => {
+        try {
+            return quizSolver.stop();
+        } catch (error) {
+            console.error('[Quiz Solver] Stop error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('quiz-solver:is-active', async () => {
+        return { active: quizSolver.isActive() };
+    });
 }
 
 module.exports = { setupIPCHandlers };
+

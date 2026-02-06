@@ -80,26 +80,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
     setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
 
-    // Window size control for mode switching
-    setWindowHeight: (height) => ipcRenderer.send('set-window-height', height),
-    getWindowSize: () => ipcRenderer.invoke('get-window-size'),
-    forceResizeToContent: (bounds) => ipcRenderer.send('force-resize-to-content', bounds),
-
     // Content Protection (visibility mode toggle)
     setContentProtection: (enabled) => ipcRenderer.send('set-content-protection', enabled),
-
-    // Window Opacity
-    setOpacity: (opacity) => ipcRenderer.send('set-opacity', opacity),
-    onOpacityChanged: (callback) => {
-        ipcRenderer.on('opacity-changed', (event, opacity) => callback(opacity));
-    },
 
 
     // Desktop Capturer for System Audio
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
-
-    // Updates
-    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 
     // Screen Capture and Image Analysis
     captureScreen: () => ipcRenderer.invoke('capture-screen'),
@@ -125,5 +111,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
         checkMicrophone: () => ipcRenderer.invoke('check-microphone-permission'),
         requestMicrophone: () => ipcRenderer.invoke('request-microphone-permission'),
         openSystemPreferences: (panel) => ipcRenderer.invoke('open-system-preferences', panel)
+    },
+
+    // Quiz Solver
+    quizSolver: {
+        start: () => ipcRenderer.invoke('quiz-solver:start'),
+        stop: () => ipcRenderer.invoke('quiz-solver:stop'),
+        isActive: () => ipcRenderer.invoke('quiz-solver:is-active'),
+        onStatus: (callback) => {
+            ipcRenderer.on('quiz-solver:status', (event, data) => callback(data));
+        }
+    },
+
+    // Toggle quiz solver from hotkey
+    onToggleQuizSolver: (callback) => {
+        ipcRenderer.on('toggle-quiz-solver', () => callback());
     }
 });
