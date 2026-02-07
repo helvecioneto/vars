@@ -1,0 +1,246 @@
+/* ==========================================
+   VARS - Settings Panel Styles
+   ========================================== */
+
+/* Settings Panel - adapts to content with max-height */
+.settings-panel {
+    display: none;
+    background: var(--bg-toolbar);
+    border-top: 1px solid var(--border);
+    animation: expand-down var(--transition-normal);
+    width: 100%;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.settings-panel.visible {
+    display: block;
+}
+
+/* Settings Tabs Navigation */
+.settings-tabs {
+    display: flex;
+    gap: 1px;
+    padding: var(--space-sm) var(--space-md) 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+}
+
+.settings-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.settings-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    position: relative;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.settings-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab.active {
+    color: var(--accent-light);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.settings-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+}
+
+.tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tab-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+.tab-label {
+    font-size: 10px;
+    letter-spacing: 0.2px;
+}
+
+/* Tab Content */
+.settings-tab-content {
+    display: none;
+    padding: var(--space-xl);
+    animation: fade-in var(--transition-normal);
+    overflow-y: auto;
+}
+
+.settings-tab-content.active {
+    display: block;
+}
+
+/* Section Title with Icon */
+.settings-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-light);
+}
+
+.section-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+/* Settings Grid Layout */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+}
+
+/* Settings Header */
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.settings-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Settings Content */
+.settings-content {
+    padding: var(--space-lg);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Settings Sections */
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 140px;
+    flex: 1;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.settings-section.full-width {
+    flex: 100%;
+    min-width: 100%;
+}
+
+/* Settings Footer */
+.settings-footer {
+    padding: 12px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.settings-footer p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.footer-link {
+    color: var(--accent-light);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer-link:hover {
+    text-decoration: underline;
+    color: var(--accent);
+}
+
+/* Settings Hint */
+.settings-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent);
+    line-height: 1.5;
+}
+
+.settings-hint strong {
+    color: var(--text-secondary);
+}
+
+/* Update Section */
+.update-section {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    text-align: center;
+}
+
+.update-section.hidden {
+    display: none;
+}
+
+.update-message {
+    font-size: 13px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}

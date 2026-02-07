@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const { getModels, getPrompts, getSpecialModel } = require('./config');
+const { getModels, getPrompts, getSpecialModel } = require('../../config');
 
 class RealtimeTranscription {
     constructor(apiKey) {

@@ -1,0 +1,234 @@
+/* ==========================================
+   VARS - Response Styles (Query & AI Response)
+   ========================================== */
+
+/* User Query - Single inline row */
+.user-query {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    animation: fade-in var(--transition-fast);
+}
+
+.user-query.hidden {
+    display: none;
+}
+
+.query-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.query-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+.query-text {
+    flex: 1;
+    font-style: italic;
+}
+
+.query-time {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+/* AI Response - Content focused */
+.ai-response {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: rgba(139, 92, 246, 0.05);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+    animation: fade-in var(--transition-fast);
+}
+
+.ai-response.hidden {
+    display: none;
+}
+
+/* Response Content - The main focus */
+.response-content {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Response Footer - Minimal */
+.response-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.response-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.response-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.5;
+    flex: 1;
+    text-align: center;
+}
+
+/* Typography in responses */
+.response-content strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.response-content em {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+/* Inline Code */
+.response-content code:not(.code-block code) {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-light);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Code Blocks - Compact */
+.code-block {
+    position: relative;
+    margin: 8px 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.code-language {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.code-copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: all var(--transition-fast);
+}
+
+.code-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    opacity: 1;
+}
+
+.code-copy-btn.copied {
+    color: var(--success);
+    opacity: 1;
+}
+
+.code-block pre {
+    margin: 0;
+    padding: 8px 10px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.code-block pre::-webkit-scrollbar {
+    height: 4px;
+}
+
+.code-block pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.code-block pre::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+}
+
+.code-block code {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #e1e1e1;
+    white-space: pre;
+}
+
+/* Lists in responses - Compact */
+.response-content ul,
+.response-content ol {
+    margin: 4px 0;
+    padding-left: 18px;
+}
+
+.response-content li {
+    margin: 2px 0;
+    line-height: 1.5;
+}
+
+.response-content ul li {
+    list-style-type: disc;
+}
+
+.response-content ol li {
+    list-style-type: decimal;
+}
+
+/* Paragraphs - Compact */
+.response-content p {
+    margin: 0 0 4px 0;
+}
+
+.response-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Images in responses */
+.response-content img {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 6px 0;
+}

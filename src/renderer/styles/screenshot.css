@@ -1,0 +1,222 @@
+/* ==========================================
+   VARS - Screenshot & Visibility Styles
+   ========================================== */
+
+/* Screenshot Actions Panel */
+.screenshot-actions {
+    padding: 10px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    animation: fade-in var(--transition-normal);
+}
+
+.screenshot-actions.hidden {
+    display: none;
+}
+
+.screenshot-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.screenshot-icon {
+    font-size: 16px;
+}
+
+.screenshot-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.screenshot-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.screenshot-ask {
+    display: flex;
+    gap: 6px;
+}
+
+/* Screenshot Button States */
+#screenshot-btn.capturing {
+    background: var(--accent);
+    animation: pulse-screenshot 1s infinite;
+}
+
+/* Mic Button States */
+.mic-btn.recording {
+    background: var(--error);
+    animation: pulse-mic 1s infinite;
+}
+
+/* Visibility Toggle Button */
+.visibility-toggle {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all var(--transition-normal);
+    color: var(--success);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.visibility-toggle:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: var(--success);
+}
+
+.visibility-label {
+    white-space: nowrap;
+}
+
+/* Icon states - Hidden mode (default) */
+.visibility-toggle .visible-icon {
+    display: none;
+}
+
+.visibility-toggle .hidden-icon {
+    display: block;
+}
+
+/* Visible mode: show eye icon */
+.visibility-toggle.visible .visible-icon {
+    display: block;
+}
+
+.visibility-toggle.visible .hidden-icon {
+    display: none;
+}
+
+.visibility-toggle.visible {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.visibility-toggle.visible:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+/* Visible Mode Border Effect */
+.app-container.visible-mode {
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow:
+        0 0 0 3px rgba(239, 68, 68, 0.7),
+        0 0 15px rgba(239, 68, 68, 0.5),
+        0 0 30px rgba(239, 68, 68, 0.3),
+        0 0 45px rgba(239, 68, 68, 0.15),
+        0 4px 24px rgba(0, 0, 0, 0.4);
+    animation: visible-glow-warning 1.5s ease-in-out infinite alternate;
+}
+
+/* QR Code Styles */
+.qr-carousel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+}
+
+.qr-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.qr-nav-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all var(--transition-normal);
+}
+
+.qr-nav-btn:hover {
+    background: rgba(139, 92, 246, 0.3);
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+.qr-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.qr-nav-btn svg {
+    stroke: currentColor;
+}
+
+.qr-wrapper {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.qr-code {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    height: 150px;
+    border-radius: 8px;
+    background: white;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.qr-code.hidden {
+    opacity: 0;
+}
+
+.qr-code.visible {
+    opacity: 1;
+}
+
+.qr-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-light);
+    margin: 0 0 8px 0;
+    min-height: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.qr-indicators {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.qr-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.qr-indicator.active {
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}

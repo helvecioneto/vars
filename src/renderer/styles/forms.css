@@ -1,0 +1,223 @@
+/* ==========================================
+   VARS - Form Styles
+   ========================================== */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group.checkbox-inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group.checkbox-inline input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.form-group.checkbox-inline label {
+    margin-bottom: 0;
+    cursor: pointer;
+    text-transform: none;
+    font-size: 12px;
+}
+
+.form-group label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: all var(--transition-normal);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+    border-color: var(--text-muted);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 50px;
+}
+
+.form-group .select-with-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-group .select-with-btn select {
+    flex: 1;
+}
+
+.form-group .select-with-btn .small-btn {
+    flex-shrink: 0;
+}
+
+/* Help Link */
+.help-link {
+    font-size: 10px;
+    color: var(--accent-light);
+    text-decoration: none;
+    margin-left: 8px;
+    text-transform: none;
+    font-weight: normal;
+    display: inline-block;
+}
+
+.help-link:hover {
+    text-decoration: underline;
+    color: var(--accent);
+}
+
+/* Ask Input */
+.ask-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 11px;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.ask-input::placeholder {
+    color: var(--text-muted);
+}
+
+.ask-input:focus {
+    border-color: var(--accent);
+}
+
+/* API Key Groups */
+.api-key-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: fade-in var(--transition-normal);
+}
+
+.api-key-group.hidden {
+    display: none;
+}
+
+.api-key-input-row {
+    display: flex;
+    gap: 6px;
+}
+
+.api-key-input-row input {
+    flex: 1;
+}
+
+/* API Test Status */
+.api-test-status {
+    font-size: 11px;
+    min-height: 20px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.api-test-status:empty {
+    display: none;
+}
+
+.api-test-status.testing {
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.api-test-status.success {
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.15);
+    font-weight: 500;
+    animation: success-pulse 0.3s ease;
+}
+
+.api-test-status.error {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* File Area */
+.file-area {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.file-list {
+    padding: 8px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-height: 30px;
+}
+
+.file-list .placeholder {
+    opacity: 0.6;
+}
+
+/* Knowledge Base */
+.kb-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.kb-status {
+    font-size: 11px;
+    margin-top: 8px;
+    opacity: 0.7;
+    min-height: 1.2em;
+    color: var(--text-secondary);
+}

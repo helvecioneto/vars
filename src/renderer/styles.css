@@ -116,7 +116,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -131,7 +131,7 @@ body {
   height: var(--icon-size-md);
   stroke: currentColor;
   stroke-width: 2;
-  transition: all 0.2s ease;
+  transition: stroke 0.2s ease;
 }
 
 .icon-btn:hover {
@@ -190,6 +190,7 @@ body {
 
 .ai-btn.recording {
   animation: pulse-ai 1.2s infinite;
+  will-change: box-shadow;
 }
 
 @keyframes pulse-ai {
@@ -228,6 +229,7 @@ body {
 #screenshot-btn.capturing {
   background: var(--accent);
   animation: pulse-screenshot 1s infinite;
+  will-change: box-shadow;
 }
 
 @keyframes pulse-screenshot {
@@ -246,6 +248,7 @@ body {
 .mic-btn.recording {
   background: var(--error);
   animation: pulse-mic 1s infinite;
+  will-change: box-shadow;
 }
 
 @keyframes pulse-mic {
@@ -271,7 +274,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   min-width: 0;
   /* Allows proper shrinking in flexbox */
 }
@@ -328,11 +331,13 @@ body {
 .status-bar.recording .status-dot {
   background: var(--error);
   animation: pulse-dot 1s infinite;
+  will-change: opacity;
 }
 
 .status-bar.processing .status-dot {
   background: var(--warning);
   animation: pulse-dot 0.5s infinite;
+  will-change: opacity;
 }
 
 @keyframes pulse-dot {
@@ -353,7 +358,7 @@ body {
   color: var(--text-muted);
   font-weight: 400;
   opacity: 0.7;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Retrying state for free tier */
@@ -438,7 +443,7 @@ body {
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .action-btn:hover {
@@ -487,7 +492,7 @@ body {
   color: var(--text-primary);
   font-size: 11px;
   outline: none;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .ask-input::placeholder {
@@ -629,7 +634,7 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   opacity: 0.6;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .regen-btn:hover {
@@ -656,6 +661,7 @@ body {
 .regen-btn.loading .loading-icon {
   display: block;
   animation: spin 1s linear infinite;
+  will-change: transform;
 }
 
 .regen-btn .loading-icon {
@@ -686,7 +692,7 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   opacity: 0.6;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .copy-btn:hover {
@@ -785,7 +791,7 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   opacity: 0.5;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .code-copy-btn:hover {
@@ -940,7 +946,7 @@ body {
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
   position: relative;
   flex-shrink: 0;
   white-space: nowrap;
@@ -1167,7 +1173,7 @@ body {
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .tier-btn:hover {
@@ -1216,7 +1222,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .test-api-btn:hover {
@@ -1247,7 +1253,7 @@ body {
   margin-top: 6px;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   display: inline-block;
 }
 
@@ -1377,7 +1383,7 @@ body {
   font-size: 12px;
   font-family: inherit;
   outline: none;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1908,7 +1914,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .qr-nav-btn:hover {
@@ -1974,7 +1980,7 @@ body {
   height: 8px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .qr-indicator.active {
@@ -2021,7 +2027,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   color: var(--success);
   font-size: 11px;
   font-weight: 500;
@@ -2155,7 +2161,7 @@ body {
   border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
+  transition: background 0.2s ease;
 }
 
 .update-btn:hover {
@@ -2177,7 +2183,7 @@ body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .check-update-btn:hover {

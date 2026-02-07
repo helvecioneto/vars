@@ -1,0 +1,194 @@
+/* ==========================================
+   VARS - Animations & Keyframes
+   ========================================== */
+
+/* Fade In */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide Down */
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Expand Down */
+@keyframes expand-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scale In */
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Spin */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse Dot */
+@keyframes pulse-dot {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* Pulse AI Button */
+@keyframes pulse-ai {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+    }
+}
+
+/* Pulse Mic */
+@keyframes pulse-mic {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+}
+
+/* Pulse Screenshot */
+@keyframes pulse-screenshot {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+    }
+}
+
+/* Retry Pulse */
+@keyframes retry-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Success Pulse */
+@keyframes success-pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* QR Fade In */
+@keyframes qr-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* QR Fade Out */
+@keyframes qr-fade-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* Visible Mode Warning Glow */
+@keyframes visible-glow-warning {
+    from {
+        box-shadow:
+            0 0 0 3px rgba(239, 68, 68, 0.7),
+            0 0 15px rgba(239, 68, 68, 0.5),
+            0 0 30px rgba(239, 68, 68, 0.3),
+            0 0 45px rgba(239, 68, 68, 0.15),
+            0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    to {
+        box-shadow:
+            0 0 0 4px rgba(239, 68, 68, 0.9),
+            0 0 25px rgba(239, 68, 68, 0.7),
+            0 0 50px rgba(239, 68, 68, 0.4),
+            0 0 70px rgba(239, 68, 68, 0.2),
+            0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+}

@@ -1,0 +1,59 @@
+/* ==========================================
+   VARS - Responsive Media Queries
+   ========================================== */
+
+/* Very small window */
+@media (max-width: 350px) {
+    .toolbar {
+        padding: var(--space-sm) var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .icon-btn {
+        width: var(--btn-size-sm);
+        height: var(--btn-size-sm);
+        min-width: var(--btn-size-sm);
+    }
+
+    .icon-btn .icon svg {
+        width: var(--icon-size-sm);
+        height: var(--icon-size-sm);
+    }
+
+    .ai-btn {
+        width: var(--btn-size-md);
+        height: var(--btn-size-md);
+        min-width: var(--btn-size-md);
+    }
+
+    .settings-tab .tab-label {
+        display: none;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Small window */
+@media (max-width: 400px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .input-field {
+        font-size: 13px;
+        padding: var(--space-md) var(--space-lg);
+    }
+}
+
+/* Large window */
+@media (min-width: 500px) {
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .settings-tab {
+        padding: var(--space-sm) var(--space-lg);
+    }
+}

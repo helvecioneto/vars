@@ -1,0 +1,411 @@
+/* ==========================================
+   VARS - Button Styles
+   ========================================== */
+
+/* Icon Buttons - Base */
+.icon-btn {
+    width: var(--btn-size-md);
+    height: var(--btn-size-md);
+    min-width: var(--btn-size-md);
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.icon-btn .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn .icon svg {
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
+    stroke: currentColor;
+    stroke-width: 2;
+    transition: all var(--transition-normal);
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.icon-btn:hover .icon svg {
+    stroke: var(--accent-light);
+}
+
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* Icon Button with Text */
+.icon-text-btn {
+    width: auto;
+    padding: 0 12px;
+    gap: 8px;
+}
+
+.icon-text-btn span {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Active/Pressed State */
+.icon-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.icon-btn.active:hover .icon svg {
+    stroke: white;
+}
+
+/* Disabled State */
+.icon-btn.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* AI Main Button */
+.ai-btn {
+    width: var(--btn-size-lg);
+    height: var(--btn-size-lg);
+    min-width: var(--btn-size-lg);
+    border-radius: var(--radius-sm);
+}
+
+.ai-btn .icon {
+    font-size: 20px;
+}
+
+.ai-btn:hover {
+    transform: translateY(-1px);
+}
+
+.ai-btn.recording {
+    animation: pulse-ai 1.2s infinite;
+}
+
+/* Close Button */
+.close-btn:hover {
+    background: var(--error);
+    color: white;
+}
+
+/* Mode Button */
+.mode-btn .icon {
+    font-size: 14px;
+}
+
+/* Small Button */
+.small-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0;
+}
+
+/* Action Buttons */
+.action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: var(--accent);
+}
+
+.action-btn:active {
+    transform: scale(0.97);
+}
+
+.action-btn .action-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-right: 2px;
+}
+
+.action-btn:hover .action-key {
+    background: rgba(139, 92, 246, 0.4);
+    color: var(--text-primary);
+}
+
+.action-btn .action-icon {
+    font-size: 12px;
+}
+
+/* Ask Button */
+.ask-btn {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.ask-btn:hover {
+    background: var(--accent-light);
+    border-color: var(--accent-light);
+}
+
+/* Regenerate Button */
+.regen-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: all var(--transition-fast);
+}
+
+.regen-btn:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-light);
+    opacity: 1;
+}
+
+.regen-btn:active {
+    transform: scale(0.95);
+}
+
+.regen-btn.loading {
+    opacity: 1;
+    color: var(--accent-light);
+    pointer-events: none;
+}
+
+.regen-btn.loading .regen-icon {
+    display: none;
+}
+
+.regen-btn.loading .loading-icon {
+    display: block;
+    animation: spin 1s linear infinite;
+}
+
+.regen-btn .loading-icon {
+    display: none;
+}
+
+/* Copy Button */
+.copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: all var(--transition-fast);
+}
+
+.copy-btn:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-light);
+    opacity: 1;
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
+}
+
+.copy-btn.copied {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: var(--success);
+    color: var(--success);
+    opacity: 1;
+}
+
+.copy-btn .copy-icon,
+.copy-btn .check-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.copy-btn .check-icon.hidden,
+.copy-btn.copied .copy-icon {
+    display: none;
+}
+
+.copy-btn.copied .check-icon {
+    display: block;
+}
+
+/* Tier Buttons */
+.tier-button-group {
+    display: flex;
+    gap: 6px;
+}
+
+.tier-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.tier-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.tier-btn.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-light);
+}
+
+/* Test API Button */
+.test-api-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-normal);
+}
+
+.test-api-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-light);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.test-api-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.test-api-btn.testing {
+    animation: pulse-dot 0.5s infinite;
+}
+
+.test-api-btn.success {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.test-api-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+/* Add File Button */
+.btn-add-file {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all var(--transition-fast);
+    align-self: flex-start;
+}
+
+.btn-add-file:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+/* Update Buttons */
+.update-btn {
+    padding: 6px 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all var(--transition-normal);
+}
+
+.update-btn:hover {
+    background: var(--accent-light);
+}
+
+.update-btn.hidden {
+    display: none;
+}
+
+.check-update-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all var(--transition-normal);
+}
+
+.check-update-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.check-update-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
