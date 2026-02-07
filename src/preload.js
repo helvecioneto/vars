@@ -76,6 +76,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // API Key Testing
     testAPIKey: (provider, apiKey, tier) => ipcRenderer.invoke('test-api-key', provider, apiKey, tier),
 
+    // Prompt Optimization
+    optimizePrompt: (userInput) => ipcRenderer.invoke('optimize-prompt', userInput),
+
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
     setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),

@@ -230,6 +230,68 @@ Be direct and helpful. Focus on actionable information.`;
             return { error: error.message };
         }
     });
+
+    // Optimize System Prompt using AI
+    ipcMain.handle('optimize-prompt', async (event, userInput) => {
+        const config = getConfig();
+        const provider = config.provider || 'openai';
+        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        if (!apiKey) {
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+        }
+
+        if (!userInput || !userInput.trim()) {
+            return { error: 'Please enter a prompt to optimize' };
+        }
+
+        try {
+            const { getPromptForLanguage } = require('../config');
+            const language = config.language || 'en';
+
+            // Get optimizer instruction in the selected language
+            let optimizerPrompt = getPromptForLanguage('optimizer.instruction', language);
+            optimizerPrompt = optimizerPrompt.replace('{userInput}', userInput.trim());
+
+            const tier = config.tier || 'balanced';
+            const tierConfig = getTierConfig(provider, tier);
+            const analyzeModel = getModelForTier(provider, tier, 'analyze');
+
+            let result;
+            if (provider === 'google') {
+                result = await getGoogleAIResponse({
+                    transcription: optimizerPrompt,
+                    params: {
+                        apiKey,
+                        model: analyzeModel,
+                        systemPrompt: '',
+                        language,
+                        history: [],
+                        tierConfig,
+                        briefMode: false
+                    }
+                });
+            } else {
+                const { getChatCompletionResponse } = require('../providers/openai/chat');
+                const response = await getChatCompletionResponse(
+                    optimizerPrompt,
+                    apiKey,
+                    analyzeModel,
+                    '', // systemPrompt
+                    language,
+                    [], // history
+                    tierConfig,
+                    false // briefMode
+                );
+                result = { response };
+            }
+
+            return { optimizedPrompt: result.response };
+        } catch (error) {
+            console.error('[Prompt Optimizer] Error:', error);
+            return { error: error.message };
+        }
+    });
 }
 
 module.exports = { setupAIHandlers };

@@ -344,7 +344,16 @@
         </div>
         <div class="form-group full-width">
           <label>System Prompt</label>
-          <textarea id="system-prompt" rows="3" placeholder="Optional instructions for the AI..."></textarea>
+          <textarea id="system-prompt" rows="6"
+            placeholder="Write custom instructions for the AI...&#10;&#10;Example: You are a coding assistant. Always explain your reasoning and provide examples."></textarea>
+          <div class="prompt-optimizer-toolbar">
+            <button id="revert-prompt-btn" class="btn-revert hidden">
+              <span class="icon">↩</span> Back
+            </button>
+            <button id="optimize-prompt-btn" class="btn-optimize" title="Optimize prompt using AI">
+              <span class="icon">✨</span> Optimize
+            </button>
+          </div>
         </div>
       </div>
 

@@ -38,6 +38,13 @@
             "es": "Spanish"
         }
     },
+    "optimizer": {
+        "instruction": {
+            "en": "You are an expert prompt engineer. Transform the following user instruction into a well-structured, clear, and effective system prompt for an AI assistant. The optimized prompt should:\n1. Be clear and unambiguous\n2. Define the AI's role and personality\n3. Set boundaries and expectations\n4. Include relevant context\n5. Be professional and well-formatted\n\nUser's original instruction:\n\"{userInput}\"\n\nReturn ONLY the optimized system prompt, nothing else. Do not include explanations or comments.",
+            "pt-br": "Você é um especialista em engenharia de prompts. Transforme a seguinte instrução do usuário em um system prompt bem estruturado, claro e eficaz para um assistente de IA. O prompt otimizado deve:\n1. Ser claro e sem ambiguidades\n2. Definir o papel e a personalidade da IA\n3. Estabelecer limites e expectativas\n4. Incluir contexto relevante\n5. Ser profissional e bem formatado\n\nInstrução original do usuário:\n\"{userInput}\"\n\nRetorne APENAS o system prompt otimizado, nada mais. Não inclua explicações ou comentários.",
+            "es": "Eres un experto en ingeniería de prompts. Transforma la siguiente instrucción del usuario en un system prompt bien estructurado, claro y efectivo para un asistente de IA. El prompt optimizado debe:\n1. Ser claro y sin ambigüedades\n2. Definir el rol y la personalidad de la IA\n3. Establecer límites y expectativas\n4. Incluir contexto relevante\n5. Ser profesional y bien formateado\n\nInstrucción original del usuario:\n\"{userInput}\"\n\nDevuelve SOLO el system prompt optimizado, nada más. No incluyas explicaciones ni comentarios."
+        }
+    },
     "realtime": {
         "transcriptionLanguage": "pt"
     }

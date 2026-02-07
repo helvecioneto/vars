@@ -125,6 +125,9 @@ export function setupEventListeners() {
         });
     }
 
+    // Prompt Optimizer
+    setupPromptOptimizer();
+
     // Recording Controls
     if (elements.recBtn) {
         elements.recBtn.addEventListener('click', () => {
@@ -361,4 +364,99 @@ function setupIPCEvents() {
     window.electronAPI.onScreenshotCapture(() => {
         captureAndAnalyzeScreen();
     });
+}
+
+/**
+ * Setup Prompt Optimizer functionality
+ */
+let originalPrompt = ''; // Store original prompt for reverting
+
+function setupPromptOptimizer() {
+    const { optimizePromptBtn, revertPromptBtn, systemPromptInput } = elements;
+
+    if (!optimizePromptBtn || !systemPromptInput) return;
+
+    // Optimize button - generates optimized prompt
+    optimizePromptBtn.addEventListener('click', async () => {
+        const currentPrompt = systemPromptInput.value.trim();
+
+        if (!currentPrompt) {
+            systemPromptInput.focus();
+            systemPromptInput.classList.add('error');
+            setTimeout(() => systemPromptInput.classList.remove('error'), 500);
+            return;
+        }
+
+        // Store original if first time
+        if (!originalPrompt) {
+            originalPrompt = currentPrompt;
+        }
+
+        await generateOptimizedPrompt();
+    });
+
+    // Back button - revert to original
+    if (revertPromptBtn) {
+        revertPromptBtn.addEventListener('click', () => {
+            if (originalPrompt) {
+                systemPromptInput.value = originalPrompt;
+                systemPromptInput.classList.remove('optimized');
+                state.config.systemPrompt = originalPrompt;
+                window.electronAPI.saveConfig(state.config);
+            }
+            resetOptimizerUI();
+        });
+    }
+
+    async function generateOptimizedPrompt() {
+        const userInput = originalPrompt || systemPromptInput.value.trim();
+        if (!userInput) return;
+
+        // Show loading state
+        optimizePromptBtn.disabled = true;
+        optimizePromptBtn.classList.add('loading');
+        optimizePromptBtn.innerHTML = '<span class="icon">⏳</span> Optimizing...';
+
+        try {
+            const result = await window.electronAPI.optimizePrompt(userInput);
+
+            if (result.error) {
+                console.error('[Optimizer]', result.error);
+                optimizePromptBtn.innerHTML = '<span class="icon">❌</span> Error';
+                setTimeout(() => resetOptimizerUI(), 2000);
+                return;
+            }
+
+            if (result.optimizedPrompt) {
+                systemPromptInput.value = result.optimizedPrompt;
+                systemPromptInput.classList.add('optimized');
+                state.config.systemPrompt = result.optimizedPrompt;
+                window.electronAPI.saveConfig(state.config);
+
+                // Show Back button and update Optimize text
+                if (revertPromptBtn) {
+                    revertPromptBtn.classList.remove('hidden');
+                }
+                optimizePromptBtn.innerHTML = '<span class="icon">✨</span> Re-optimize';
+            }
+        } catch (error) {
+            console.error('[Optimizer] Error:', error);
+            optimizePromptBtn.innerHTML = '<span class="icon">❌</span> Error';
+            setTimeout(() => resetOptimizerUI(), 2000);
+        } finally {
+            optimizePromptBtn.disabled = false;
+            optimizePromptBtn.classList.remove('loading');
+        }
+    }
+
+    function resetOptimizerUI() {
+        if (revertPromptBtn) {
+            revertPromptBtn.classList.add('hidden');
+        }
+        optimizePromptBtn.innerHTML = '<span class="icon">✨</span> Optimize';
+        optimizePromptBtn.disabled = false;
+        optimizePromptBtn.classList.remove('loading');
+        originalPrompt = '';
+        systemPromptInput.classList.remove('optimized');
+    }
 }

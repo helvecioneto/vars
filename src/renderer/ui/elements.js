@@ -82,6 +82,12 @@ export function getElements() {
         updateBtn: document.getElementById('update-btn'),
         checkUpdateBtn: document.getElementById('check-update-btn'),
 
+        // Prompt Optimizer
+        optimizePromptBtn: document.getElementById('optimize-prompt-btn'),
+        revertPromptBtn: document.getElementById('revert-prompt-btn'),
+        generatePromptBtn: document.getElementById('generate-prompt-btn'),
+        optimizerActions: document.getElementById('optimizer-actions'),
+
         // Brief Mode
         briefModeCheckbox: document.getElementById('brief-mode'),
 

@@ -1411,6 +1411,129 @@ body {
   min-height: 50px;
 }
 
+/* System Prompt - Enhanced textarea for better writing experience */
+#system-prompt {
+  min-height: 120px;
+  line-height: 1.5;
+  font-size: 13px;
+  padding: 12px 14px;
+  resize: vertical;
+  max-height: 250px;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#system-prompt:focus {
+  min-height: 150px;
+  transition: min-height 0.2s ease;
+}
+
+/* Prompt Optimizer Toolbar */
+.prompt-optimizer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.prompt-optimizer-toolbar .btn-optimize,
+.prompt-optimizer-toolbar .btn-revert,
+.prompt-optimizer-toolbar .btn-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-optimizer-toolbar .icon {
+  font-size: 12px;
+}
+
+.prompt-optimizer-toolbar .btn-optimize {
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  color: white;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+.prompt-optimizer-toolbar .btn-optimize:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4);
+}
+
+.prompt-optimizer-toolbar .btn-optimize:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.prompt-optimizer-toolbar .btn-optimize.loading {
+  pointer-events: none;
+}
+
+.prompt-optimizer-toolbar .btn-optimize.loading .icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.optimizer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.optimizer-actions.hidden {
+  display: none;
+}
+
+.prompt-optimizer-toolbar .btn-revert {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.prompt-optimizer-toolbar .btn-revert:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.prompt-optimizer-toolbar .btn-generate {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.prompt-optimizer-toolbar .btn-generate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+}
+
+.prompt-optimizer-toolbar .btn-generate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Optimized prompt indicator */
+#system-prompt.optimized {
+  border-color: #10b981;
+  background: linear-gradient(to bottom, rgba(16, 185, 129, 0.05), transparent);
+}
+
 .file-area {
   display: flex;
   flex-direction: column;
