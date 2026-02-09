@@ -31,7 +31,7 @@ Além disso, este projeto visa acelerar mudanças nos processos seletivos. As me
 
 ---
 
-## �📥 Download
+## 📥 Download
 
 ### Pre-built Binaries
 
@@ -40,7 +40,7 @@ Download the latest version for your operating system from the [Releases page](h
 | Platform | Architecture | Download |
 |----------|-------------|----------|
 | **Windows** | x64 | [VARS-win-x64.exe](https://github.com/helvecioneto/vars/releases/latest/download/VARS-win-x64.exe) |
-| **macOS** | Apple Silicon (M1/M2/M3) | [VARS-mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest/download/VARS-mac-arm64.dmg) |
+| **macOS** | Apple Silicon (M1/M2/M3/M4) | [VARS-mac-arm64.dmg](https://github.com/helvecioneto/vars/releases/latest/download/VARS-mac-arm64.dmg) |
 | **macOS** | Intel | [VARS-mac-x64.dmg](https://github.com/helvecioneto/vars/releases/latest/download/VARS-mac-x64.dmg) |
 | **Linux** | x64 | [VARS-linux-x64.AppImage](https://github.com/helvecioneto/vars/releases/latest/download/VARS-linux-x64.AppImage) |
 
@@ -48,41 +48,83 @@ Download the latest version for your operating system from the [Releases page](h
 
 ## ✨ Features
 
-### 🎙️ Multi-Provider AI Support
-- **OpenAI Integration**: GPT-4o, GPT-4o-mini, GPT-5.2, Whisper transcription
-- **Google Gemini Integration**: Gemini 2.5/3.0 Flash & Pro models with free tier support.
-- **Configurable Quality Tiers**: Free, Fast, Balanced, and Quality modes
-- **Automatic Fallback**: Smart retry with model fallback for free tier
+### 🔐 Flexible Authentication
+- **OpenAI OAuth**: Login with your ChatGPT Plus/Pro account — no API key needed
+- **OpenAI API Key**: Direct API key for full control
+- **Google Gemini API Key**: Free tier available with generous limits
+- Seamless switching between connection modes
+
+### 🤖 Multi-Provider AI Support
+- **OpenAI**: GPT-4o-mini (Fast), GPT-4o (Balanced), GPT-5.2 (Quality)
+- **Google Gemini**: Gemini 3.0 Flash/Pro, Gemini 2.5 Flash/Pro with free tier
+- **4 Quality Tiers**: Free, Fast, Balanced, and Quality — each with optimized parameters
+- **Smart Retry**: Automatic model fallback with exponential backoff (free tier)
+
+### 🎙️ Transcription Engine
+- **Local Whisper (Free, Offline)**: Built-in whisper.cpp via `@napi-rs/whisper` — no internet required
+  - Models: Tiny (75 MB), Base (142 MB), Small (466 MB, recommended), Medium (1.5 GB)
+  - Download and manage models directly from settings
+  - Automatic audio conversion via ffmpeg
+- **Cloud OpenAI**: Whisper-1 API for high-accuracy transcription
+- **Cloud Gemini**: Google Gemini models for transcription
+- **Real-time Transcription**: Live audio streaming via OpenAI Realtime API or Gemini Live API
 
 ### 🎧 Audio Capture Modes
-- **System Audio**: Capture audio from calls, meetings, and any application (uses PulseAudio/PipeWire on Linux)
-- **Microphone Input**: Direct microphone recording for voice questions
-- **Real-time Transcription**: Live audio streaming with OpenAI Realtime API or Gemini Live API
+- **System Audio**: Capture audio from calls, meetings, and any application
+  - macOS/Windows: Electron loopback capture
+  - Linux: PulseAudio/PipeWire via `parec`
+- **Microphone Input**: Direct microphone recording with device selection
+- Toggle between modes with a keyboard shortcut
 
 ### 📸 Screen Capture & Analysis
-- Capture the **foreground application window** (not the VARS window)
-- AI-powered image analysis with custom questions
-- Quick actions: Summarize, Extract Code, Answer Questions
+- Captures the **foreground application window** (not the VARS window)
+- Cross-platform: Windows (Win32 API), macOS (Core Graphics), Linux (auto-detects `gnome-screenshot`, `spectacle`, `scrot`)
+- Quick actions after capture:
+  - **Answers** — Find and answer questions visible on screen
+  - **Code** — Analyze and explain code
+  - **Summary** — Summarize visible content
+  - **Custom Question** — Ask anything about the captured image
+- AI-powered image analysis via OpenAI Vision or Google Gemini Vision
 
 ### 📚 Knowledge Base
-- Upload custom documents (`.txt`, `.md`, `.json`)
-- AI uses your knowledge base to provide contextual answers
-- Powered by OpenAI Assistants API with Vector Store
+- Upload documents: `.pdf`, `.txt`, `.docx`, `.md`
+- AI uses your files to provide contextual, grounded answers
+- **OpenAI**: Powered by Assistants API with Vector Store
+- **Google**: Powered by File Search Store
+- Add, index ("Fit"), and clear files from the settings UI
 
 ### 👻 Privacy & Stealth
-- **Invisible to Screen Sharing**: Window protected from capture on macOS and Windows
+- **Invisible to Screen Sharing**: Content protection on macOS and Windows (`setContentProtection`)
 - **Always-on-Top**: Floats above other windows without interfering
-- **System Tray Integration**: Runs quietly in background
-- **Frameless Design**: Minimal, non-intrusive interface
+- **System Tray**: Runs quietly in background with Show/Hide toggle
+- **Frameless Design**: Minimal, non-intrusive transparent window
+- **Toggleable Visibility**: Switch content protection on/off as needed
+
+### ✨ AI Prompt Tools
+- **Custom System Prompt**: Define how the AI responds
+- **Prompt Optimizer**: AI-powered tool that transforms your instructions into a professional, well-structured system prompt
+- **Brief Mode**: Ultra-short responses (1-2 sentences) — ideal for live situations
 
 ### 🌍 Multi-Language Support
-- Interface and responses in English, Portuguese (BR), and Spanish
-- Configurable transcription and response language
+- Interface and responses in **English**, **Português (BR)**, and **Español**
+- Language-aware transcription and AI responses
+- Multilingual system prompts and onboarding
+
+### 🎓 Guided Onboarding
+- 8-step interactive tutorial on first launch
+- Auto-navigates through settings tabs
+- Highlights each configuration area with clear instructions
 
 ### ⌨️ Keyboard-First Design
 - Global hotkeys work even when VARS is in background
 - Text input for keyboard-only workflow
-- Conversation history navigation
+- Conversation history navigation with arrow keys
+- Zoom controls (70%–130%)
+
+### 🔄 Auto-Update
+- Automatic check for new versions on startup
+- Manual check via "About" tab
+- Direct link to download new releases from GitHub
 
 ---
 
@@ -92,9 +134,10 @@ Download the latest version for your operating system from the [Releases page](h
 
 - **Node.js** 18.0 or higher ([Download](https://nodejs.org/))
 - **npm** (comes with Node.js)
-- **API Key** from one of the providers:
-  - [OpenAI API Key](https://platform.openai.com/api-keys)
-  - [Google AI Studio API Key](https://aistudio.google.com/app/apikey) (free tier available)
+- **One of the following** for AI access:
+  - OpenAI account (ChatGPT Plus/Pro) for OAuth login — no API key needed
+  - [OpenAI API Key](https://platform.openai.com/api-keys) for direct access
+  - [Google AI Studio API Key](https://aistudio.google.com/app/apikey) — free tier available
 
 ### Install from Source
 
@@ -136,7 +179,7 @@ npm run dev
 <summary><b>🐧 Linux</b></summary>
 
 - X11 or Wayland with XWayland
-- **Screen capture** requires one of: `xdotool`, `wmctrl`, or `xprop`
+- **Screen capture** requires one of: `gnome-screenshot`, `spectacle` (KDE), `scrot`, or `import` (ImageMagick)
 - **System audio** requires PulseAudio or PipeWire with `parec`
 
 ```bash
@@ -161,11 +204,12 @@ sudo pacman -S xdotool pulseaudio
 ### First Launch
 
 1. Launch VARS (`npm start` or double-click the app)
-2. Click the ⚙️ **Settings** button
-3. Enter your **API Key** (OpenAI or Google)
-4. Select your preferred **Provider** and **Quality Tier**
-5. (Optional) Add knowledge base files
-6. Click **Save**
+2. The **onboarding tour** will guide you through initial setup
+3. Choose your **Connection** mode (OAuth, OpenAI API Key, or Gemini API Key)
+4. Select an AI **Model** preset
+5. Choose a **Transcription** engine (Local Whisper recommended for free offline use)
+6. (Optional) Add knowledge base files and click **Fit**
+7. You're ready to go!
 
 ### Keyboard Shortcuts
 
@@ -174,10 +218,8 @@ sudo pacman -S xdotool pulseaudio
 | **Start/Stop Recording** | `⌥ + Space` | `Ctrl + Space` |
 | **Switch Audio Mode** | `⌥ + M` | `Ctrl + M` |
 | **Screenshot Capture** | `⌥ + Shift + S` | `Ctrl + Shift + S` |
-| **History Navigation** | `⌥ + ↑/↓` | `Ctrl + ↑/↓` |
-| **Zoom In** | `⌥ + +` | `Ctrl + +` |
-| **Zoom Out** | `⌥ + -` | `Ctrl + -` |
-| **Reset Zoom** | `⌥ + 0` | `Ctrl + 0` |
+| **Increase Opacity** | `⌥ + ]` | `Ctrl + Alt + ]` |
+| **Decrease Opacity** | `⌥ + [` | `Ctrl + Alt + [` |
 
 ### Audio Recording Workflow
 
@@ -191,12 +233,12 @@ sudo pacman -S xdotool pulseaudio
 
 1. Focus the application you want to capture
 2. Press `Ctrl+Shift+S` (or `⌥+Shift+S` on Mac)
-3. Select an action: **Summarize**, **Extract Code**, or **Ask Question**
+3. Select an action: **Answers**, **Code**, **Summary**, or type a **Custom Question**
 4. VARS captures the window and analyzes it with AI
 
 ### Text Input
 
-- Type directly in the input field at the top
+- Type directly in the input field ("Ask me anything...")
 - Press **Enter** to send to AI
 - Use `Ctrl+↑/↓` to navigate conversation history
 
@@ -218,7 +260,6 @@ npm run build
 
 #### Windows
 ```bash
-# Using npm script
 npm run build:win
 
 # Or using the batch script
@@ -227,7 +268,6 @@ npm run build:win
 
 #### macOS
 ```bash
-# Build for both Intel and Apple Silicon
 npm run build:mac
 
 # Or using the shell script
@@ -244,54 +284,53 @@ npm run build:linux
 
 ### Build Output
 
-Built applications are saved in the `dist/` folder:
-
 | Platform | Output Format |
 |----------|--------------|
 | Windows | `.exe` (NSIS installer) |
 | macOS | `.dmg` (separate builds for arm64 and x64) |
 | Linux | `.AppImage` |
 
-### Build Configuration
-
-The build is configured in `package.json` using [electron-builder](https://www.electron.build/). Key configurations:
-
-- **App ID**: `com.vars.app`
-- **Product Name**: `VARS`
-- **macOS**: Hardened runtime, microphone entitlements
-- **Windows**: NSIS installer with desktop shortcut
-- **Linux**: AppImage with Utility category
-
 ---
 
 ## ⚙️ Configuration
 
+### Settings Tabs
+
+| Tab | Description |
+|-----|-------------|
+| **IA** | Connection mode, API keys, Model preset, Transcription engine, Local Whisper management |
+| **Behavior** | Language, Brief Mode, System Prompt with AI Optimizer |
+| **Knowledge** | Upload and manage knowledge base files (.pdf, .txt, .docx, .md) |
+| **Audio** | Microphone and system audio device selection |
+| **Interface** | Window opacity control (20%–100%) |
+| **About** | Version info, update checker, donation links |
+
 ### Providers & Models
 
-| Provider | Free Tier | Paid Tiers | Features |
-|----------|-----------|------------|----------|
-| **Google Gemini** | ✅ Gemini 2.5/3.0 Flash | Fast, Balanced, Quality | Free API usage, automatic fallback |
-| **OpenAI** | ❌ | Fast (4o-mini), Balanced (4o), Quality (5.2) | Assistants API, Vector Store |
+| Provider | Tier | Model | Max Tokens |
+|----------|------|-------|------------|
+| **OpenAI** | Fast | `gpt-4o-mini` | 1,024 |
+| **OpenAI** | Balanced | `gpt-4o` | 4,096 |
+| **OpenAI** | Quality | `gpt-5.2` | 16,384 |
+| **Google** | Free | `gemini-3-flash-preview` + fallbacks | 2,048 |
+| **Google** | Fast | `gemini-3-flash-preview` | 4,096 |
+| **Google** | Balanced | `gemini-2.5-flash` | 8,192 |
+| **Google** | Quality | `gemini-3-pro-preview` | 8,192 |
 
-### Quality Tiers
+### Local Whisper Models
 
-| Tier | Speed | Cost | Best For |
-|------|-------|------|----------|
-| **Free** | Medium | Free | Testing, light usage (Google only) |
-| **Fast** | Fastest | Low | Quick responses, simple questions |
-| **Balanced** | Medium | Medium | General usage (recommended) |
-| **Quality** | Slower | Higher | Complex analysis, long context |
+| Model | Size | Notes |
+|-------|------|-------|
+| Tiny | 75 MB | Fastest, lower accuracy |
+| Base | 142 MB | Good balance for simple audio |
+| **Small** | **466 MB** | **Recommended** — best accuracy/size ratio |
+| Medium | 1.5 GB | Best accuracy, slower |
 
-### Configuration Files
+### Configuration Storage
 
-Configuration is stored in `~/.vars/config.json` and includes:
-
-- API keys (encrypted storage)
-- Provider and tier preferences
-- System prompt customization
-- Knowledge base file paths
-- Audio device preferences
-- Language settings
+- **Settings**: `~/.vars/config.json`
+- **Whisper Models**: `~/.vars/models/`
+- **OAuth Credentials**: `~/.codex/auth.json` + macOS Keychain
 
 ---
 
@@ -300,31 +339,47 @@ Configuration is stored in `~/.vars/config.json` and includes:
 ```
 vars/
 ├── src/
-│   ├── main/                 # Electron main process
-│   │   ├── index.js          # App entry point, window management
-│   │   ├── config.js         # Configuration management
-│   │   ├── ipc-handlers.js   # IPC communication handlers
-│   │   ├── openai.js         # OpenAI API integration
-│   │   ├── google.js         # Google Gemini integration
-│   │   ├── realtime.js       # OpenAI Realtime API
-│   │   ├── gemini-realtime.js# Gemini Live API
-│   │   ├── screen-capture.js # Cross-platform screen capture
-│   │   └── system-audio.js   # Linux system audio capture
-│   ├── renderer/             # Electron renderer process
-│   │   ├── index.html        # Main UI
-│   │   ├── renderer.js       # UI logic
-│   │   └── styles.css        # Styling
-│   ├── config/               # Configuration files
-│   │   ├── models.json       # AI model definitions
-│   │   └── prompts.json      # System prompts (i18n)
-│   ├── assets/               # Icons and images
-│   └── preload.js            # Preload script for IPC
-├── scripts/                  # Build scripts
-│   ├── build_all.sh          # macOS/Linux build
-│   └── build_win.bat         # Windows build
-├── build/                    # Build resources
-│   └── entitlements.mac.plist# macOS entitlements
-├── package.json              # Dependencies & build config
+│   ├── preload.js                # Context bridge (Electron IPC)
+│   ├── assets/                   # Icons, QR images
+│   ├── config/
+│   │   ├── models.json           # AI model definitions per provider/tier
+│   │   └── prompts.json          # System prompts (EN, PT-BR, ES)
+│   ├── main/
+│   │   ├── index.js              # App entry point, window, tray, shortcuts
+│   │   ├── config.js             # Config load/save/migration
+│   │   ├── ipc-handlers.js       # IPC handler registration
+│   │   ├── screen-capture.js     # Cross-platform screen capture
+│   │   ├── system-audio.js       # System audio capture (PulseAudio/loopback)
+│   │   ├── handlers/
+│   │   │   ├── ai.js             # AI responses, image analysis, KB, prompt optimizer
+│   │   │   ├── audio.js          # Transcription, realtime, whisper management
+│   │   │   ├── config.js         # Config IPC handlers
+│   │   │   ├── media.js          # Media-related handlers
+│   │   │   ├── misc.js           # Miscellaneous handlers
+│   │   │   └── window.js         # Window management
+│   │   └── providers/
+│   │       ├── openai/           # Chat, vision, transcription, assistants, realtime, OAuth
+│   │       ├── google/           # Chat, vision, transcription, KB, realtime
+│   │       ├── local/            # Local Whisper: whisper.cpp bindings, model manager
+│   │       └── shared/           # Retry utilities with fallback
+│   └── renderer/
+│       ├── index.html            # Main UI
+│       ├── main.js               # Renderer entry point
+│       ├── events/               # Event handlers
+│       ├── history/              # Conversation history
+│       ├── input/                # Text input handling
+│       ├── onboarding/           # Guided first-run tutorial
+│       ├── recording/            # Audio capture & transcription
+│       ├── screenshot/           # Screenshot UI
+│       ├── settings/             # Settings tabs (API, auto-save, devices, KB, whisper, etc.)
+│       ├── state/                # Centralized app state
+│       ├── styles/               # CSS modules
+│       ├── ui/                   # UI components (response, status, tooltips, zoom, visibility)
+│       └── utils/                # Error handling, formatting, bounds
+├── scripts/                      # Build scripts (macOS/Linux/Windows)
+├── build/                        # Build resources (entitlements)
+├── docs/                         # Website files
+├── package.json                  # Dependencies & build config
 └── README.md
 ```
 
@@ -337,7 +392,7 @@ vars/
 
 - **macOS**: Grant microphone permission in System Preferences → Privacy & Security → Microphone
 - **Linux**: Ensure PulseAudio/PipeWire is running: `pulseaudio --check`
-- Check the audio device selection in Settings
+- Check the audio device selection in Settings → Audio tab
 
 </details>
 
@@ -346,15 +401,15 @@ vars/
 
 - VARS captures the **foreground window**, not the window under cursor
 - Make sure the target window is focused before pressing the shortcut
-- On Linux, ensure `xdotool` is installed
+- On Linux, ensure `gnome-screenshot`, `spectacle`, or `scrot` is installed
 
 </details>
 
 <details>
 <summary><b>AI responses are slow</b></summary>
 
-- Try switching to a faster tier (Fast instead of Quality)
-- Google Gemini free tier may have rate limits; consider upgrading
+- Switch to a faster model preset (Fast instead of Quality)
+- Google Gemini free tier may have rate limits — consider using an API key
 - Check your internet connection
 
 </details>
@@ -362,9 +417,19 @@ vars/
 <details>
 <summary><b>"API key not configured" error</b></summary>
 
-- Open Settings (⚙️) and enter your API key
-- Make sure you selected the correct provider (OpenAI or Google)
-- Verify your API key is valid at the provider's dashboard
+- Open Settings (⚙️) → IA tab
+- Choose a connection type and enter credentials
+- If using OAuth, click Login and authenticate in the browser
+- If using API key, paste your key and click Test
+
+</details>
+
+<details>
+<summary><b>Local Whisper not working</b></summary>
+
+- Make sure you downloaded a model in Settings → IA tab → Whisper section
+- The "Small" model (466 MB) is recommended for best accuracy
+- If you get errors, try deleting and re-downloading the model
 
 </details>
 

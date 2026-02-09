@@ -178,21 +178,30 @@ jobs:
             exit 1
           fi
 
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Recreate DMG with signed app
         run: |
-          # Remove old DMG
           rm -f dist/*.dmg
           
-          # Create a staging folder for the DMG content
           mkdir -p dist/dmg-staging
           cp -r "dist/mac-arm64/VARS.app" dist/dmg-staging/
           
-          # Create a symbolic link to /Applications
-          ln -s /Applications dist/dmg-staging/Applications
-          
-          # Create DMG manually using hdiutil from the staging folder
           DMG_NAME="VARS-mac-arm64.dmg"
-          hdiutil create -volname "VARS" -srcfolder "dist/dmg-staging" -ov -format UDZO "dist/$DMG_NAME"
+          
+          # create-dmg returns exit code 2 if DMG created but code signing failed (expected without cert)
+          create-dmg \
+            --volname "VARS" \
+            --window-pos 200 120 \
+            --window-size 560 440 \
+            --icon-size 80 \
+            --icon "VARS.app" 130 220 \
+            --app-drop-link 410 220 \
+            --no-internet-enable \
+            "dist/$DMG_NAME" \
+            "dist/dmg-staging/" || test $? -eq 2
+          
           echo "Created: dist/$DMG_NAME"
           ls -la dist/*.dmg
 
@@ -245,7 +254,7 @@ jobs:
           # Pre-download Electron binary to avoid timeouts
           ELECTRON_VERSION=$(node -p "require('electron/package.json').version")
           echo "Pre-downloading Electron v$ELECTRON_VERSION for x64..."
-          mkdir -p ~/Library/Caches/electron
+          mkdir -p ~/Library/Caches/electron 
           cd ~/Library/Caches/electron
           curl -L -O --retry 5 --retry-delay 10 https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-darwin-x64.zip
           cd -
