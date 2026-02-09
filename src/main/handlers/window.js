@@ -53,6 +53,8 @@ function setupWindowHandlers(context) {
     // Window resize with cooldown
     let lastResizeTime = 0;
     const RESIZE_COOLDOWN = 1000;
+    // Larger threshold on Linux to prevent resize loops due to WM variations
+    const RESIZE_THRESHOLD = process.platform === 'linux' ? 80 : 20;
 
     ipcMain.on('update-content-bounds', (event, bounds) => {
         const now = Date.now();
@@ -63,7 +65,7 @@ function setupWindowHandlers(context) {
             const currentBounds = mainWindow.getBounds();
             const newHeight = Math.ceil(bounds.height);
 
-            if (Math.abs(currentBounds.height - newHeight) > 20) {
+            if (Math.abs(currentBounds.height - newHeight) > RESIZE_THRESHOLD) {
                 lastResizeTime = now;
                 mainWindow.setSize(currentBounds.width, newHeight);
             }

@@ -12,6 +12,10 @@ import { elements } from '../ui/elements.js';
  */
 export function startBoundsTracking() {
     // Send bounds less frequently to avoid conflicts with zoom
+    // On Linux, use longer interval to prevent resize loops
+    const isLinux = window.electronAPI.platform === 'linux';
+    const updateInterval = isLinux ? 1000 : 500; // 1000ms on Linux, 500ms on other platforms
+    
     setInterval(() => {
         // Skip bounds update if we are currently zooming to prevent resonance loops
         if (state.isZooming) return;
@@ -25,5 +29,5 @@ export function startBoundsTracking() {
                 height: rect.height
             });
         }
-    }, 500); // Slower updates to reduce resize loop risk
+    }, updateInterval); // Slower updates to reduce resize loop risk
 }
