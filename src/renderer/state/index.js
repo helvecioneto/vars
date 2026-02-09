@@ -52,6 +52,9 @@ export const state = {
     isFinalizing: false, // Flag to prevent intermediate transcriptions during finalization
     transcriptionInterval: null,
 
+    // Local Whisper PCM capture (raw 16kHz mono Float32 chunks)
+    pcmChunks: [],
+
     // Auto-save
     saveTimeout: null,
 
@@ -236,6 +239,18 @@ export function setCurrentQRIndex(index) {
 
 export function setRetryResetTimeout(timeout) {
     state.retryResetTimeout = timeout;
+}
+
+export function setPcmChunks(chunks) {
+    state.pcmChunks = chunks;
+}
+
+export function addPcmChunk(chunk) {
+    state.pcmChunks.push(chunk);
+}
+
+export function clearPcmChunks() {
+    state.pcmChunks = [];
 }
 
 export function setOpacity(value) {

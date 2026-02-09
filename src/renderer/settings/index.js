@@ -6,29 +6,99 @@
 import { state, setCurrentMode } from '../state/index.js';
 import { elements } from '../ui/elements.js';
 import { startQRCodeCarousel, stopQRCodeCarousel } from './qr-carousel.js';
-import { updateAPIKeyVisibility } from './api-key.js';
-import { populateProviderOptions, populateModelOptions, updateModelDisplay } from './model-selection.js';
+import { initConnectionType, initCodexAuth } from './api-key.js';
+import { updateModelDisplay } from './model-selection.js';
 import { populateDevices, populateSystemAudioDevices } from './devices.js';
 import { setupAutoSave } from './auto-save.js';
 import { updateFileList } from './knowledge-base.js';
 import { initInterfaceSettings } from './interface.js';
+import { initWhisperSettings } from './whisper.js';
+
+/**
+ * Populate quality preset <select> with model names from models.json
+ */
+async function populateQualityPresetOptions() {
+    const qualitySelect = document.getElementById('quality-preset');
+    if (!qualitySelect) return;
+
+    try {
+        const modelsConfig = await window.electronAPI.getModels();
+        if (!modelsConfig?.providers) return;
+
+        // Clear all but the first "Auth" option
+        qualitySelect.innerHTML = '<option value="auth">Auth (Default)</option>';
+
+        // Helper: get first model name (handle arrays for free tier)
+        const getModelName = (provider, tier) => {
+            const tierConfig = modelsConfig.providers[provider]?.[tier];
+            if (!tierConfig?.analyze) return null;
+            const model = Array.isArray(tierConfig.analyze) ? tierConfig.analyze[0] : tierConfig.analyze;
+            return model;
+        };
+
+        // Tier labels
+        const tierLabels = { free: 'Free', fast: 'Fast', balanced: 'Balanced', quality: 'Quality' };
+
+        // OpenAI group
+        const openaiGroup = document.createElement('optgroup');
+        openaiGroup.label = 'OpenAI (API Key)';
+        ['fast', 'balanced', 'quality'].forEach(tier => {
+            const model = getModelName('openai', tier);
+            if (model) {
+                const opt = document.createElement('option');
+                opt.value = `openai-${tier}`;
+                opt.textContent = `${tierLabels[tier]} (${model})`;
+                openaiGroup.appendChild(opt);
+            }
+        });
+        if (openaiGroup.children.length > 0) qualitySelect.appendChild(openaiGroup);
+
+        // Gemini group
+        const googleGroup = document.createElement('optgroup');
+        googleGroup.label = 'Gemini (API Key)';
+        ['free', 'fast', 'balanced', 'quality'].forEach(tier => {
+            const model = getModelName('google', tier);
+            if (model) {
+                const opt = document.createElement('option');
+                opt.value = `google-${tier}`;
+                opt.textContent = `${tierLabels[tier]} (${model})`;
+                googleGroup.appendChild(opt);
+            }
+        });
+        if (googleGroup.children.length > 0) qualitySelect.appendChild(googleGroup);
+    } catch (error) {
+        console.error('[Settings] Failed to populate quality presets:', error);
+        // Fallback
+        qualitySelect.innerHTML = `
+            <option value="auth">Auth (Default)</option>
+            <optgroup label="OpenAI (API Key)">
+                <option value="openai-fast">Fast</option>
+                <option value="openai-balanced">Balanced</option>
+                <option value="openai-quality">Quality</option>
+            </optgroup>
+            <optgroup label="Gemini (API Key)">
+                <option value="google-free">Free</option>
+                <option value="google-fast">Fast</option>
+                <option value="google-balanced">Balanced</option>
+                <option value="google-quality">Quality</option>
+            </optgroup>
+        `;
+    }
+}
 
 /**
  * Initialize settings module
  */
 export async function initSettings() {
-    // Populate provider options first
-    await populateProviderOptions();
+    // Populate quality preset options with model names
+    await populateQualityPresetOptions();
 
-    // Apply config to UI before populating model options
+    // Apply config to UI first
     applyConfigToUI();
-
-    // Now populate model options (tier buttons) - they need provider to be set
-    await populateModelOptions();
 
     // Initial devices population
     await populateDevices();
-    await populateSystemAudioDevices(); // Potentially slow on first load
+    await populateSystemAudioDevices();
 
     // Setup auto-save listeners
     setupAutoSave();
@@ -38,6 +108,13 @@ export async function initSettings() {
 
     // Init Interface Settings (Opacity)
     initInterfaceSettings();
+
+    // Init Connection Type selector and Codex Auth
+    initConnectionType();
+    initCodexAuth();
+
+    // Init Local Whisper Settings
+    initWhisperSettings();
 }
 
 /**
@@ -51,9 +128,27 @@ export function applyConfigToUI() {
         elements.googleApiKeyInput.value = state.config.googleApiKey || '';
     }
 
-    // Set provider
-    if (elements.providerSelect) {
-        elements.providerSelect.value = state.config.provider || 'openai';
+    // Connection type
+    const connectionSelect = document.getElementById('connection-type');
+    if (connectionSelect) {
+        connectionSelect.value = state.config.connectionType || 'oauth';
+    }
+
+    // Quality preset
+    const qualitySelect = document.getElementById('quality-preset');
+    if (qualitySelect) {
+        qualitySelect.value = state.config.qualityPreset || 'auth';
+    }
+
+    // Transcription preset
+    const transcriptionSelect = document.getElementById('transcription-preset');
+    if (transcriptionSelect) {
+        transcriptionSelect.value = state.config.transcriptionPreset || 'local';
+    }
+
+    // Whisper model
+    if (elements.whisperModelSelect) {
+        elements.whisperModelSelect.value = state.config.whisperModel || 'small';
     }
 
     // Language
@@ -70,9 +165,6 @@ export function applyConfigToUI() {
     if (elements.briefModeCheckbox) {
         elements.briefModeCheckbox.checked = state.config.briefMode || false;
     }
-
-    // Update API Key visibility based on provider
-    updateAPIKeyVisibility();
 
     updateFileList();
     updateModelDisplay();

@@ -8,7 +8,6 @@ import { elements } from '../ui/elements.js';
 import { toggleSettings, setupSettingsTabs, applyConfigToUI } from '../settings/index.js';
 import { toggleVisibilityMode } from '../ui/visibility.js';
 import { handleFileSelection, handleTrainKB, handleResetKB, updateFileList } from '../settings/knowledge-base.js';
-import { testAPIKey } from '../settings/api-key.js';
 import { handleKeyboardSubmit, handleInputModeChange, handleInputSubmit } from '../input/index.js';
 import { handleRecordingToggle, startRecording, stopRecording } from '../recording/index.js';
 import { zoomIn, zoomOut, resetZoom, handleZoomShortcut } from '../ui/zoom.js';
@@ -17,7 +16,7 @@ import { captureAndAnalyzeScreen, processScreenshotAction } from '../screenshot/
 import { nextOnboardingStep, skipOnboarding } from '../onboarding/index.js';
 import { updateButtonTooltips } from '../ui/tooltips.js';
 import { autoSaveConfig, setupAutoSave } from '../settings/auto-save.js';
-import { populateModelOptions, updateModelDisplay, handleFreeTierRetry } from '../settings/model-selection.js';
+import { updateModelDisplay, handleFreeTierRetry } from '../settings/model-selection.js';
 import { populateDevices, populateSystemAudioDevices } from '../settings/devices.js';
 
 /**
@@ -78,15 +77,7 @@ export function setupEventListeners() {
         elements.resetKbBtn.addEventListener('click', handleResetKB);
     }
 
-    // API Key Testing
-    const testApiBtn = document.getElementById('test-api-btn');
-    if (testApiBtn) {
-        testApiBtn.addEventListener('click', testAPIKey);
-    }
-    const testGoogleApiBtn = document.getElementById('test-google-api-btn');
-    if (testGoogleApiBtn) {
-        testGoogleApiBtn.addEventListener('click', testAPIKey);
-    }
+    // API Key Testing — handled by initCodexAuth() in api-key.js
 
     // Input Handling
     if (elements.submitKeyboardBtn) {

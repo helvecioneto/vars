@@ -21,32 +21,32 @@ export const ONBOARDING_STEPS = [
         showTooltip: false,
         tab: null
     },
-    // Step 1: Provider selection (API tab)
+    // Step 1: Connection type (IA tab)
     {
-        id: 'provider',
-        targetSelector: '.form-group:has(#provider-select)',
-        message: 'Choose your AI provider.',
+        id: 'connection',
+        targetSelector: '.form-group:has(#connection-type)',
+        message: 'Choose how to connect: OpenAI Login (free) or API Keys.',
         waitForClick: false,
         showTooltip: true,
-        tab: 'api'
+        tab: 'ai'
     },
-    // Step 2: Quality tier (API tab)
+    // Step 2: Model preset (IA tab)
     {
-        id: 'tier',
-        targetSelector: '.form-group:has(#tier-buttons)',
-        message: 'Select quality of response.',
+        id: 'quality',
+        targetSelector: '.form-group:has(#quality-preset)',
+        message: 'Select the AI model.',
         waitForClick: false,
         showTooltip: true,
-        tab: 'api'
+        tab: 'ai'
     },
-    // Step 3: API Key (API tab)
+    // Step 3: Transcription (IA tab)
     {
-        id: 'api-key',
-        targetSelector: '#api-key-container',
-        message: 'Enter your API key. Click "Get Key" to create one.',
+        id: 'transcription',
+        targetSelector: '.form-group:has(#transcription-preset)',
+        message: 'Choose transcription: Local Whisper (free) or Cloud API.',
         waitForClick: false,
         showTooltip: true,
-        tab: 'api'
+        tab: 'ai'
     },
     // Step 4: Language (Behavior tab - auto switches)
     {

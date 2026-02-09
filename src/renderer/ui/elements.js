@@ -59,7 +59,6 @@ export function getElements() {
         // Settings inputs
         apiKeyInput: document.getElementById('api-key'),
         googleApiKeyInput: document.getElementById('google-api-key'),
-        providerSelect: document.getElementById('provider-select'),
         modelSelect: document.getElementById('model-select'),
         languageSelect: document.getElementById('language-select'),
         systemPromptInput: document.getElementById('system-prompt'),
@@ -67,6 +66,23 @@ export function getElements() {
         inputDeviceSelect: document.getElementById('input-device'),
         systemAudioDeviceSelect: document.getElementById('system-audio-device'),
         refreshAudioBtn: document.getElementById('refresh-audio-btn'),
+
+        // Connection / Quality / Transcription selects
+        connectionTypeSelect: document.getElementById('connection-type'),
+        qualityPresetSelect: document.getElementById('quality-preset'),
+        transcriptionPresetSelect: document.getElementById('transcription-preset'),
+
+        // Transcription / Whisper
+        whisperLocalSection: document.getElementById('whisper-local-section'),
+        whisperModelSelect: document.getElementById('whisper-model-select'),
+        whisperModelGroup: document.getElementById('whisper-model-group'),
+        whisperModelStatus: document.getElementById('whisper-model-status'),
+        whisperStatusText: document.getElementById('whisper-status-text'),
+        whisperDownloadBtn: document.getElementById('whisper-download-btn'),
+        whisperDeleteBtn: document.getElementById('whisper-delete-btn'),
+        whisperProgressBar: document.getElementById('whisper-progress-bar'),
+        whisperProgressFill: document.getElementById('whisper-progress-fill'),
+        whisperProgressText: document.getElementById('whisper-progress-text'),
         trainBtn: document.getElementById('train-btn'),
         resetKbBtn: document.getElementById('reset-kb-btn'),
         kbStatus: document.getElementById('kb-status'),

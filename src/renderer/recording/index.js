@@ -115,11 +115,10 @@ export async function startRecording() {
             return;
         }
 
-        // Setup MediaRecorder for regular audio (microphone or Windows/macOS system audio)
         const audioStream = new MediaStream(audioTracks);
-        const mediaRecorder = new MediaRecorder(audioStream, {
-            mimeType: 'audio/webm;codecs=opus'
-        });
+        const mimeType = 'audio/webm;codecs=opus';
+        
+        const mediaRecorder = new MediaRecorder(audioStream, { mimeType });
         setMediaRecorder(mediaRecorder);
 
         mediaRecorder.ondataavailable = (event) => {

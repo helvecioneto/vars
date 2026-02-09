@@ -7,9 +7,12 @@ const { ipcMain } = require('electron');
 const { getModelForTier, getModelListForTier, getRetryConfig } = require('../config');
 const { transcribeAudio } = require('../providers/openai');
 const { transcribeAudioGoogle } = require('../providers/google');
+const { isOAuthToken } = require('../providers/openai/client');
 const { RealtimeTranscription } = require('../providers/openai/realtime');
 const { GeminiRealtimeTranscription } = require('../providers/google/realtime');
 const systemAudio = require('../system-audio');
+const { getValidAccessToken } = require('../providers/openai/codex-auth');
+const { transcribeLocal, isLocalWhisperAvailable, isModelDownloaded, getModelsStatus, downloadModel, deleteModel, getLoadedModelInfo, DEFAULT_MODEL } = require('../providers/local');
 
 // Active realtime transcription session
 let activeRealtimeSession = null;
@@ -29,11 +32,41 @@ function setupAudioHandlers(context) {
     // Transcribe audio
     ipcMain.handle('transcribe-audio', async (event, audioBuffer) => {
         const config = getConfig();
-        const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const transcriptionPreset = config.transcriptionPreset || 'local';
+
+        // Local Whisper transcription — no API key needed
+        if (transcriptionPreset === 'local') {
+            try {
+                const buffer = Array.isArray(audioBuffer) ? Buffer.from(audioBuffer) : audioBuffer;
+                const language = config.language || 'auto';
+                const modelName = config.whisperModel || DEFAULT_MODEL;
+                const text = await transcribeLocal(buffer, language, modelName);
+                return { text };
+            } catch (error) {
+                console.error('[Audio] Local Whisper error:', error.message);
+                return { error: error.message };
+            }
+        }
+
+        // Determine transcription provider and API key from preset
+        let transcriptionProvider, apiKey;
+
+        if (transcriptionPreset === 'openai-api') {
+            // Use OpenAI Whisper with API key
+            transcriptionProvider = 'openai';
+            apiKey = config.apiKey;
+        } else if (transcriptionPreset === 'google-api') {
+            // Use Google Gemini for transcription
+            transcriptionProvider = 'google';
+            apiKey = config.googleApiKey;
+        } else {
+            // Fallback: legacy config support
+            transcriptionProvider = config.provider || 'openai';
+            apiKey = transcriptionProvider === 'google' ? config.googleApiKey : config.apiKey;
+        }
 
         if (!apiKey) {
-            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+            return { error: `${transcriptionProvider === 'google' ? 'Google' : 'OpenAI'} API key not configured for transcription` };
         }
 
         try {
@@ -41,10 +74,10 @@ function setupAudioHandlers(context) {
             const buffer = Array.isArray(audioBuffer) ? Buffer.from(audioBuffer) : audioBuffer;
 
             let transcription;
-            if (provider === 'google') {
+            if (transcriptionProvider === 'google') {
                 if (tier === 'free') {
-                    const modelList = getModelListForTier(provider, tier, 'transcribe');
-                    const retryConfig = getRetryConfig(provider, tier);
+                    const modelList = getModelListForTier('google', 'free', 'transcribe');
+                    const retryConfig = getRetryConfig('google', 'free');
                     const onProgress = (data) => {
                         const mainWindow = getMainWindow();
                         if (mainWindow) {
@@ -53,11 +86,23 @@ function setupAudioHandlers(context) {
                     };
                     transcription = await transcribeAudioGoogle(buffer, apiKey, modelList, retryConfig, onProgress);
                 } else {
-                    const transcribeModel = getModelForTier(provider, tier, 'transcribe');
+                    const transcribeModel = getModelForTier('google', 'balanced', 'transcribe');
                     transcription = await transcribeAudioGoogle(buffer, apiKey, transcribeModel);
                 }
+            } else if (isOAuthToken(apiKey)) {
+                // OAuth tokens can't use Whisper API — fall back
+                const googleKey = config.googleApiKey;
+                if (googleKey) {
+                    console.log('[Audio] OAuth active — using Google Gemini for transcription');
+                    transcription = await transcribeAudioGoogle(buffer, googleKey, 'gemini-2.0-flash-lite');
+                } else if (isLocalWhisperAvailable() && await isModelDownloaded(DEFAULT_MODEL)) {
+                    console.log('[Audio] OAuth active, no Google key — using Local Whisper');
+                    transcription = await transcribeLocal(buffer, config.language || 'auto');
+                } else {
+                    throw new Error('OAuth transcription requires a Google API key, or download a Local Whisper model.');
+                }
             } else {
-                const transcribeModel = getModelForTier(provider, tier, 'transcribe');
+                const transcribeModel = getModelForTier('openai', 'balanced', 'transcribe');
                 transcription = await transcribeAudio(buffer, apiKey, transcribeModel);
             }
 
@@ -74,7 +119,27 @@ function setupAudioHandlers(context) {
     ipcMain.handle('realtime-start', async () => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        let apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+
+        // Try Codex auth for OpenAI if enabled
+        if (provider !== 'google' && config.useCodexAuth) {
+            let oauthToken = null;
+            try {
+                const tokenData = await getValidAccessToken();
+                if (tokenData && tokenData.accessToken) {
+                    oauthToken = tokenData.accessToken;
+                }
+            } catch (err) {
+                console.warn('[Realtime] Codex auth failed:', err.message);
+            }
+            if (oauthToken) {
+                apiKey = oauthToken;
+            } else {
+                // OAuth mode active but no valid token — do NOT fall back to API key
+                console.warn('[Realtime] OAuth required but not authenticated.');
+                apiKey = null;
+            }
+        }
 
         console.log('[Realtime] Provider:', provider);
 
@@ -208,6 +273,57 @@ function setupAudioHandlers(context) {
     // System audio - is capturing
     ipcMain.handle('system-audio:is-capturing', async () => {
         return { capturing: systemAudio.isCapturing() };
+    });
+
+    // ======== Local Whisper Model Management ========
+
+    // Check if local whisper is available on this platform
+    ipcMain.handle('whisper:available', async () => {
+        return { available: isLocalWhisperAvailable() };
+    });
+
+    // Get status of all whisper models
+    ipcMain.handle('whisper:models-status', async () => {
+        try {
+            const models = await getModelsStatus();
+            return { models };
+        } catch (error) {
+            return { error: error.message };
+        }
+    });
+
+    // Download a whisper model
+    ipcMain.handle('whisper:download-model', async (event, modelName) => {
+        try {
+            const mainWindow = getMainWindow();
+            const onProgress = (progress) => {
+                if (mainWindow) {
+                    mainWindow.webContents.send('whisper:download-progress', {
+                        model: modelName,
+                        ...progress,
+                    });
+                }
+            };
+            const modelPath = await downloadModel(modelName, onProgress);
+            return { success: true, path: modelPath };
+        } catch (error) {
+            return { error: error.message };
+        }
+    });
+
+    // Delete a whisper model
+    ipcMain.handle('whisper:delete-model', async (event, modelName) => {
+        try {
+            await deleteModel(modelName);
+            return { success: true };
+        } catch (error) {
+            return { error: error.message };
+        }
+    });
+
+    // Get loaded model info
+    ipcMain.handle('whisper:loaded-model', async () => {
+        return getLoadedModelInfo();
     });
 }
 

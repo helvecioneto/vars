@@ -19,6 +19,30 @@ const {
     createGoogleKnowledgeBase,
     resetGoogleKnowledgeBase
 } = require('../providers/google');
+const { getValidAccessToken } = require('../providers/openai/codex-auth');
+
+/**
+ * Resolve the OpenAI API key, preferring Codex CLI token when configured
+ * @param {object} config - App configuration
+ * @returns {Promise<string|null>} API key or OAuth token
+ */
+async function resolveOpenAIKey(config) {
+    if (config.useCodexAuth) {
+        try {
+            const tokenData = await getValidAccessToken();
+            if (tokenData && tokenData.accessToken) {
+                console.log('[AI Handler] Using Codex CLI OAuth token');
+                return tokenData.accessToken;
+            }
+        } catch (err) {
+            console.warn('[AI Handler] Codex auth failed:', err.message);
+        }
+        // OAuth mode active but no valid token — do NOT fall back to API key
+        console.warn('[AI Handler] OAuth required but not authenticated. Not falling back to API key.');
+        return null;
+    }
+    return config.apiKey || null;
+}
 
 /**
  * Setup AI-related IPC handlers
@@ -31,10 +55,12 @@ function setupAIHandlers(context) {
     ipcMain.handle('get-ai-response', async (event, transcription) => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const apiKey = provider === 'google'
+            ? config.googleApiKey
+            : await resolveOpenAIKey(config);
 
         if (!apiKey) {
-            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
+            return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured. Set an API key or login with Codex CLI.` };
         }
 
         try {
@@ -117,7 +143,9 @@ function setupAIHandlers(context) {
     ipcMain.handle('knowledge-base:create', async () => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const apiKey = provider === 'google'
+            ? config.googleApiKey
+            : await resolveOpenAIKey(config);
 
         if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
         if (!config.knowledgeBasePaths || config.knowledgeBasePaths.length === 0) {
@@ -152,7 +180,9 @@ function setupAIHandlers(context) {
     ipcMain.handle('knowledge-base:reset', async () => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const apiKey = provider === 'google'
+            ? config.googleApiKey
+            : await resolveOpenAIKey(config);
 
         if (!apiKey) return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
 
@@ -181,7 +211,9 @@ function setupAIHandlers(context) {
     ipcMain.handle('analyze-image', async (event, { imageData, prompt, windowTitle }) => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const apiKey = provider === 'google'
+            ? config.googleApiKey
+            : await resolveOpenAIKey(config);
 
         if (!apiKey) {
             return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };
@@ -235,7 +267,9 @@ Be direct and helpful. Focus on actionable information.`;
     ipcMain.handle('optimize-prompt', async (event, userInput) => {
         const config = getConfig();
         const provider = config.provider || 'openai';
-        const apiKey = provider === 'google' ? config.googleApiKey : config.apiKey;
+        const apiKey = provider === 'google'
+            ? config.googleApiKey
+            : await resolveOpenAIKey(config);
 
         if (!apiKey) {
             return { error: `${provider === 'google' ? 'Google' : 'OpenAI'} API key not configured` };

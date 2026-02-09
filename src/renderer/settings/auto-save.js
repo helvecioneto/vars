@@ -5,8 +5,7 @@
 
 import { state } from '../state/index.js';
 import { elements } from '../ui/elements.js';
-import { updateAPIKeyVisibility } from './api-key.js';
-import { populateModelOptions, updateModelDisplay } from './model-selection.js';
+import { updateModelDisplay } from './model-selection.js';
 import { populateSystemAudioDevices } from './devices.js';
 
 let saveTimeout = null;
@@ -19,10 +18,10 @@ export function setupAutoSave() {
     const inputs = [
         elements.apiKeyInput,
         elements.googleApiKeyInput,
-        elements.providerSelect,
         elements.languageSelect,
         elements.systemPromptInput,
-        elements.inputDeviceSelect
+        elements.inputDeviceSelect,
+        elements.whisperModelSelect
     ];
 
     inputs.forEach(input => {
@@ -32,14 +31,14 @@ export function setupAutoSave() {
         }
     });
 
-    // Add specific listener for provider change to update API Key visibility
-    if (elements.providerSelect) {
-        elements.providerSelect.addEventListener('change', () => {
-            updateAPIKeyVisibility();
-            // Refresh tier buttons to update "Fast (Free)" label based on provider
-            populateModelOptions();
-        });
-    }
+    // Connection type, quality preset, transcription preset selects
+    const connectionType = document.getElementById('connection-type');
+    const qualityPreset = document.getElementById('quality-preset');
+    const transcriptionPreset = document.getElementById('transcription-preset');
+
+    if (connectionType) connectionType.addEventListener('change', autoSaveConfig);
+    if (qualityPreset) qualityPreset.addEventListener('change', autoSaveConfig);
+    if (transcriptionPreset) transcriptionPreset.addEventListener('change', autoSaveConfig);
 
     // System audio device selection
     if (elements.systemAudioDeviceSelect) {
@@ -67,24 +66,64 @@ export function debounceAutoSave() {
 }
 
 /**
+ * Derive provider, tier, useCodexAuth, transcriptionEngine from presets
+ */
+function deriveConfigFromPresets() {
+    const connectionType = document.getElementById('connection-type')?.value || 'oauth';
+    const qualityPreset = document.getElementById('quality-preset')?.value || 'auth';
+    const transcriptionPreset = document.getElementById('transcription-preset')?.value || 'local';
+
+    // Save the preset values
+    state.config.connectionType = connectionType;
+    state.config.qualityPreset = qualityPreset;
+    state.config.transcriptionPreset = transcriptionPreset;
+
+    // Derive authMode
+    state.config.authMode = connectionType === 'oauth' ? 'login' : 'api';
+
+    // Derive provider, tier, useCodexAuth from qualityPreset
+    if (qualityPreset === 'auth') {
+        // "Auth" uses the connection type's provider
+        if (connectionType === 'google-api') {
+            state.config.provider = 'google';
+        } else {
+            state.config.provider = 'openai';
+        }
+        state.config.tier = 'balanced';
+        state.config.useCodexAuth = (connectionType === 'oauth');
+    } else {
+        // Specific preset: "openai-fast", "google-balanced", etc.
+        const dashIndex = qualityPreset.indexOf('-');
+        const providerPart = qualityPreset.substring(0, dashIndex);
+        const tierPart = qualityPreset.substring(dashIndex + 1);
+        state.config.provider = providerPart === 'google' ? 'google' : 'openai';
+        state.config.tier = tierPart;
+        state.config.useCodexAuth = false;
+    }
+
+    // Derive transcriptionEngine from transcriptionPreset
+    state.config.transcriptionEngine = transcriptionPreset === 'local' ? 'local' : 'api';
+}
+
+/**
  * Save configuration to file
  */
 export async function autoSaveConfig() {
     if (saveTimeout) clearTimeout(saveTimeout);
 
+    // Derive provider/tier/auth from the preset selectors
+    deriveConfigFromPresets();
+
+    // Save direct input values
     state.config.apiKey = elements.apiKeyInput?.value?.trim() || '';
     state.config.googleApiKey = elements.googleApiKeyInput?.value?.trim() || '';
-    // Save provider and tier
-    state.config.provider = elements.providerSelect?.value || 'openai';
-    // Tier is managed by tier buttons
-    const activeTierBtn = document.querySelector('.tier-btn.active');
-    state.config.tier = activeTierBtn?.dataset?.tier || state.config.tier || 'balanced';
     state.config.language = elements.languageSelect?.value || 'en';
     state.config.systemPrompt = elements.systemPromptInput?.value?.trim() || '';
     state.config.inputDeviceId = elements.inputDeviceSelect?.value || 'default';
     state.config.systemAudioDeviceId = elements.systemAudioDeviceSelect?.value || '';
     state.config.inputMode = state.currentInputMode;
     state.config.briefMode = elements.briefModeCheckbox?.checked || false;
+    state.config.whisperModel = elements.whisperModelSelect?.value || 'small';
 
     try {
         await window.electronAPI.saveConfig(state.config);

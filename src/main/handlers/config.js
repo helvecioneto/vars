@@ -3,8 +3,9 @@
  * Handles configuration, models, and API key testing
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const { saveConfig, getModels, getModelForTier } = require('../config');
+const { checkCodexAuthStatus, disconnectCodexAuth, readCodexCredentials, getValidAccessToken, loginWithOAuth } = require('../providers/openai/codex-auth');
 
 /**
  * Setup configuration-related IPC handlers
@@ -68,6 +69,93 @@ function setupConfigHandlers(context) {
                     ? 'Invalid API key'
                     : error.message
             };
+        }
+    });
+
+    // --- Codex CLI Authentication Handlers ---
+
+    // Check Codex CLI auth status
+    ipcMain.handle('codex-auth:status', async () => {
+        try {
+            return await checkCodexAuthStatus();
+        } catch (error) {
+            return {
+                authenticated: false,
+                source: null,
+                message: error.message,
+            };
+        }
+    });
+
+    // Login with OpenAI OAuth (PKCE flow via browser)
+    ipcMain.handle('codex-auth:login', async () => {
+        try {
+            // First check if credentials already exist and are valid
+            const creds = readCodexCredentials();
+            if (creds) {
+                const status = await checkCodexAuthStatus();
+                if (status.authenticated) {
+                    // Already authenticated — just enable codex auth mode
+                    const config = getConfig();
+                    config.useCodexAuth = true;
+                    setConfig(config);
+                    await saveConfig(config);
+                    return {
+                        success: true,
+                        message: 'Connected! Using your OpenAI credits.',
+                        status,
+                    };
+                }
+            }
+
+            // Run the full OAuth PKCE login flow
+            const result = await loginWithOAuth((url) => shell.openExternal(url));
+
+            if (result.success) {
+                // Enable codex auth mode in config
+                const config = getConfig();
+                config.useCodexAuth = true;
+                setConfig(config);
+                await saveConfig(config);
+                return {
+                    success: true,
+                    message: 'Successfully logged in! Using your OpenAI credits.',
+                    status: {
+                        authenticated: true,
+                        accountId: result.accountId,
+                    },
+                };
+            }
+
+            return { success: false, message: 'Login failed. Please try again.' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message,
+            };
+        }
+    });
+
+    // Disconnect Codex CLI auth
+    ipcMain.handle('codex-auth:disconnect', async () => {
+        try {
+            const config = getConfig();
+            config.useCodexAuth = false;
+            setConfig(config);
+            await saveConfig(config);
+            return disconnectCodexAuth();
+        } catch (error) {
+            return { success: false, message: error.message };
+        }
+    });
+
+    // Get a valid access token for API calls
+    ipcMain.handle('codex-auth:get-token', async () => {
+        try {
+            const tokenData = await getValidAccessToken();
+            return { success: true, ...tokenData };
+        } catch (error) {
+            return { success: false, message: error.message };
         }
     });
 }

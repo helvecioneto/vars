@@ -72,8 +72,25 @@ function createWindow() {
         mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
+    // DEBUG: Disabled to test if DevTools causes crash
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
+
     mainWindow.on('closed', () => {
         mainWindow = null;
+    });
+
+    // Handle renderer process crashes — reload instead of leaving blank window
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+        console.error('[MAIN] Renderer process gone:', details.reason, details.exitCode);
+        // Temporarily disable auto-reload for debugging
+        // if (mainWindow && !mainWindow.isDestroyed()) {
+        //     setTimeout(() => {
+        //         if (mainWindow && !mainWindow.isDestroyed()) {
+        //             console.log('[MAIN] Reloading renderer...');
+        //             mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+        //         }
+        //     }, 1000);
+        // }
     });
 }
 
@@ -402,4 +419,18 @@ app.on('will-quit', () => {
 
 app.on('before-quit', () => {
     app.isQuitting = true;
+    // Terminate whisper worker thread on quit
+    try {
+        const { terminateWorker } = require('./providers/local');
+        terminateWorker();
+    } catch { /* ignore */ }
+});
+
+// Protect main process from crashing on unexpected errors
+process.on('uncaughtException', (error) => {
+    console.error('[MAIN] Uncaught exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[MAIN] Unhandled rejection:', reason);
 });

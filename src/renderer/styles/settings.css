@@ -103,6 +103,84 @@
     display: block;
 }
 
+/* Section Labels */
+.settings-section-label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+}
+
+/* Auth Mode Selector (legacy) */
+.auth-mode-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.auth-mode-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.auth-mode-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.auth-mode-btn.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-light);
+}
+
+.auth-mode-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+/* Connection Content Sections */
+.connection-content {
+    margin-bottom: 8px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.connection-content.hidden {
+    display: none;
+}
+
+/* Auth Content Sections (legacy) */
+.auth-content {
+    margin-bottom: 8px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.auth-content.hidden {
+    display: none;
+}
+
 /* Section Title with Icon */
 .settings-section-title {
     display: flex;

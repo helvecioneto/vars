@@ -78,6 +78,6 @@
         "balanced",
         "quality"
     ],
-    "defaultProvider": "google",
-    "defaultTier": "free"
+    "defaultProvider": "openai",
+    "defaultTier": "balanced"
 }

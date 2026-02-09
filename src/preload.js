@@ -76,6 +76,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // API Key Testing
     testAPIKey: (provider, apiKey, tier) => ipcRenderer.invoke('test-api-key', provider, apiKey, tier),
 
+    // Codex CLI Authentication
+    codexAuth: {
+        status: () => ipcRenderer.invoke('codex-auth:status'),
+        login: () => ipcRenderer.invoke('codex-auth:login'),
+        disconnect: () => ipcRenderer.invoke('codex-auth:disconnect'),
+        getToken: () => ipcRenderer.invoke('codex-auth:get-token'),
+    },
+
     // Prompt Optimization
     optimizePrompt: (userInput) => ipcRenderer.invoke('optimize-prompt', userInput),
 
@@ -120,6 +128,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getAudioFinal: () => ipcRenderer.invoke('system-audio:get-audio-final'),
         getBufferSize: () => ipcRenderer.invoke('system-audio:get-buffer-size'),
         isCapturing: () => ipcRenderer.invoke('system-audio:is-capturing')
+    },
+
+    // Local Whisper (offline transcription)
+    whisper: {
+        isAvailable: () => ipcRenderer.invoke('whisper:available'),
+        getModelsStatus: () => ipcRenderer.invoke('whisper:models-status'),
+        downloadModel: (modelName) => ipcRenderer.invoke('whisper:download-model', modelName),
+        deleteModel: (modelName) => ipcRenderer.invoke('whisper:delete-model', modelName),
+        getLoadedModel: () => ipcRenderer.invoke('whisper:loaded-model'),
+        onDownloadProgress: (callback) => {
+            ipcRenderer.on('whisper:download-progress', (event, data) => callback(data));
+        },
     },
 
     // Permission handling (macOS)

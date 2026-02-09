@@ -135,12 +135,24 @@ function getDefaultConfig() {
     return {
         apiKey: '',
         googleApiKey: '', // Separate API key for Google Gemini
-        // New tier-based model selection
+        // Connection type: 'oauth' | 'openai-api' | 'google-api'
+        connectionType: 'oauth',
+        // Quality preset: 'auth' | 'openai-fast' | 'openai-balanced' | 'openai-quality' | 'google-free' | 'google-fast' | 'google-balanced' | 'google-quality'
+        qualityPreset: 'auth',
+        // Transcription preset: 'local' | 'auth' | 'openai-api' | 'google-api'
+        transcriptionPreset: 'local',
+        // Authentication mode (derived from connectionType)
+        authMode: 'login',
+        useCodexAuth: true,
+        // Provider and tier (derived from qualityPreset)
         provider: defaultProvider,
         tier: defaultTier,
         // Legacy fields kept for backward compatibility
         model: getModelForTier(defaultProvider, defaultTier, 'analyze'),
-        whisperModel: getModelForTier(defaultProvider, defaultTier, 'transcribe'),
+        // Transcription engine (derived from transcriptionPreset)
+        transcriptionEngine: 'local',
+        // Whisper model: 'small' is the recommended default
+        whisperModel: 'small',
         systemPrompt: getPromptForLanguage('defaults.systemPrompt', defaultLanguage),
         knowledgeBasePaths: [],
         // Language for AI responses: 'en', 'es', 'pt-br'
@@ -186,6 +198,51 @@ async function loadConfig() {
                 savedConfig.tier = 'balanced';
             }
             savedConfig.provider = 'openai';
+        }
+
+        // Migration: derive connectionType from legacy fields
+        if (!savedConfig.connectionType) {
+            if (savedConfig.useCodexAuth || savedConfig.authMode === 'login') {
+                savedConfig.connectionType = 'oauth';
+            } else if (savedConfig.googleApiKey && !savedConfig.apiKey) {
+                savedConfig.connectionType = 'google-api';
+            } else if (savedConfig.apiKey) {
+                savedConfig.connectionType = 'openai-api';
+            } else {
+                savedConfig.connectionType = 'oauth';
+            }
+        }
+
+        // Migration: derive qualityPreset from legacy provider/tier
+        if (!savedConfig.qualityPreset) {
+            if (savedConfig.useCodexAuth || savedConfig.authMode === 'login') {
+                savedConfig.qualityPreset = 'auth';
+            } else if (savedConfig.provider && savedConfig.tier) {
+                savedConfig.qualityPreset = `${savedConfig.provider}-${savedConfig.tier}`;
+            } else {
+                savedConfig.qualityPreset = 'auth';
+            }
+        }
+
+        // Migration: derive transcriptionPreset from legacy fields
+        if (!savedConfig.transcriptionPreset || savedConfig.transcriptionPreset === 'auth') {
+            if (savedConfig.transcriptionEngine === 'local') {
+                savedConfig.transcriptionPreset = 'local';
+            } else if (savedConfig.provider === 'google') {
+                savedConfig.transcriptionPreset = 'google-api';
+            } else {
+                savedConfig.transcriptionPreset = 'openai-api';
+            }
+        }
+
+        // Migration: derive authMode from connectionType
+        if (!savedConfig.authMode) {
+            savedConfig.authMode = savedConfig.connectionType === 'oauth' ? 'login' : 'api';
+        }
+
+        // Migration: default whisperModel to 'small' for new users
+        if (!savedConfig.whisperModel) {
+            savedConfig.whisperModel = 'small';
         }
 
         return { ...getDefaultConfig(), ...savedConfig };

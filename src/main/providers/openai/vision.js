@@ -3,11 +3,13 @@
  * Image analysis using GPT Vision
  */
 
-const { getClient } = require('./client');
+const { getClient, isOAuthToken } = require('./client');
 const { getPromptForLanguage } = require('../../config');
+const { getCodexResponse } = require('./codex-responses');
 
 /**
  * Analyze an image using OpenAI's Vision API
+ * Automatically routes through Codex Responses API when using OAuth tokens
  */
 async function analyzeImageOpenAI({
     imageData,
@@ -20,20 +22,16 @@ async function analyzeImageOpenAI({
     tierConfig = {},
     briefMode = false
 }) {
-    const openai = getClient(apiKey);
-
     const langInstructions = getPromptForLanguage('language.responseInstruction', language);
     const briefModeInstruction = briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '';
+    const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant that analyzes images and provides detailed descriptions.') + langInstructions + briefModeInstruction;
 
     const visionModel = model.includes('gpt-4') || model.includes('gpt-5') || model.includes('o1')
         ? model
         : 'gpt-4o-mini';
 
     const messages = [
-        {
-            role: 'system',
-            content: (systemPrompt || 'You are a helpful assistant that analyzes images and provides detailed descriptions.') + langInstructions + briefModeInstruction
-        },
+        { role: 'system', content: fullSystemPrompt },
         ...history,
         {
             role: 'user',
@@ -46,6 +44,16 @@ async function analyzeImageOpenAI({
 
     const maxOutputTokens = tierConfig.maxOutputTokens ?? 1500;
 
+    // If using Codex OAuth token, route through the Codex Responses API
+    if (isOAuthToken(apiKey)) {
+        console.log(`[Vision] Using Codex Responses API for image analysis`);
+        return await getCodexResponse(apiKey, visionModel, fullSystemPrompt, messages, maxOutputTokens);
+    }
+
+    // Standard API key flow
+    console.log(`[Vision] Analyzing image with model: ${visionModel}`);
+    const openai = getClient(apiKey);
+
     const params = {
         model: visionModel,
         messages: messages,
@@ -57,8 +65,6 @@ async function analyzeImageOpenAI({
     } else {
         params.temperature = tierConfig.temperature ?? 0.7;
     }
-
-    console.log(`[Vision] Analyzing image with model: ${visionModel}`);
 
     const completion = await openai.chat.completions.create(params);
     return completion.choices[0].message.content;

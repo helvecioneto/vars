@@ -3,29 +3,38 @@
  * Chat completion using GPT models
  */
 
-const { getClient } = require('./client');
+const { getClient, isOAuthToken } = require('./client');
 const { getPromptForLanguage } = require('../../config');
 const { getAssistantResponse } = require('./assistants');
+const { getCodexResponse } = require('./codex-responses');
 
 /**
  * Get chat completion response
+ * Automatically routes through Codex Responses API when using OAuth tokens
  */
 async function getChatCompletionResponse(transcription, apiKey, model, systemPrompt, language = 'en', history = [], tierConfig = {}, briefMode = false) {
-    const openai = getClient(apiKey);
     const langInstructions = getPromptForLanguage('language.responseInstruction', language);
+    const fullSystemPrompt = (systemPrompt || 'You are a helpful assistant.') + langInstructions + (briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '');
 
     const messages = [
-        {
-            role: 'system',
-            content: (systemPrompt || 'You are a helpful assistant.') + langInstructions + (briefMode ? getPromptForLanguage('knowledgeBase.briefMode', language) : '')
-        },
+        { role: 'system', content: fullSystemPrompt },
         ...(history || []),
         { role: 'user', content: transcription }
     ];
 
-    const temperature = tierConfig.temperature ?? 0.7;
     const maxOutputTokens = tierConfig.maxOutputTokens ?? 1000;
 
+    // If using Codex OAuth token, route through the Codex Responses API
+    // Codex tokens cannot use api.openai.com - they must use chatgpt.com/backend-api
+    if (isOAuthToken(apiKey)) {
+        console.log('[DEBUG] Using Codex Responses API (chatgpt.com/backend-api)');
+        return await getCodexResponse(apiKey, model, fullSystemPrompt, messages, maxOutputTokens);
+    }
+
+    // Standard API key flow (sk-...)
+    console.log('[DEBUG] Using Chat Completion API');
+    const openai = getClient(apiKey);
+    const temperature = tierConfig.temperature ?? 0.7;
     const params = { model: model, messages: messages };
 
     if (model.startsWith('gpt-5') || model.startsWith('o1') || model.includes('thinking')) {

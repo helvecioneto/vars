@@ -221,3 +221,127 @@
     min-height: 1.2em;
     color: var(--text-secondary);
 }
+
+/* ==========================================
+   Codex CLI Authentication
+   ========================================== */
+
+.codex-auth-section {
+    margin-top: 12px;
+}
+
+.codex-auth-section.hidden {
+    display: none;
+}
+
+.codex-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.codex-auth-divider .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.codex-auth-divider .divider-text {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.codex-auth-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 4px 0;
+}
+
+.codex-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background var(--transition-normal);
+}
+
+.codex-status-dot.connected {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.codex-status-dot.disconnected {
+    background: var(--text-muted);
+}
+
+.codex-status-dot.checking {
+    background: var(--warning);
+    animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+.codex-status-dot.error {
+    background: var(--error);
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.codex-status-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.codex-auth-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.codex-login-btn,
+.codex-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.codex-login-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--accent-light);
+}
+
+.codex-login-btn.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.codex-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+}
+
+.codex-login-btn.hidden,
+.codex-logout-btn.hidden {
+    display: none;
+}
+
+/* API key input dimmed when Codex auth is active */
+input.codex-active {
+    opacity: 0.5;
+    border-style: dashed;
+}
