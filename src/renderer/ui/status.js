@@ -6,6 +6,10 @@
 import { state } from '../state/index.js';
 import { elements } from './elements.js';
 
+// Timer state for recording duration display
+let timerInterval = null;
+let timerSeconds = 0;
+
 /**
  * Update the status bar with a message and type
  * @param {string} text - Status message (can contain HTML)
@@ -58,6 +62,32 @@ export function updateRecordingUI() {
             elements.recBtn.classList.add('recording');
         } else {
             elements.recBtn.classList.remove('recording');
+        }
+    }
+
+    // Update notification dot visibility (red dot indicates recording)
+    const notifDot = document.querySelector('.notif-dot');
+    if (notifDot) {
+        notifDot.style.display = state.isRecording ? 'block' : 'none';
+    }
+
+    // Update recording timer display
+    const timerDisplay = document.getElementById('timer-display');
+    if (timerDisplay) {
+        if (state.isRecording) {
+            timerSeconds = 0;
+            timerDisplay.textContent = '00:00';
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                const minutes = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+                const seconds = (timerSeconds % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        } else {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
         }
     }
 

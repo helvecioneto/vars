@@ -20,10 +20,20 @@
         height: var(--icon-size-sm);
     }
 
-    .ai-btn {
-        width: var(--btn-size-md);
-        height: var(--btn-size-md);
-        min-width: var(--btn-size-md);
+    .ai-btn,
+    .audio-viz-btn {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+    }
+
+    .pill-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    .pill-btn span {
+        display: none;
     }
 
     .settings-tab .tab-label {
@@ -32,6 +42,14 @@
 
     .settings-grid {
         grid-template-columns: 1fr;
+    }
+
+    .toast-bar {
+        padding: 6px 10px;
+    }
+
+    .toast-text {
+        font-size: 10px;
     }
 }
 

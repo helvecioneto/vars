@@ -183,6 +183,8 @@ export function toggleSettings() {
     const inputField = document.getElementById('input-field');
     const settingsModeTitle = document.getElementById('settings-mode-title');
     const contentArea = elements.contentArea;
+    const toolbarPills = document.getElementById('toolbar-pills');
+    const toastBar = document.getElementById('toast-bar');
 
     if (isVisible) {
         // Switching TO settings mode
@@ -190,38 +192,39 @@ export function toggleSettings() {
 
         // Settings open: hide all icons except gear, show settings title
         if (toolbarLeft) toolbarLeft.classList.add('hidden');
-        if (inputField) inputField.classList.add('hidden');
+        if (inputField) inputField.style.display = 'none';
+        if (toolbarPills) toolbarPills.classList.add('hidden');
         if (settingsModeTitle) settingsModeTitle.classList.remove('hidden');
         if (contentArea) contentArea.classList.add('hidden');
+        if (toastBar) toastBar.classList.add('hidden');
 
         // Hide other toolbar buttons (keep only settings and drag)
         const otherButtons = toolbarRight?.querySelectorAll('.icon-btn:not(#settings-btn):not(#close-btn):not(#drag-btn)');
         otherButtons?.forEach(btn => btn.classList.add('hidden'));
+
+        // Hide timer
+        const timerControl = document.getElementById('timer-control');
+        if (timerControl) timerControl.classList.add('hidden');
     } else {
         // Switching TO toolbar mode
         setCurrentMode('toolbar');
 
         // Settings closed: restore everything
         if (toolbarLeft) toolbarLeft.classList.remove('hidden');
-        if (inputField) inputField.classList.remove('hidden');
+        if (toolbarPills) toolbarPills.classList.remove('hidden');
         if (settingsModeTitle) settingsModeTitle.classList.add('hidden');
+        if (toastBar) toastBar.classList.remove('hidden');
 
         // Show toolbar buttons
         const otherButtons = toolbarRight?.querySelectorAll('.icon-btn');
         otherButtons?.forEach(btn => btn.classList.remove('hidden'));
+
+        // Show timer
+        const timerControl = document.getElementById('timer-control');
+        if (timerControl) timerControl.classList.remove('hidden');
     }
 
-    // Force immediate content bounds update after DOM changes settle
-    // This bypasses the normal cooldown to ensure window resizes correctly
-    setTimeout(() => {
-        if (elements.appContainer) {
-            const rect = elements.appContainer.getBoundingClientRect();
-            window.electronAPI.forceResizeToContent({
-                width: rect.width,
-                height: rect.height
-            });
-        }
-    }, 100);
+    // No resize needed — overlay mode with floating components
 }
 
 /**

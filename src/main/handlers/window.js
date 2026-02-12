@@ -12,6 +12,18 @@ const { ipcMain, Menu } = require('electron');
 function setupWindowHandlers(context) {
     const { getMainWindow } = context;
 
+    // Click-through toggle for transparent overlay
+    ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+            if (ignore) {
+                mainWindow.setIgnoreMouseEvents(true, options || { forward: true });
+            } else {
+                mainWindow.setIgnoreMouseEvents(false);
+            }
+        }
+    });
+
     // Minimize window
     ipcMain.on('minimize-window', () => {
         const mainWindow = getMainWindow();

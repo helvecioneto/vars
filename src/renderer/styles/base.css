@@ -11,9 +11,11 @@
 :root {
   /* Colors - Background */
   --bg-dark: #1a1a1a;
-  --bg-toolbar: rgba(40, 40, 40, 0.95);
+  --bg-toolbar: #1a1a1a;
+  --bg-card: #000000;
   --bg-input: rgba(60, 60, 60, 0.8);
   --bg-hover: rgba(80, 80, 80, 0.6);
+  --bg-pill: #2a2a2a;
 
   /* Colors - Brand */
   --accent: #8b5cf6;
@@ -26,6 +28,7 @@
 
   /* Colors - Semantic */
   --border: rgba(255, 255, 255, 0.1);
+  --border-pill: rgba(255, 255, 255, 0.2);
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
@@ -34,6 +37,7 @@
   --radius: 24px;
   --radius-sm: 12px;
   --radius-xs: 6px;
+  --radius-pill: 50px;
 
   /* Spacing - Consistent Scale */
   --space-xs: 4px;
@@ -76,19 +80,35 @@ body {
   overflow: hidden;
 }
 
-/* App Container - adapts to content */
+/* App Container - full viewport transparent overlay */
 .app-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 300px;
-  max-width: 100%;
-  background: var(--bg-toolbar);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: transparent;
+  border-radius: 0;
+  border: none;
   overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+}
+
+/* Floating Components - independently draggable */
+.toolbar,
+.toast-bar,
+.content-area,
+.settings-panel {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+}
+
+.toolbar.is-dragging,
+.toast-bar.is-dragging,
+.content-area.is-dragging,
+.settings-panel.is-dragging {
+  cursor: grabbing;
 }
 
 /* Scrollbar */
@@ -117,4 +137,6 @@ body {
 .form-group select,
 .form-group textarea {
   -webkit-app-region: no-drag;
+  pointer-events: auto;
+  cursor: text;
 }

@@ -74,12 +74,14 @@
     pointer-events: none;
 }
 
-/* AI Main Button */
+/* AI Main Button - Audio Visualizer style */
 .ai-btn {
-    width: var(--btn-size-lg);
-    height: var(--btn-size-lg);
-    min-width: var(--btn-size-lg);
-    border-radius: var(--radius-sm);
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: var(--success);
+    color: #000;
 }
 
 .ai-btn .icon {

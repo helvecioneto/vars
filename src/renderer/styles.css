@@ -10,21 +10,25 @@
 
 :root {
   --bg-dark: #1a1a1a;
-  --bg-toolbar: rgba(40, 40, 40, 0.95);
+  --bg-toolbar: #1a1a1a;
+  --bg-card: #000000;
   --bg-input: rgba(60, 60, 60, 0.8);
   --bg-hover: rgba(80, 80, 80, 0.6);
+  --bg-pill: #2a2a2a;
   --accent: #8b5cf6;
   --accent-light: #a78bfa;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
   --border: rgba(255, 255, 255, 0.1);
+  --border-pill: rgba(255, 255, 255, 0.2);
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --radius: 24px;
   --radius-sm: 12px;
   --radius-xs: 6px;
+  --radius-pill: 50px;
 
   /* Spacing - consistent scale */
   --space-xs: 4px;
@@ -62,28 +66,52 @@ body {
 }
 
 .app-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 300px;
-  max-width: 100%;
-  background: var(--bg-toolbar);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: transparent;
+  border-radius: 0;
+  border: none;
   overflow: hidden;
+  padding: 0;
+  pointer-events: none;
   /* Height is determined by content - no min-height to allow natural sizing */
 }
 
-/* Main Toolbar */
+/* ==========================================
+   Floating Components - independently draggable
+   ========================================== */
+.toolbar,
+.toast-bar,
+.content-area,
+.settings-panel {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+}
+
+.toolbar.is-dragging,
+.toast-bar.is-dragging,
+.content-area.is-dragging,
+.settings-panel.is-dragging {
+  cursor: grabbing;
+}
+
+/* Main Toolbar (Dock) */
 .toolbar {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
+  padding: 8px 14px;
   flex-wrap: nowrap;
   min-height: var(--btn-size-md);
+  background: var(--bg-toolbar);
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  z-index: 100;
+  width: auto;
+  max-width: 90vw;
 }
 
 .toolbar-left,
@@ -100,6 +128,315 @@ body {
   min-width: 0;
   /* Allows proper shrinking in flexbox */
   overflow: hidden;
+}
+
+/* ==========================================
+   Audio Visualizer Button (rec-btn)
+   ========================================== */
+.audio-viz-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border: none;
+  background: var(--success);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.audio-viz-btn:hover {
+  background: #0ed88a;
+  transform: translateY(-1px);
+}
+
+.audio-viz-btn:active {
+  transform: scale(0.95);
+}
+
+.audio-viz-btn.recording {
+  animation: pulse-viz 1.2s infinite;
+}
+
+@keyframes pulse-viz {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+/* Status Notification Indicator */
+.toolbar-notif {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.notif-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: var(--error);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-toolbar);
+}
+
+/* Toolbar Mic Button */
+.toolbar-mic-btn {
+  background: transparent;
+  border: none;
+  width: auto;
+  height: auto;
+  min-width: auto;
+  color: var(--text-primary);
+}
+
+.toolbar-mic-btn:hover {
+  background: transparent;
+  color: var(--accent-light);
+  transform: none;
+}
+
+/* ==========================================
+   Pill Buttons (AI Answer, Analyze Screen, Chat)
+   ========================================== */
+.toolbar-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  color: var(--text-primary);
+  border: none;
+  font-family: inherit;
+  -webkit-app-region: no-drag;
+}
+
+.pill-btn svg {
+  flex-shrink: 0;
+}
+
+/* Filled pill (AI Answer) */
+.pill-filled {
+  background: var(--bg-pill);
+  border: 1px solid transparent;
+}
+
+.pill-filled:hover {
+  background: #3a3a3a;
+}
+
+.pill-filled:active {
+  transform: scale(0.97);
+}
+
+/* Outline pill (Analyze Screen) */
+.pill-outline {
+  background: transparent;
+  border: 1px solid var(--border-pill);
+}
+
+.pill-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.pill-outline:active {
+  transform: scale(0.97);
+}
+
+/* Text pill (Chat) */
+.pill-text {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 12px;
+}
+
+.pill-text:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================
+   Timer Control
+   ========================================== */
+.timer-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stop-square {
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.timer-text {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+/* Kebab Menu Button */
+.kebab-btn {
+  background: transparent !important;
+  border: none;
+  width: auto;
+  height: auto;
+  min-width: auto;
+  color: var(--text-primary);
+}
+
+.kebab-btn:hover {
+  background: transparent !important;
+  color: var(--accent-light);
+  transform: none;
+}
+
+/* ==========================================
+   Toast Notification Bar
+   ========================================== */
+.toast-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #2a2a2a;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  z-index: 90;
+  width: auto;
+  max-width: 90vw;
+}
+
+.toast-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.toast-action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.toast-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   Card Toolbar (Content Area Internal)
+   ========================================== */
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-nav-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #1a1a1a;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.card-nav-btn:hover {
+  background: #2a2a2a;
+  color: var(--text-primary);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #1a1a1a;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.card-action-btn:hover {
+  background: #2a2a2a;
+  color: var(--text-primary);
+}
+
+#card-close-btn:hover {
+  background: var(--error);
+  color: white;
 }
 
 /* Icon Buttons */
@@ -169,13 +506,14 @@ body {
   stroke: white;
 }
 
-/* AI Main Button - with gradient */
+/* AI Main Button - Audio Visualizer style */
 .ai-btn {
-  /* Inherit standard icon-btn styles by removing custom background/color */
-  width: var(--btn-size-lg);
-  height: var(--btn-size-lg);
-  min-width: var(--btn-size-lg);
-  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: var(--success);
+  color: #000;
 }
 
 .ai-btn .icon {
@@ -183,13 +521,11 @@ body {
 }
 
 .ai-btn:hover {
-  /* Use standard hover background but keep the shadow if desired, or remove it to match others completely? */
-  /* User said "pattern of colors should be the same", so standard hover is safer. */
   transform: translateY(-1px);
 }
 
 .ai-btn.recording {
-  animation: pulse-ai 1.2s infinite;
+  animation: pulse-viz 1.2s infinite;
   will-change: box-shadow;
 }
 
@@ -218,6 +554,17 @@ body {
 .form-group select,
 .form-group textarea {
   -webkit-app-region: no-drag;
+  pointer-events: auto;
+  cursor: text;
+}
+
+button,
+.pill-btn,
+.toast-action-btn,
+.card-nav-btn,
+.card-action-btn,
+.icon-btn {
+  cursor: pointer;
 }
 
 /* Mode button */
@@ -228,6 +575,7 @@ body {
 /* Screenshot Button States */
 #screenshot-btn.capturing {
   background: var(--accent);
+  border-color: var(--accent);
   animation: pulse-screenshot 1s infinite;
   will-change: box-shadow;
 }
@@ -263,7 +611,7 @@ body {
   }
 }
 
-/* Input Field */
+/* Input Field - hidden by default, shown via JS */
 .input-field {
   width: 100%;
   padding: 10px var(--space-xl);
@@ -276,7 +624,8 @@ body {
   outline: none;
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   min-width: 0;
-  /* Allows proper shrinking in flexbox */
+  display: none;
+  /* Hidden by default, pills shown instead */
 }
 
 .input-field::placeholder {
@@ -288,11 +637,18 @@ body {
   box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
-/* Content Area */
+/* Content Area (Card) */
 .content-area {
-  padding: var(--space-lg) var(--space-xl);
-  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
   animation: slide-down 0.2s ease;
+  overflow-y: auto;
+  max-height: 60vh;
+  z-index: 80;
+  width: 440px;
+  max-width: 90vw;
 }
 
 .content-area.hidden {
@@ -396,9 +752,9 @@ body {
 /* Screenshot Actions Panel */
 .screenshot-actions {
   padding: 10px 12px;
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(139, 92, 246, 0.08);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   animation: fade-in 0.2s ease;
 }
 
@@ -531,15 +887,15 @@ body {
    Query & Response - Space Efficient Layout
    ========================================== */
 
-/* User Query - Single inline row */
+/* User Query - Question style */
 .user-query {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
   margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
   animation: fade-in 0.15s ease;
 }
 
@@ -547,23 +903,26 @@ body {
   display: none;
 }
 
-.query-icon {
+.query-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  opacity: 0.6;
+  gap: 8px;
+}
+
+.query-icon {
+  font-size: 16px;
   flex-shrink: 0;
 }
 
-.query-icon svg {
-  width: 12px;
-  height: 12px;
+.query-label {
+  font-size: 14px;
+  color: var(--text-primary);
 }
 
 .query-text {
-  flex: 1;
-  font-style: italic;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .query-time {
@@ -572,13 +931,13 @@ body {
   flex-shrink: 0;
 }
 
-/* AI Response - Content focused */
+/* AI Response - Card style */
 .ai-response {
-  margin-top: 6px;
-  padding: 8px 10px;
-  background: rgba(139, 92, 246, 0.05);
-  border-left: 2px solid var(--accent);
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  margin-top: 12px;
+  padding: 0;
+  background: transparent;
+  border-left: none;
+  border-radius: 0;
   animation: fade-in 0.15s ease;
 }
 
@@ -586,13 +945,33 @@ body {
   display: none;
 }
 
+/* Response Header Label */
+.response-header-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.answer-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.answer-label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
 /* Response Content - The main focus */
 .response-content {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--text-primary);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  cursor: text;
+  user-select: text;
 }
 
 /* Response Footer - Minimal */
@@ -601,9 +980,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 6px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .response-footer-right {
@@ -834,16 +1213,16 @@ body {
   white-space: pre;
 }
 
-/* Lists in responses - Compact */
+/* Lists in responses - Clean */
 .response-content ul,
 .response-content ol {
-  margin: 4px 0;
-  padding-left: 18px;
+  margin: 8px 0;
+  padding-left: 20px;
 }
 
 .response-content li {
-  margin: 2px 0;
-  line-height: 1.5;
+  margin: 6px 0;
+  line-height: 1.6;
 }
 
 .response-content ul li {
@@ -893,11 +1272,15 @@ body {
 /* Settings Panel - full focus mode */
 .settings-panel {
   display: none;
-  background: var(--bg-toolbar);
-  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: none;
   animation: expand-down 0.2s ease;
-  width: 100%;
   overflow-y: auto;
+  z-index: 80;
+  width: 440px;
+  max-width: 90vw;
+  max-height: 70vh;
 }
 
 .settings-panel.visible {
@@ -996,6 +1379,8 @@ body {
   padding: var(--space-xl);
   animation: fade-in 0.2s ease;
   overflow-y: auto;
+  cursor: default;
+  user-select: text;
 }
 
 .settings-tab-content.active {
@@ -2195,14 +2580,12 @@ body {
 }
 
 /* Visible Mode Border Effect - RED warning to indicate visibility */
-.app-container.visible-mode {
-  border-color: rgba(239, 68, 68, 0.6);
+.app-container.visible-mode .toolbar {
+  border: 2px solid rgba(239, 68, 68, 0.6);
   box-shadow:
     0 0 0 3px rgba(239, 68, 68, 0.7),
     0 0 15px rgba(239, 68, 68, 0.5),
-    0 0 30px rgba(239, 68, 68, 0.3),
-    0 0 45px rgba(239, 68, 68, 0.15),
-    0 4px 24px rgba(0, 0, 0, 0.4);
+    0 0 30px rgba(239, 68, 68, 0.3);
   animation: visible-glow-warning 1.5s ease-in-out infinite alternate;
 }
 
@@ -2211,18 +2594,14 @@ body {
     box-shadow:
       0 0 0 3px rgba(239, 68, 68, 0.7),
       0 0 15px rgba(239, 68, 68, 0.5),
-      0 0 30px rgba(239, 68, 68, 0.3),
-      0 0 45px rgba(239, 68, 68, 0.15),
-      0 4px 24px rgba(0, 0, 0, 0.4);
+      0 0 30px rgba(239, 68, 68, 0.3);
   }
 
   to {
     box-shadow:
       0 0 0 4px rgba(239, 68, 68, 0.9),
       0 0 25px rgba(239, 68, 68, 0.7),
-      0 0 50px rgba(239, 68, 68, 0.4),
-      0 0 70px rgba(239, 68, 68, 0.2),
-      0 4px 24px rgba(0, 0, 0, 0.4);
+      0 0 50px rgba(239, 68, 68, 0.4);
   }
 }
 

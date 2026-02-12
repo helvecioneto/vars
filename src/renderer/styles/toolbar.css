@@ -6,10 +6,15 @@
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
+    padding: 8px 14px;
     flex-wrap: nowrap;
     min-height: var(--btn-size-md);
+    background: var(--bg-toolbar);
+    border-radius: var(--radius-pill);
     flex-shrink: 0;
+    z-index: 100;
+    width: auto;
+    max-width: 90vw;
 }
 
 .toolbar-left,
@@ -39,6 +44,7 @@
     outline: none;
     transition: all var(--transition-fast);
     min-width: 0;
+    display: none;
 }
 
 .input-field::placeholder {
@@ -72,11 +78,16 @@
 
 /* Content Area */
 .content-area {
-    padding: var(--space-lg) var(--space-xl);
-    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
     animation: slide-down var(--transition-normal);
     overflow-y: auto;
-    max-height: 70vh;
+    max-height: 60vh;
+    z-index: 80;
+    width: 440px;
+    max-width: 90vw;
 }
 
 .content-area.hidden {

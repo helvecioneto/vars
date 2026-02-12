@@ -12,24 +12,43 @@
 
 <body>
   <div class="app-container" id="app-container">
-    <!-- Main Toolbar -->
-    <!-- Main Toolbar -->
+    <!-- Main Toolbar (Dock) -->
     <div class="toolbar" id="toolbar">
-      <!-- Left: AI Logo + Record -->
+      <!-- Left: Audio Visualizer + Status + Mic -->
       <div class="toolbar-left">
-        <button class="icon-btn ai-btn" id="rec-btn">
+        <button class="audio-viz-btn icon-btn" id="rec-btn">
           <span class="icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="8" width="2.5" height="8" rx="1.25" fill="currentColor"/>
+              <rect x="6.5" y="5" width="2.5" height="14" rx="1.25" fill="currentColor"/>
+              <rect x="11" y="7" width="2.5" height="10" rx="1.25" fill="currentColor"/>
+              <rect x="15.5" y="4" width="2.5" height="16" rx="1.25" fill="currentColor"/>
+              <rect x="20" y="9" width="2.5" height="6" rx="1.25" fill="currentColor"/>
+            </svg>
+          </span>
+        </button>
+        <span class="toolbar-notif" id="toolbar-notif">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span class="notif-dot"></span>
+        </span>
+        <button class="icon-btn toolbar-mic-btn" id="mode-btn">
+          <span id="mode-icon" class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z M20 16L21 19L24 20L21 21L20 24L19 21L16 20L19 19L20 16Z">
-              </path>
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
             </svg>
           </span>
         </button>
       </div>
 
-      <!-- Center: Input or Settings Title -->
+      <!-- Center: Action Pills / Input / Settings Title -->
       <div class="toolbar-center">
         <input type="text" class="input-field" id="input-field" placeholder="Ask me anything..." autocomplete="off">
         <div class="settings-mode-title hidden" id="settings-mode-title">
@@ -50,55 +69,108 @@
             <span class="visibility-label">Hidden</span>
           </button>
         </div>
-      </div>
-
-      <!-- Right: Actions -->
-      <div class="toolbar-right">
-        <button class="icon-btn mode-btn" id="mode-btn">
-          <span id="mode-icon" class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <div class="toolbar-pills" id="toolbar-pills">
+          <button class="pill-btn pill-filled" id="ai-answer-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"></path>
+            </svg>
+            <span>AI Answer</span>
+          </button>
+          <button class="pill-btn pill-outline" id="screenshot-btn" data-tooltip="Capture Screen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
-          </span>
-        </button>
-        <button class="icon-btn" id="screenshot-btn" data-tooltip="Capture Screen">
+            <span>Analyze Screen</span>
+          </button>
+          <button class="pill-btn pill-text" id="history-btn">Chat</button>
+        </div>
+      </div>
+
+      <!-- Right: Timer + Menu -->
+      <div class="toolbar-right">
+        <div class="timer-control" id="timer-control">
+          <span class="stop-square" id="stop-rec-icon">&#9632;</span>
+          <span class="timer-text" id="timer-display">00:00</span>
+        </div>
+        <button class="icon-btn kebab-btn" id="settings-btn">
           <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-          </span>
-        </button>
-        <button class="icon-btn" id="history-btn">
-          <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </span>
-        </button>
-        <button class="icon-btn" id="settings-btn">
-          <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-              </path>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="12" cy="19" r="2"></circle>
             </svg>
           </span>
         </button>
       </div>
     </div>
 
+    <!-- Toast Notification Bar -->
+    <div class="toast-bar hidden" id="toast-bar">
+      <span class="toast-text">clear the AI answers by clicking the command plus, backspace or the Control Plus</span>
+      <div class="toast-actions">
+        <button class="toast-action-btn" id="toast-delete-btn" data-tooltip="Clear responses">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <button class="toast-action-btn" id="toast-expand-btn" data-tooltip="Expand">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <button class="toast-action-btn" id="toast-close-btn" data-tooltip="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- Expandable Content Area (hidden by default) -->
     <div class="content-area hidden" id="content-area">
+      <!-- Card Internal Toolbar -->
+      <div class="card-toolbar">
+        <div class="card-nav">
+          <button class="card-nav-btn" id="card-prev-btn" data-tooltip="Previous">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button class="card-nav-btn" id="card-next-btn" data-tooltip="Next">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="card-actions">
+          <button class="card-action-btn" id="card-delete-btn" data-tooltip="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <button class="card-action-btn" id="card-close-btn" data-tooltip="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <!-- Status indicator -->
       <div class="status-bar" id="status-bar">
         <span class="status-dot" id="status-dot"></span>
@@ -137,20 +209,22 @@
         </div>
       </div>
 
-      <!-- Transcription (User Query) - Minimal inline -->
+      <!-- Transcription (User Query) -->
       <div class="user-query hidden" id="transcription-section">
-        <span class="query-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </span>
+        <div class="query-header">
+          <span class="query-icon">&#128172;</span>
+          <span class="query-label"><strong>Question:</strong></span>
+        </div>
         <span class="query-text" id="transcription-content"></span>
         <span class="query-time" id="transcription-timestamp"></span>
       </div>
 
       <!-- AI Response - Content focused -->
       <div class="ai-response hidden" id="response-section">
+        <div class="response-header-label">
+          <span class="answer-icon">&#11088;</span>
+          <span class="answer-label"><strong>Answer:</strong></span>
+        </div>
         <div class="response-content" id="response-content"></div>
         <div class="response-footer">
           <button class="regen-btn" id="regen-response-btn" data-tooltip="Regenerate">

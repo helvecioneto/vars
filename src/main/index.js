@@ -18,19 +18,24 @@ let microphonePermissionGranted = false; // Cache permission state to prevent lo
 let screenPermissionGranted = false; // Cache screen recording permission state
 
 function createWindow() {
+    // Get primary display work area for full-screen overlay
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { x, y, width, height } = primaryDisplay.workArea;
+
     const windowOptions = {
-        width: 450,
-        height: 60,  // Start small, will expand when settings/content opens
+        width: width,
+        height: height,
+        x: x,
+        y: y,
         title: 'VARS',
         frame: false,
         transparent: true,
         alwaysOnTop: true,
         skipTaskbar: true,
-        resizable: true,
+        resizable: false,
         maximizable: false,
-        minWidth: 350,
-        minHeight: 50,
-        useContentSize: true,  // Window size = content size, not including frame
+        hasShadow: false,
         webPreferences: {
             preload: path.join(__dirname, '..', 'preload.js'),
             contextIsolation: true,
@@ -40,6 +45,9 @@ function createWindow() {
     };
 
     mainWindow = new BrowserWindow(windowOptions);
+
+    // Enable click-through for transparent areas (components toggle this on hover)
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
     // Make window invisible to screen sharing (macOS/Windows only)
     if (process.platform === 'darwin' || process.platform === 'win32') {
@@ -61,11 +69,8 @@ function createWindow() {
         }
     });
 
-    // Allow window to be moved by dragging
-    mainWindow.setMovable(true);
-
-    // Center the window on the primary display
-    mainWindow.center();
+    // Overlay window is fixed — not movable
+    mainWindow.setMovable(false);
 
     // Dev tools in development mode
     if (process.argv.includes('--dev')) {

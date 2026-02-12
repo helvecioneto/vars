@@ -98,6 +98,15 @@ export function setupEventListeners() {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleInputSubmit();
+                // Hide input field after submit, show pills
+                elements.inputField.style.display = 'none';
+                const toolbarPills = document.getElementById('toolbar-pills');
+                if (toolbarPills) toolbarPills.style.display = 'flex';
+            }
+            if (e.key === 'Escape') {
+                elements.inputField.style.display = 'none';
+                const toolbarPills = document.getElementById('toolbar-pills');
+                if (toolbarPills) toolbarPills.style.display = 'flex';
             }
         });
     }
@@ -145,10 +154,90 @@ export function setupEventListeners() {
         });
     }
 
-    // History Navigation
+    // History Navigation / Chat toggle
     if (elements.historyBtn) {
         elements.historyBtn.addEventListener('click', () => {
-            navigateHistory('up');
+            // Toggle input field visibility
+            const inputField = document.getElementById('input-field');
+            const toolbarPills = document.getElementById('toolbar-pills');
+            if (inputField && toolbarPills) {
+                const isHidden = inputField.style.display === 'none' || inputField.style.display === '';
+                if (isHidden) {
+                    inputField.style.display = 'block';
+                    toolbarPills.style.display = 'none';
+                    inputField.focus();
+                } else {
+                    inputField.style.display = 'none';
+                    toolbarPills.style.display = 'flex';
+                }
+            }
+        });
+    }
+
+    // Card navigation (prev/next in content card)
+    const cardPrevBtn = document.getElementById('card-prev-btn');
+    const cardNextBtn = document.getElementById('card-next-btn');
+    if (cardPrevBtn) {
+        cardPrevBtn.addEventListener('click', () => navigateHistory('up'));
+    }
+    if (cardNextBtn) {
+        cardNextBtn.addEventListener('click', () => navigateHistory('down'));
+    }
+
+    // Card close button
+    const cardCloseBtn = document.getElementById('card-close-btn');
+    if (cardCloseBtn) {
+        cardCloseBtn.addEventListener('click', () => {
+            const contentArea = document.getElementById('content-area');
+            if (contentArea) contentArea.classList.add('hidden');
+        });
+    }
+
+    // Card delete button
+    const cardDeleteBtn = document.getElementById('card-delete-btn');
+    if (cardDeleteBtn) {
+        cardDeleteBtn.addEventListener('click', () => {
+            clearHistory();
+        });
+    }
+
+    // AI Answer pill button (triggers same as rec-btn)
+    const aiAnswerBtn = document.getElementById('ai-answer-btn');
+    if (aiAnswerBtn) {
+        aiAnswerBtn.addEventListener('click', () => {
+            window.electronAPI.toggleRecording();
+        });
+    }
+
+    // Toast bar actions
+    const toastDeleteBtn = document.getElementById('toast-delete-btn');
+    if (toastDeleteBtn) {
+        toastDeleteBtn.addEventListener('click', () => {
+            clearHistory();
+        });
+    }
+    const toastCloseBtn = document.getElementById('toast-close-btn');
+    if (toastCloseBtn) {
+        toastCloseBtn.addEventListener('click', () => {
+            const toastBar = document.getElementById('toast-bar');
+            if (toastBar) toastBar.classList.add('hidden');
+        });
+    }
+    const toastExpandBtn = document.getElementById('toast-expand-btn');
+    if (toastExpandBtn) {
+        toastExpandBtn.addEventListener('click', () => {
+            const contentArea = document.getElementById('content-area');
+            if (contentArea) contentArea.classList.toggle('hidden');
+        });
+    }
+
+    // Stop recording icon
+    const stopRecIcon = document.getElementById('stop-rec-icon');
+    if (stopRecIcon) {
+        stopRecIcon.addEventListener('click', () => {
+            if (state.isRecording) {
+                window.electronAPI.toggleRecording();
+            }
         });
     }
 
@@ -192,62 +281,165 @@ export function setupEventListeners() {
 }
 
 /**
- * Setup window dragging logic
+ * Setup per-component dragging (each floating element is independently draggable)
+ * and click-through toggle for the transparent overlay.
  */
+let isAnyDragging = false;
+
 function setupDragHandlers() {
-    // Helper for buttons
-    function setupDragButton(btn) {
-        if (!btn) return;
-        btn.addEventListener('mousedown', () => {
-            window.electronAPI.setDragging(true);
-        });
-    }
-
-    setupDragButton(elements.dragBtn);
-    setupDragButton(elements.settingsDragBtn);
-
-    // Global drag: Allow dragging the window from anywhere except text inputs
-    let dragStartPos = null;
-    let hasDragged = false;
     const DRAG_THRESHOLD = 5;
 
-    elements.appContainer.addEventListener('mousedown', (e) => {
-        // Ignore sliders to allow value adjustment
-        // We allow dragging on INPUT/TEXTAREA as requested, preventing mouse text selection but allowing window move
-        if (e.target.type === 'range' ||
-            e.target.closest('.slider-container') ||
-            e.target.closest('.no-drag')) {
+    // Floating components that can be dragged independently
+    const floatingComponents = [
+        document.getElementById('toolbar'),
+        document.getElementById('toast-bar'),
+        document.getElementById('content-area'),
+        document.getElementById('settings-panel')
+    ].filter(Boolean);
+
+    // Set initial centered positions for floating components
+    initFloatingPositions();
+
+    // Setup drag for each component
+    floatingComponents.forEach(el => setupComponentDrag(el, DRAG_THRESHOLD));
+
+    // Setup click-through toggle for transparent overlay
+    setupClickThrough(floatingComponents);
+}
+
+/**
+ * Set initial centered positions for floating components
+ */
+function initFloatingPositions() {
+    const vw = window.innerWidth;
+
+    const toolbar = document.getElementById('toolbar');
+    const toastBar = document.getElementById('toast-bar');
+    const contentArea = document.getElementById('content-area');
+    const settingsPanel = document.getElementById('settings-panel');
+
+    // We need to measure the toolbar after render
+    requestAnimationFrame(() => {
+        // Center toolbar near top
+        if (toolbar) {
+            const tw = toolbar.offsetWidth || 450;
+            toolbar.style.left = Math.max(0, (vw - tw) / 2) + 'px';
+            toolbar.style.top = '20px';
+        }
+
+        // Center toast below toolbar (use 400 as default width for hidden elements)
+        if (toastBar) {
+            toastBar.style.left = Math.max(0, (vw - 400) / 2) + 'px';
+            toastBar.style.top = '76px';
+        }
+
+        // Center content card below toast
+        if (contentArea) {
+            contentArea.style.left = Math.max(0, (vw - 440) / 2) + 'px';
+            contentArea.style.top = '120px';
+        }
+
+        // Settings panel overlaps content area position
+        if (settingsPanel) {
+            settingsPanel.style.left = Math.max(0, (vw - 440) / 2) + 'px';
+            settingsPanel.style.top = '76px';
+        }
+    });
+}
+
+/**
+ * Setup drag behavior for a single floating component
+ */
+function setupComponentDrag(element, threshold) {
+    let isDragging = false;
+    let hasMoved = false;
+    let startX, startY, origLeft, origTop;
+
+    element.addEventListener('mousedown', (e) => {
+        // Skip interactive elements
+        if (e.target.closest('button, input, select, textarea, a, .slider-container, .no-drag') ||
+            e.target.type === 'range') {
             return;
         }
-
+        // Skip scrollable inner content (allow text selection and scrolling)
+        if (e.target.closest('.response-content, .user-query, .settings-tab-content, .screenshot-actions, .form-group')) {
+            return;
+        }
         if (e.button !== 0) return;
-        dragStartPos = { x: e.screenX, y: e.screenY };
-        hasDragged = false;
-        window.electronAPI.setDragging(true);
+
+        isDragging = true;
+        hasMoved = false;
+        isAnyDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        origLeft = element.offsetLeft;
+        origTop = element.offsetTop;
+        element.classList.add('is-dragging');
+        e.preventDefault();
     });
 
-    window.addEventListener('mousemove', (e) => {
-        if (dragStartPos && !hasDragged) {
-            const dx = Math.abs(e.screenX - dragStartPos.x);
-            const dy = Math.abs(e.screenY - dragStartPos.y);
-            if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-                hasDragged = true;
-            }
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (!hasMoved && (Math.abs(dx) > threshold || Math.abs(dy) > threshold)) {
+            hasMoved = true;
+        }
+
+        if (hasMoved) {
+            element.style.left = (origLeft + dx) + 'px';
+            element.style.top = (origTop + dy) + 'px';
         }
     });
 
-    window.addEventListener('mouseup', () => {
-        window.electronAPI.setDragging(false);
-        dragStartPos = null;
+    document.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        isAnyDragging = false;
+        element.classList.remove('is-dragging');
+
+        if (hasMoved) {
+            hasMoved = false;
+        }
+
+        // Re-enable click-through if mouse is not over any floating component
+        const overComponent = e.target.closest('.toolbar, .toast-bar, .content-area, .settings-panel');
+        if (!overComponent) {
+            window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
     });
 
-    elements.appContainer.addEventListener('click', (e) => {
-        if (hasDragged) {
+    // Suppress click events after drag
+    element.addEventListener('click', (e) => {
+        if (hasMoved) {
             e.stopPropagation();
             e.preventDefault();
-            hasDragged = false;
+            hasMoved = false;
         }
     }, true);
+}
+
+/**
+ * Setup click-through for transparent overlay
+ * Components capture mouse on enter, release on leave
+ */
+function setupClickThrough(floatingComponents) {
+    // Enable click-through by default
+    window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+
+    // Each floating component toggles click-through on hover
+    floatingComponents.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            window.electronAPI.setIgnoreMouseEvents(false);
+        });
+        el.addEventListener('mouseleave', () => {
+            if (!isAnyDragging) {
+                window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+            }
+        });
+    });
 }
 
 /**

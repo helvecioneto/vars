@@ -2,15 +2,15 @@
    VARS - Response Styles (Query & AI Response)
    ========================================== */
 
-/* User Query - Single inline row */
+/* User Query - Question style */
 .user-query {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 0;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
     margin-top: 4px;
-    color: var(--text-muted);
-    font-size: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
     animation: fade-in var(--transition-fast);
 }
 
@@ -18,23 +18,26 @@
     display: none;
 }
 
-.query-icon {
+.query-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    opacity: 0.6;
+    gap: 8px;
+}
+
+.query-icon {
+    font-size: 16px;
     flex-shrink: 0;
 }
 
-.query-icon svg {
-    width: 12px;
-    height: 12px;
+.query-label {
+    font-size: 14px;
+    color: var(--text-primary);
 }
 
 .query-text {
-    flex: 1;
-    font-style: italic;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
 }
 
 .query-time {
@@ -43,18 +46,36 @@
     flex-shrink: 0;
 }
 
-/* AI Response - Content focused */
+/* AI Response - Card style */
 .ai-response {
-    margin-top: 6px;
-    padding: 8px 10px;
-    background: rgba(139, 92, 246, 0.05);
-    border-left: 2px solid var(--accent);
-    border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+    margin-top: 12px;
+    padding: 0;
+    background: transparent;
+    border-left: none;
+    border-radius: 0;
     animation: fade-in var(--transition-fast);
 }
 
 .ai-response.hidden {
     display: none;
+}
+
+/* Response Header Label */
+.response-header-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.answer-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.answer-label {
+    font-size: 14px;
+    color: var(--text-primary);
 }
 
 /* Response Content - The main focus */
