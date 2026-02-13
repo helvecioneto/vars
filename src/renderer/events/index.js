@@ -152,6 +152,13 @@ export function setupEventListeners() {
         });
     }
 
+    // Clickthrough toggle
+    if (elements.clickthroughBtn) {
+        elements.clickthroughBtn.addEventListener('click', async () => {
+            await window.electronAPI.toggleClickthrough();
+        });
+    }
+
     // Delegated listener for dynamic content in status bar (Clear History)
     if (elements.statusBar) {
         elements.statusBar.addEventListener('click', (e) => {
@@ -189,6 +196,9 @@ export function setupEventListeners() {
 
     // IPC Events
     setupIPCEvents();
+
+    // Clickthrough CTRL key handlers (macOS/Windows)
+    setupClickthroughHandlers();
 }
 
 /**
@@ -354,6 +364,73 @@ function setupIPCEvents() {
     // Listen for screenshot capture shortcut
     window.electronAPI.onScreenshotCapture(() => {
         captureAndAnalyzeScreen();
+    });
+
+    // Listen for clickthrough state changes from main process
+    window.electronAPI.onClickthroughChanged((enabled) => {
+        state.isClickthroughEnabled = enabled;
+        updateClickthroughUI(enabled);
+    });
+}
+
+/**
+ * Update UI to reflect clickthrough state
+ */
+function updateClickthroughUI(enabled) {
+    if (elements.clickthroughBtn) {
+        if (enabled) {
+            elements.clickthroughBtn.classList.add('active');
+        } else {
+            elements.clickthroughBtn.classList.remove('active');
+        }
+    }
+    if (elements.appContainer) {
+        if (enabled) {
+            elements.appContainer.classList.add('clickthrough-active');
+        } else {
+            elements.appContainer.classList.remove('clickthrough-active');
+        }
+    }
+}
+
+/**
+ * Setup clickthrough CTRL key handlers
+ * On macOS/Windows, when clickthrough is active and forward is true,
+ * mouse events are still forwarded. We detect CTRL to temporarily
+ * re-enable interaction with the window.
+ */
+function setupClickthroughHandlers() {
+    // CTRL key detection is only useful on macOS/Windows where forward: true is supported
+    const isLinux = window.electronAPI.platform === 'linux';
+    if (isLinux) return;
+
+    let isInteracting = false;
+
+    document.addEventListener('mousemove', (e) => {
+        if (!state.isClickthroughEnabled) return;
+
+        if (e.ctrlKey && !isInteracting) {
+            isInteracting = true;
+            window.electronAPI.setIgnoreMouseEvents(false);
+        } else if (!e.ctrlKey && isInteracting) {
+            isInteracting = false;
+            window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (!state.isClickthroughEnabled) return;
+        if (e.key === 'Control' && isInteracting) {
+            isInteracting = false;
+            window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
+    });
+
+    document.addEventListener('mouseleave', () => {
+        if (state.isClickthroughEnabled && isInteracting) {
+            isInteracting = false;
+            window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
     });
 }
 

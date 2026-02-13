@@ -213,6 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             regenBtn.classList.remove('loading');
         }
     });
+    // Clickthrough CTRL key handlers (macOS/Windows)
+    setupClickthroughHandlers();
+
     // Opacity controls
     let currentOpacity = 1.0;
     // Initialize from saved config
@@ -325,4 +328,59 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Clickthrough CTRL key handlers for the response window.
+ * When clickthrough is active and the user holds CTRL,
+ * the window temporarily becomes interactive.
+ */
+let isClickthroughActive = false;
+
+function setupClickthroughHandlers() {
+    // Listen for clickthrough state changes from main
+    window.responseAPI.onClickthroughChanged((enabled) => {
+        isClickthroughActive = enabled;
+        const container = document.getElementById('response-container');
+        if (container) {
+            if (enabled) {
+                container.classList.add('clickthrough-active');
+            } else {
+                container.classList.remove('clickthrough-active');
+            }
+        }
+    });
+
+    // CTRL key detection (only useful on macOS/Windows)
+    // On Linux, forward: true is not supported
+    const isLinux = navigator.platform.toLowerCase().includes('linux');
+    if (isLinux) return;
+
+    let isInteracting = false;
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isClickthroughActive) return;
+        if (e.ctrlKey && !isInteracting) {
+            isInteracting = true;
+            window.responseAPI.setIgnoreMouseEvents(false);
+        } else if (!e.ctrlKey && isInteracting) {
+            isInteracting = false;
+            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (!isClickthroughActive) return;
+        if (e.key === 'Control' && isInteracting) {
+            isInteracting = false;
+            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
+    });
+
+    document.addEventListener('mouseleave', () => {
+        if (isClickthroughActive && isInteracting) {
+            isInteracting = false;
+            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+        }
+    });
 }

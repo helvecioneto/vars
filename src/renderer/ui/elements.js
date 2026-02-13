@@ -21,6 +21,7 @@ export function getElements() {
         modeIcon: document.getElementById('mode-icon'),
         screenshotBtn: document.getElementById('screenshot-btn'),
         historyBtn: document.getElementById('history-btn'),
+        clickthroughBtn: document.getElementById('clickthrough-btn'),
         settingsBtn: document.getElementById('settings-btn'),
         dragBtn: document.getElementById('drag-btn'),
         settingsDragBtn: document.getElementById('settings-drag-btn'),

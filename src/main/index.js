@@ -14,6 +14,7 @@ let mainWindow = null;
 let responseWindow = null;
 let tray = null;
 let isRecording = false;
+let isClickthroughEnabled = false;
 let config = null;
 let microphonePermissionGranted = false; // Cache permission state to prevent loops
 let screenPermissionGranted = false; // Cache screen recording permission state
@@ -172,13 +173,27 @@ ipcMain.on('show-in-response-window', (event, data) => {
     }
     // Show the window
     responseWindow.show();
+    // Apply clickthrough state if currently enabled
+    if (isClickthroughEnabled) {
+        if (process.platform === 'linux') {
+            responseWindow.setIgnoreMouseEvents(true);
+        } else {
+            responseWindow.setIgnoreMouseEvents(true, { forward: true });
+        }
+    }
     // Wait for window to be ready before sending
     if (responseWindow.webContents.isLoading()) {
         responseWindow.webContents.once('did-finish-load', () => {
             responseWindow.webContents.send('display-response', data);
+            if (isClickthroughEnabled) {
+                responseWindow.webContents.send('clickthrough-changed', true);
+            }
         });
     } else {
         responseWindow.webContents.send('display-response', data);
+        if (isClickthroughEnabled) {
+            responseWindow.webContents.send('clickthrough-changed', true);
+        }
     }
 });
 
@@ -354,6 +369,18 @@ function registerGlobalShortcut() {
             mainWindow.webContents.send('opacity-changed', opacity);
         }
     });
+
+    // Click-through toggle
+    // macOS: Option+T, Others: Ctrl+Alt+T
+    const clickthroughKey = isMac ? 'Alt+T' : 'CommandOrControl+Alt+T';
+
+    const clickthroughRet = globalShortcut.register(clickthroughKey, () => {
+        toggleClickthrough();
+    });
+
+    if (!clickthroughRet) {
+        console.error('Failed to register global shortcut for clickthrough');
+    }
 }
 
 
@@ -367,6 +394,36 @@ function toggleRecordingState() {
         // Show window if hidden when starting recording
         if (isRecording && !mainWindow.isVisible()) {
             mainWindow.show();
+        }
+    }
+}
+
+function toggleClickthrough() {
+    isClickthroughEnabled = !isClickthroughEnabled;
+    applyClickthrough();
+    if (mainWindow) {
+        mainWindow.webContents.send('clickthrough-changed', isClickthroughEnabled);
+    }
+    if (responseWindow && !responseWindow.isDestroyed()) {
+        responseWindow.webContents.send('clickthrough-changed', isClickthroughEnabled);
+    }
+}
+
+function applyClickthrough() {
+    const windows = [mainWindow];
+    if (responseWindow && !responseWindow.isDestroyed()) {
+        windows.push(responseWindow);
+    }
+    for (const win of windows) {
+        if (!win) continue;
+        if (isClickthroughEnabled) {
+            if (process.platform === 'linux') {
+                win.setIgnoreMouseEvents(true);
+            } else {
+                win.setIgnoreMouseEvents(true, { forward: true });
+            }
+        } else {
+            win.setIgnoreMouseEvents(false);
         }
     }
 }
@@ -489,6 +546,23 @@ app.whenReady().then(async () => {
         if (mainWindow && (process.platform === 'darwin' || process.platform === 'win32')) {
             mainWindow.setContentProtection(enabled);
             console.log(`Content protection set to: ${enabled}`);
+        }
+    });
+
+    // Handle clickthrough toggle from renderer
+    ipcMain.handle('toggle-clickthrough', () => {
+        toggleClickthrough();
+        return isClickthroughEnabled;
+    });
+
+    // Handle set-ignore-mouse-events from renderer (CTRL key during clickthrough)
+    ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
+        // Find which window sent the event and apply to that window
+        const senderContents = event.sender;
+        if (mainWindow && mainWindow.webContents === senderContents) {
+            mainWindow.setIgnoreMouseEvents(ignore, options || {});
+        } else if (responseWindow && !responseWindow.isDestroyed() && responseWindow.webContents === senderContents) {
+            responseWindow.setIgnoreMouseEvents(ignore, options || {});
         }
     });
 

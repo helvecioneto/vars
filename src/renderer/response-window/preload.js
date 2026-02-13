@@ -15,6 +15,12 @@ contextBridge.exposeInMainWorld('responseAPI', {
     // Dragging
     setDragging: (dragging) => ipcRenderer.send('set-response-dragging', dragging),
 
+    // Clickthrough support
+    setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
+    onClickthroughChanged: (callback) => {
+        ipcRenderer.on('clickthrough-changed', (event, enabled) => callback(enabled));
+    },
+
     // Bounds tracking for auto-height
     sendContentBounds: (bounds) => ipcRenderer.send('update-response-bounds', bounds),
 

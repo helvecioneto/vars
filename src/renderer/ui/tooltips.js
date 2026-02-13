@@ -34,6 +34,13 @@ export function updateButtonTooltips() {
         elements.historyBtn.removeAttribute('title');
     }
 
+    // Clickthrough button
+    if (elements.clickthroughBtn) {
+        const ctMod = isMac ? '⌥' : 'Ctrl+Alt';
+        elements.clickthroughBtn.setAttribute('data-tooltip', `${ctMod}+T: Click Through (hold Ctrl to interact)`);
+        elements.clickthroughBtn.removeAttribute('title');
+    }
+
     // Screenshot button
     if (elements.screenshotBtn) {
         elements.screenshotBtn.setAttribute('data-tooltip', `${mod}+Shift+S: Capture Screen`);

@@ -41,6 +41,9 @@ export const state = {
     // Visibility mode (default: invisible/hidden for screen sharing protection)
     isVisibleMode: false,
 
+    // Clickthrough mode (pass clicks through window)
+    isClickthroughEnabled: false,
+
     // Window height state for different modes
     toolbarModeHeight: 60,  // Default compact toolbar height
     settingsModeHeight: 350, // Default settings panel height

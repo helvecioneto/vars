@@ -89,6 +89,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
     sendContentBounds: (bounds) => ipcRenderer.send('update-content-bounds', bounds),
+
+    // Clickthrough (pass-through click)
+    toggleClickthrough: () => ipcRenderer.invoke('toggle-clickthrough'),
+    onClickthroughChanged: (callback) => {
+        ipcRenderer.on('clickthrough-changed', (event, enabled) => callback(enabled));
+    },
+
     setDragging: (dragging) => ipcRenderer.send('set-dragging', dragging),
 
     // Window size control for mode switching
