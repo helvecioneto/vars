@@ -122,6 +122,7 @@ function createResponseWindow() {
         minHeight: 80,
         show: false,  // Hidden until a response arrives
         useContentSize: true,
+        opacity: config?.responseWindowOpacity || 1.0,
         webPreferences: {
             preload: path.join(__dirname, '..', 'renderer', 'response-window', 'preload.js'),
             contextIsolation: true,

@@ -224,6 +224,32 @@ function setupWindowHandlers(context) {
             }
         }
     });
+
+    // Response window opacity
+    ipcMain.on('set-response-opacity', (event, opacity) => {
+        const responseWindow = getResponseWindow();
+        if (responseWindow) {
+            responseWindow.setOpacity(opacity);
+
+            // Save to config
+            const currentConfig = getConfig();
+            if (currentConfig) {
+                currentConfig.responseWindowOpacity = opacity;
+                setConfig(currentConfig);
+                saveConfig(currentConfig);
+            }
+        }
+    });
+
+    // Get response window opacity
+    ipcMain.handle('get-response-opacity', () => {
+        const responseWindow = getResponseWindow();
+        if (responseWindow) {
+            return responseWindow.getOpacity();
+        }
+        const currentConfig = getConfig();
+        return currentConfig?.responseWindowOpacity || 1.0;
+    });
 }
 
 module.exports = { setupWindowHandlers };

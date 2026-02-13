@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('responseAPI', {
     // Window controls
     closeWindow: () => ipcRenderer.send('close-response-window'),
     minimizeWindow: () => ipcRenderer.send('minimize-response-window'),
+    setOpacity: (opacity) => ipcRenderer.send('set-response-opacity', opacity),
+    getOpacity: () => ipcRenderer.invoke('get-response-opacity'),
 
     // Dragging
     setDragging: (dragging) => ipcRenderer.send('set-response-dragging', dragging),

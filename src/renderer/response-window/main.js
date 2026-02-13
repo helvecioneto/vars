@@ -213,6 +213,31 @@ document.addEventListener('DOMContentLoaded', () => {
             regenBtn.classList.remove('loading');
         }
     });
+    // Opacity controls
+    let currentOpacity = 1.0;
+    // Initialize from saved config
+    window.responseAPI.getOpacity().then(opacity => {
+        if (typeof opacity === 'number') currentOpacity = opacity;
+    }).catch(err => console.error('Failed to get opacity:', err));
+
+    const opacityDecreaseBtn = document.getElementById('opacity-decrease-btn');
+    const opacityIncreaseBtn = document.getElementById('opacity-increase-btn');
+
+    if (opacityDecreaseBtn) {
+        opacityDecreaseBtn.addEventListener('click', () => {
+            currentOpacity = Math.round((currentOpacity - 0.1) * 10) / 10;
+            if (currentOpacity < 0.2) currentOpacity = 0.2; // Min opacity 0.2
+            window.responseAPI.setOpacity(currentOpacity);
+        });
+    }
+
+    if (opacityIncreaseBtn) {
+        opacityIncreaseBtn.addEventListener('click', () => {
+            currentOpacity = Math.round((currentOpacity + 0.1) * 10) / 10;
+            if (currentOpacity > 1.0) currentOpacity = 1.0; // Max opacity 1.0
+            window.responseAPI.setOpacity(currentOpacity);
+        });
+    }
 });
 
 /**
