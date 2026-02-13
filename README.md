@@ -100,6 +100,15 @@ Download the latest version for your operating system from the [Releases page](h
 - **Frameless Design**: Minimal, non-intrusive transparent window
 - **Toggleable Visibility**: Switch content protection on/off as needed
 
+### 🖱️ Click-Through Mode
+- **Pass-Through Interaction**: Enable click-through to interact with applications behind VARS while keeping it visible
+- **Global Hotkey**: Toggle instantly with keyboard shortcut (macOS: `⌥+T`, Windows/Linux: `Ctrl+Alt+T`)
+- **Toolbar Button**: Quick access via dedicated button next to History
+- **Smart Control**: Hold `Ctrl` to temporarily interact with VARS while in click-through mode (macOS/Windows)
+- **Visual Feedback**: Elegant purple glow indicates when click-through is active
+- **Multi-Window Support**: Works on both main and response windows
+- **Perfect for Overlays**: Keep VARS visible at the top of your screen while working on other tasks
+
 ### ✨ AI Prompt Tools
 - **Custom System Prompt**: Define how the AI responds
 - **Prompt Optimizer**: AI-powered tool that transforms your instructions into a professional, well-structured system prompt
@@ -218,6 +227,7 @@ sudo pacman -S xdotool pulseaudio
 | **Start/Stop Recording** | `⌥ + Space` | `Ctrl + Space` |
 | **Switch Audio Mode** | `⌥ + M` | `Ctrl + M` |
 | **Screenshot Capture** | `⌥ + Shift + S` | `Ctrl + Shift + S` |
+| **Toggle Click-Through** | `⌥ + T` | `Ctrl + Alt + T` |
 | **Increase Opacity** | `⌥ + ]` | `Ctrl + Alt + ]` |
 | **Decrease Opacity** | `⌥ + [` | `Ctrl + Alt + [` |
 
@@ -235,6 +245,19 @@ sudo pacman -S xdotool pulseaudio
 2. Press `Ctrl+Shift+S` (or `⌥+Shift+S` on Mac)
 3. Select an action: **Answers**, **Code**, **Summary**, or type a **Custom Question**
 4. VARS captures the window and analyzes it with AI
+
+### Click-Through Mode Workflow
+
+1. Press `Ctrl+Alt+T` (or `⌥+T` on Mac) or click the **cursor icon** button in the toolbar
+2. Notice the **purple glow** around the window border indicating click-through is active
+3. Click anywhere to interact with applications behind VARS
+4. **To interact with VARS**: Hold `Ctrl` key (macOS/Windows) — the window becomes interactive while held
+5. Toggle the shortcut again to disable click-through mode
+
+**Use Cases:**
+- Position VARS at the top of your screen for constant AI availability while coding
+- Keep the response window visible on a second monitor for reference
+- Monitor transcriptions while interacting with other applications
 
 ### Text Input
 
