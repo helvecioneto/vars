@@ -99,12 +99,6 @@
 
     <!-- Expandable Content Area (hidden by default) -->
     <div class="content-area hidden" id="content-area">
-      <!-- Status indicator -->
-      <div class="status-bar" id="status-bar">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Ready</span>
-        <span class="status-model" id="status-model">gpt-4o-mini</span>
-      </div>
 
       <!-- Screenshot Actions (shown after capture) -->
       <div class="screenshot-actions hidden" id="screenshot-actions">
@@ -149,35 +143,7 @@
         <span class="query-time" id="transcription-timestamp"></span>
       </div>
 
-      <!-- AI Response - Content focused -->
-      <div class="ai-response hidden" id="response-section">
-        <div class="response-content" id="response-content"></div>
-        <div class="response-footer">
-          <button class="regen-btn" id="regen-response-btn" data-tooltip="Regenerate">
-            <svg class="regen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            <svg class="loading-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-          </button>
-          <span class="response-time" id="response-timestamp"></span>
-          <button class="copy-btn" id="copy-response-btn" data-tooltip="Copy">
-            <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <svg class="check-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
-        </div>
-      </div>
+      <!-- AI Response has been moved to independent response window -->
     </div>
 
     <!-- Settings Panel (expands below) -->
@@ -272,16 +238,20 @@
             <span class="codex-status-text" id="codex-status-text">Checking...</span>
           </div>
           <div class="codex-auth-actions" id="codex-auth-actions">
-            <button type="button" id="codex-login-btn" class="codex-login-btn" data-tooltip="Login with your OpenAI account">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" id="codex-login-btn" class="codex-login-btn"
+              data-tooltip="Login with your OpenAI account">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                 <polyline points="10 17 15 12 10 7"></polyline>
                 <line x1="15" y1="12" x2="3" y2="12"></line>
               </svg>
               <span>Login with OpenAI</span>
             </button>
-            <button type="button" id="codex-logout-btn" class="codex-logout-btn hidden" data-tooltip="Disconnect authentication">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" id="codex-logout-btn" class="codex-logout-btn hidden"
+              data-tooltip="Disconnect authentication">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -297,7 +267,8 @@
             <label>
               OpenAI API Key
               <a href="#" id="api-key-help" class="help-link">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -308,7 +279,8 @@
             <div class="api-key-input-row">
               <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
               <button type="button" id="test-api-btn" class="test-api-btn" data-tooltip="Test API Connection">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </button>
@@ -323,7 +295,8 @@
             <label>
               Gemini API Key
               <a href="#" id="google-api-key-help" class="help-link">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -334,7 +307,8 @@
             <div class="api-key-input-row">
               <input type="password" id="google-api-key" placeholder="AIzaSy..." autocomplete="off">
               <button type="button" id="test-google-api-btn" class="test-api-btn" data-tooltip="Test API Connection">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </button>
@@ -375,9 +349,11 @@
           </div>
           <div id="whisper-model-status" style="margin-top: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span id="whisper-status-text" style="font-size: 12px; color: var(--text-secondary);">Model not downloaded</span>
+              <span id="whisper-status-text" style="font-size: 12px; color: var(--text-secondary);">Model not
+                downloaded</span>
               <button type="button" id="whisper-download-btn" class="codex-login-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -385,7 +361,8 @@
                 <span>Download</span>
               </button>
               <button type="button" id="whisper-delete-btn" class="codex-logout-btn" style="display: none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
@@ -394,9 +371,11 @@
             </div>
             <div id="whisper-progress-bar" style="display: none; margin-top: 6px;">
               <div style="background: var(--bg-tertiary); border-radius: 4px; height: 6px; overflow: hidden;">
-                <div id="whisper-progress-fill" style="background: var(--accent-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                <div id="whisper-progress-fill"
+                  style="background: var(--accent-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
               </div>
-              <span id="whisper-progress-text" style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: inline-block;">0%</span>
+              <span id="whisper-progress-text"
+                style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: inline-block;">0%</span>
             </div>
           </div>
         </div>

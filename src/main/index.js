@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences, desktopCapturer, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, session, systemPreferences, desktopCapturer, ipcMain, screen } = require('electron');
 const path = require('path');
 const { loadConfig, saveConfig } = require('./config');
 const { setupIPCHandlers } = require('./ipc-handlers');
@@ -11,6 +11,7 @@ if (process.platform === 'win32') {
 }
 
 let mainWindow = null;
+let responseWindow = null;
 let tray = null;
 let isRecording = false;
 let config = null;
@@ -18,8 +19,13 @@ let microphonePermissionGranted = false; // Cache permission state to prevent lo
 let screenPermissionGranted = false; // Cache screen recording permission state
 
 function createWindow() {
+    // Calculate window size based on primary monitor
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const workArea = primaryDisplay.workAreaSize;
+    const windowWidth = Math.round(workArea.width * 0.4);
+
     const windowOptions = {
-        width: 450,
+        width: windowWidth,
         height: 60,  // Start small, will expand when settings/content opens
         title: 'VARS',
         frame: false,
@@ -28,7 +34,7 @@ function createWindow() {
         skipTaskbar: true,
         resizable: true,
         maximizable: false,
-        minWidth: 350,
+        minWidth: Math.round(windowWidth * 0.7),
         minHeight: 50,
         useContentSize: true,  // Window size = content size, not including frame
         webPreferences: {
@@ -64,8 +70,10 @@ function createWindow() {
     // Allow window to be moved by dragging
     mainWindow.setMovable(true);
 
-    // Center the window on the primary display
-    mainWindow.center();
+    // Position window at top-center of the screen
+    const x = Math.round((workArea.width - windowWidth) / 2);
+    const y = 0;
+    mainWindow.setPosition(x, y);
 
     // Dev tools in development mode
     if (process.argv.includes('--dev')) {
@@ -93,6 +101,85 @@ function createWindow() {
         // }
     });
 }
+
+function createResponseWindow() {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const workArea = primaryDisplay.workAreaSize;
+    const windowWidth = Math.round(workArea.width * 0.4);
+    const initialHeight = 200;
+
+    responseWindow = new BrowserWindow({
+        width: windowWidth,
+        height: initialHeight,
+        title: 'VARS Response',
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        skipTaskbar: true,
+        resizable: true,
+        maximizable: false,
+        minWidth: Math.round(windowWidth * 0.5),
+        minHeight: 80,
+        show: false,  // Hidden until a response arrives
+        useContentSize: true,
+        webPreferences: {
+            preload: path.join(__dirname, '..', 'renderer', 'response-window', 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
+        },
+        icon: path.join(__dirname, '..', 'assets', 'icon.png')
+    });
+
+    // Make response window invisible to screen sharing
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+        responseWindow.setContentProtection(true);
+    }
+
+    responseWindow.loadFile(path.join(__dirname, '..', 'renderer', 'response-window', 'index.html'));
+    responseWindow.setMovable(true);
+
+    // Position: restore saved position or center on screen
+    const savedPos = config?.responseWindowPosition;
+    if (savedPos && typeof savedPos.x === 'number' && typeof savedPos.y === 'number') {
+        // Validate saved position is still within screen bounds
+        if (savedPos.x >= 0 && savedPos.x < workArea.width &&
+            savedPos.y >= 0 && savedPos.y < workArea.height) {
+            responseWindow.setPosition(savedPos.x, savedPos.y);
+        } else {
+            // Saved position out of bounds, center instead
+            const x = Math.round((workArea.width - windowWidth) / 2);
+            const y = Math.round((workArea.height - initialHeight) / 2);
+            responseWindow.setPosition(x, y);
+        }
+    } else {
+        // First time: center on screen
+        const x = Math.round((workArea.width - windowWidth) / 2);
+        const y = Math.round((workArea.height - initialHeight) / 2);
+        responseWindow.setPosition(x, y);
+    }
+
+    responseWindow.on('closed', () => {
+        responseWindow = null;
+    });
+}
+
+// IPC: receive response from hover renderer, forward to response window
+// Registered once at module level to avoid duplicate listeners
+ipcMain.on('show-in-response-window', (event, data) => {
+    if (!responseWindow || responseWindow.isDestroyed()) {
+        createResponseWindow();
+    }
+    // Show the window
+    responseWindow.show();
+    // Wait for window to be ready before sending
+    if (responseWindow.webContents.isLoading()) {
+        responseWindow.webContents.once('did-finish-load', () => {
+            responseWindow.webContents.send('display-response', data);
+        });
+    } else {
+        responseWindow.webContents.send('display-response', data);
+    }
+});
 
 function createTray() {
     // Create a simple tray icon
@@ -384,11 +471,13 @@ app.whenReady().then(async () => {
     config = await loadConfig();
 
     createWindow();
+    createResponseWindow();
     createTray();
     registerGlobalShortcut();
     // Setup IPC handlers with context
     setupIPCHandlers({
         getMainWindow: () => mainWindow,
+        getResponseWindow: () => responseWindow,
         getConfig: () => config,
         setConfig: (newConfig) => { config = newConfig; },
         toggleRecording: toggleRecordingState

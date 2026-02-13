@@ -96,6 +96,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getWindowSize: () => ipcRenderer.invoke('get-window-size'),
     forceResizeToContent: (bounds) => ipcRenderer.send('force-resize-to-content', bounds),
 
+    // Response Window — send response to independent window
+    showInResponseWindow: (data) => ipcRenderer.send('show-in-response-window', data),
+
     // Content Protection (visibility mode toggle)
     setContentProtection: (enabled) => ipcRenderer.send('set-content-protection', enabled),
 

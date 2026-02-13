@@ -30,29 +30,44 @@ export function showTranscription(text) {
 }
 
 /**
- * Show AI response in the UI
+ * Show AI response in the independent response window
  * @param {string} text - The AI response text
  */
 export function showResponse(text) {
-    // Show section when there's content
     if (text && text.trim()) {
-        if (elements.contentArea) elements.contentArea.classList.remove('hidden');
-        if (elements.responseSection) elements.responseSection.classList.remove('hidden');
         const formattedText = formatResponse(text);
-        if (elements.responseContent) elements.responseContent.innerHTML = formattedText;
-        if (elements.responseTimestamp) elements.responseTimestamp.textContent = formatTimestamp();
+        const timestamp = formatTimestamp();
 
-        // Setup copy button functionality
-        setupCopyButton();
+        // Get model name from config preset
+        const preset = state.config.qualityPreset || 'auth';
+        const modelName = getPresetLabel(preset);
 
-        // Setup regenerate button functionality
-        setupRegenerateButton();
-
-        // Setup code block copy buttons
-        setupCodeBlockCopyButtons();
-    } else {
-        if (elements.responseSection) elements.responseSection.classList.add('hidden');
+        // Send to the independent response window via IPC
+        window.electronAPI.showInResponseWindow({
+            html: formattedText,
+            timestamp: timestamp,
+            prompt: state.lastPrompt || '',
+            model: modelName
+        });
     }
+}
+
+/**
+ * Get display label for a quality preset
+ */
+const PRESET_LABELS = {
+    'auth': 'Auth',
+    'openai-fast': 'Fast',
+    'openai-balanced': 'Balanced',
+    'openai-quality': 'Quality',
+    'google-free': 'Free',
+    'google-fast': 'Fast (G)',
+    'google-balanced': 'Balanced (G)',
+    'google-quality': 'Quality (G)'
+};
+
+function getPresetLabel(preset) {
+    return PRESET_LABELS[preset] || preset || 'Balanced';
 }
 
 /**

@@ -4,13 +4,14 @@
  */
 
 const { ipcMain, Menu } = require('electron');
+const { saveConfig } = require('../config');
 
 /**
  * Setup window-related IPC handlers
  * @param {object} context - Context with getMainWindow
  */
 function setupWindowHandlers(context) {
-    const { getMainWindow } = context;
+    const { getMainWindow, getResponseWindow, getConfig, setConfig } = context;
 
     // Minimize window
     ipcMain.on('minimize-window', () => {
@@ -99,7 +100,10 @@ function setupWindowHandlers(context) {
             const bounds = mainWindow.getBounds();
             return { width: bounds.width, height: bounds.height };
         }
-        return { width: 450, height: 60 };
+        // Fallback: use 40% of primary display width
+        const { screen } = require('electron');
+        const workArea = screen.getPrimaryDisplay().workAreaSize;
+        return { width: Math.round(workArea.width * 0.4), height: 60 };
     });
 
     // Window dragging
@@ -139,6 +143,85 @@ function setupWindowHandlers(context) {
         const mainWindow = getMainWindow();
         if (mainWindow) {
             mainWindow.setOpacity(opacity);
+        }
+    });
+
+    // ==========================================
+    // Response Window Handlers
+    // ==========================================
+
+    // Close response window (hides it)
+    ipcMain.on('close-response-window', () => {
+        const responseWindow = getResponseWindow();
+        if (responseWindow) responseWindow.hide();
+    });
+
+    // Minimize response window
+    ipcMain.on('minimize-response-window', () => {
+        const responseWindow = getResponseWindow();
+        if (responseWindow) responseWindow.minimize();
+    });
+
+    // Response window bounds (auto-height)
+    ipcMain.on('update-response-bounds', (event, bounds) => {
+        const responseWindow = getResponseWindow();
+        if (responseWindow && bounds.height > 0) {
+            const { screen } = require('electron');
+            const workArea = screen.getPrimaryDisplay().workAreaSize;
+            const windowPos = responseWindow.getPosition();
+            const maxHeight = workArea.height - windowPos[1] - 20; // Leave 20px margin at bottom
+            const currentBounds = responseWindow.getBounds();
+            const requestedHeight = Math.ceil(bounds.height);
+            const newHeight = Math.max(120, Math.min(requestedHeight, maxHeight));
+            responseWindow.setSize(currentBounds.width, newHeight);
+
+            // Tell renderer if content was capped so it can enable scrolling
+            if (responseWindow.webContents) {
+                responseWindow.webContents.send('content-height-result', {
+                    capped: requestedHeight > maxHeight,
+                    windowHeight: newHeight
+                });
+            }
+        }
+    });
+
+    // Response window dragging
+    let isResponseDragging = false;
+    let responseDragStartPos = { x: 0, y: 0 };
+
+    ipcMain.on('set-response-dragging', (event, dragging) => {
+        const responseWindow = getResponseWindow();
+        if (!responseWindow) return;
+
+        if (dragging && !isResponseDragging) {
+            isResponseDragging = true;
+            const { screen } = require('electron');
+            const cursorPos = screen.getCursorScreenPoint();
+            const windowPos = responseWindow.getPosition();
+            responseDragStartPos = {
+                x: cursorPos.x - windowPos[0],
+                y: cursorPos.y - windowPos[1]
+            };
+
+            const trackMouse = () => {
+                if (!isResponseDragging) return;
+                const currentPos = screen.getCursorScreenPoint();
+                const newX = currentPos.x - responseDragStartPos.x;
+                const newY = currentPos.y - responseDragStartPos.y;
+                responseWindow.setPosition(newX, newY);
+                setTimeout(trackMouse, 10);
+            };
+            trackMouse();
+        } else if (!dragging) {
+            isResponseDragging = false;
+            // Save position to config for persistence
+            const pos = responseWindow.getPosition();
+            const currentConfig = getConfig();
+            if (currentConfig) {
+                currentConfig.responseWindowPosition = { x: pos[0], y: pos[1] };
+                setConfig(currentConfig);
+                saveConfig(currentConfig);
+            }
         }
     });
 }

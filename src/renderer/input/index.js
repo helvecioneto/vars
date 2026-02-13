@@ -3,7 +3,7 @@
  * Handles input modes (system, microphone, keyboard) and text submission
  */
 
-import { state, INPUT_MODES, setCurrentInputMode } from '../state/index.js';
+import { state, INPUT_MODES, setCurrentInputMode, setLastPrompt } from '../state/index.js';
 import { elements } from '../ui/elements.js';
 import { updateStatus } from '../ui/status.js';
 import { showTranscription, showResponse } from '../ui/response.js';
@@ -71,8 +71,8 @@ export async function handleInputSubmit() {
     // Clear input
     elements.inputField.value = '';
 
-    // Show the question as transcription
-    showTranscription(text);
+    // Store prompt for response window
+    setLastPrompt(text);
 
     // Get AI response
     showResponse(''); // Clear previous response
@@ -109,8 +109,8 @@ export async function handleKeyboardSubmit() {
     try {
         updateStatus('Getting AI response...', 'processing');
 
-        // Show the typed text as transcription
-        showTranscription(text);
+        // Store prompt for response window
+        setLastPrompt(text);
 
         // Get AI response directly (skip transcription)
         const aiResult = await window.electronAPI.getAIResponse(text);
