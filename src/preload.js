@@ -175,5 +175,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         onResponseReady: (callback) => {
             ipcRenderer.on('smart-listener:response-ready', (event, data) => callback(data));
         }
+    },
+
+    // Onboarding
+    showOnboarding: (data) => ipcRenderer.send('show-onboarding-tooltip', data),
+    hideOnboarding: () => ipcRenderer.send('hide-onboarding-tooltip'),
+    onOnboardingNext: (callback) => {
+        ipcRenderer.on('onboarding-next-step', () => callback());
+    },
+    onOnboardingComplete: (callback) => {
+        ipcRenderer.on('onboarding-complete', (event, data) => callback(data));
+    },
+    onOnboardingSkip: (callback) => {
+        ipcRenderer.on('onboarding-skip-tutorial', (event, data) => callback(data));
     }
 });

@@ -10,6 +10,7 @@ const { setupWindowHandlers } = require('./window');
 const { setupMediaHandlers } = require('./media');
 const { setupMiscHandlers } = require('./misc');
 const { setupSmartListenerHandlers } = require('./smart-listener');
+const { setupOnboardingHandlers } = require('./onboarding');
 
 /**
  * Setup all IPC handlers by delegating to modular handlers
@@ -23,6 +24,7 @@ function setupAllHandlers(context) {
     setupMediaHandlers(context);
     setupMiscHandlers(context);
     setupSmartListenerHandlers(context);
+    setupOnboardingHandlers(context);
 }
 
 module.exports = { setupAllHandlers };

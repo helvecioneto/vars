@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"> -->
+    <title>VARS Onboarding</title>
+    <link rel="stylesheet" href="window.css">
+</head>
+
+<body>
+    <div id="onboarding-tooltip" class="onboarding-tooltip">
+        <div class="onboarding-arrow"></div>
+        <div class="onboarding-content">
+            <div class="onboarding-header">
+                <span class="onboarding-step" id="onboarding-step">Step 1 of 3</span>
+                <button class="onboarding-close" id="onboarding-skip-btn-header" title="Skip tutorial">&times;</button>
+            </div>
+            <p class="onboarding-message" id="onboarding-message">Welcome to VARS! Let's set up your AI assistant.</p>
+            <div class="onboarding-footer">
+                <label class="dont-show-again">
+                    <input type="checkbox" id="dont-show-checkbox">
+                    <span>Don't show again</span>
+                </label>
+                <div class="onboarding-actions">
+                    <button class="onboarding-btn secondary" id="onboarding-skip-btn">Skip</button>
+                    <button class="onboarding-btn primary" id="onboarding-next-btn">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script src="window.js"></script>
+</body>
+
+</html>

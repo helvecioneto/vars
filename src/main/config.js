@@ -151,8 +151,8 @@ function getDefaultConfig() {
         model: getModelForTier(defaultProvider, defaultTier, 'analyze'),
         // Transcription engine (derived from transcriptionPreset)
         transcriptionEngine: 'local',
-        // Whisper model: 'small' is the recommended default
-        whisperModel: 'small',
+        // Whisper model: 'base' is the recommended default
+        whisperModel: 'base',
         systemPrompt: getPromptForLanguage('defaults.systemPrompt', defaultLanguage),
         knowledgeBasePaths: [],
         // Language for AI responses: 'en', 'es', 'pt-br'
@@ -240,9 +240,9 @@ async function loadConfig() {
             savedConfig.authMode = savedConfig.connectionType === 'oauth' ? 'login' : 'api';
         }
 
-        // Migration: default whisperModel to 'small' for new users
+        // Migration: default whisperModel to 'base' for new users
         if (!savedConfig.whisperModel) {
-            savedConfig.whisperModel = 'small';
+            savedConfig.whisperModel = 'base';
         }
 
         return { ...getDefaultConfig(), ...savedConfig };

@@ -126,6 +126,7 @@ export async function autoSaveConfig() {
     state.config.whisperModel = elements.whisperModelSelect?.value || 'small';
 
     try {
+        console.log('[AutoSave] Saving config. hasCompletedOnboarding:', state.config.hasCompletedOnboarding);
         await window.electronAPI.saveConfig(state.config);
         updateModelDisplay();
         console.log('Settings auto-saved');

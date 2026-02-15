@@ -12,6 +12,7 @@ if (process.platform === 'win32') {
 
 let mainWindow = null;
 let responseWindow = null;
+let onboardingWindow = null;
 let tray = null;
 let isRecording = false;
 let isClickthroughEnabled = false;
@@ -23,7 +24,7 @@ function createWindow() {
     // Calculate window size based on primary monitor
     const primaryDisplay = screen.getPrimaryDisplay();
     const workArea = primaryDisplay.workAreaSize;
-    const windowWidth = Math.round(workArea.width * 0.4);
+    const windowWidth = Math.round(workArea.width * 0.35);
 
     const windowOptions = {
         width: windowWidth,
@@ -35,7 +36,7 @@ function createWindow() {
         skipTaskbar: true,
         resizable: true,
         maximizable: false,
-        minWidth: Math.round(windowWidth * 0.7),
+        minWidth: Math.round(windowWidth * 0.75),
         minHeight: 50,
         useContentSize: true,  // Window size = content size, not including frame
         webPreferences: {
@@ -106,7 +107,7 @@ function createWindow() {
 function createResponseWindow() {
     const primaryDisplay = screen.getPrimaryDisplay();
     const workArea = primaryDisplay.workAreaSize;
-    const windowWidth = Math.round(workArea.width * 0.4);
+    const windowWidth = Math.round(workArea.width * 0.30);
     const initialHeight = 200;
 
     responseWindow = new BrowserWindow({
@@ -119,7 +120,7 @@ function createResponseWindow() {
         skipTaskbar: true,
         resizable: true,
         maximizable: false,
-        minWidth: Math.round(windowWidth * 0.5),
+        minWidth: Math.round(windowWidth * 0.55),
         minHeight: 80,
         show: false,  // Hidden until a response arrives
         useContentSize: true,
@@ -162,6 +163,48 @@ function createResponseWindow() {
 
     responseWindow.on('closed', () => {
         responseWindow = null;
+    });
+}
+
+function createOnboardingWindow() {
+    const windowWidth = 300; // Constrained width for tooltip
+    const initialHeight = 150;
+
+    onboardingWindow = new BrowserWindow({
+        width: windowWidth,
+        height: initialHeight,
+        title: 'VARS Onboarding',
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        type: 'toolbar', // Helps with staying on top on some WMs
+        skipTaskbar: true,
+        resizable: false,
+        maximizable: false,
+        show: false,
+        useContentSize: true,
+        webPreferences: {
+            nodeIntegration: true, // For now, based on window.js using require
+            contextIsolation: false // For now, consistent with window.js
+            // preload: path.join(__dirname, '..', 'renderer', 'onboarding', 'preload.js'), // If we wanted strict isolation
+        },
+        icon: path.join(__dirname, '..', 'assets', 'icon.png')
+    });
+
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+        onboardingWindow.setContentProtection(true);
+    }
+
+    // Ensure it stays on top of the main window (which is also alwaysOnTop)
+    onboardingWindow.setAlwaysOnTop(true, 'screen-saver');
+
+    onboardingWindow.loadFile(path.join(__dirname, '..', 'renderer', 'onboarding', 'window.html'));
+
+    // Allow dragging? Maybe not for a tooltip that follows elements.
+    // onboardingWindow.setMovable(true);
+
+    onboardingWindow.on('closed', () => {
+        onboardingWindow = null;
     });
 }
 
@@ -431,6 +474,9 @@ function applyClickthrough() {
     if (responseWindow && !responseWindow.isDestroyed()) {
         windows.push(responseWindow);
     }
+    if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+        windows.push(onboardingWindow);
+    }
     for (const win of windows) {
         if (!win) continue;
         if (isClickthroughEnabled) {
@@ -547,12 +593,14 @@ app.whenReady().then(async () => {
 
     createWindow();
     createResponseWindow();
+    createOnboardingWindow();
     createTray();
     registerGlobalShortcut();
     // Setup IPC handlers with context
     setupIPCHandlers({
         getMainWindow: () => mainWindow,
         getResponseWindow: () => responseWindow,
+        getOnboardingWindow: () => onboardingWindow,
         getConfig: () => config,
         setConfig: (newConfig) => { config = newConfig; },
         toggleRecording: toggleRecordingState
@@ -580,6 +628,8 @@ app.whenReady().then(async () => {
             mainWindow.setIgnoreMouseEvents(ignore, options || {});
         } else if (responseWindow && !responseWindow.isDestroyed() && responseWindow.webContents === senderContents) {
             responseWindow.setIgnoreMouseEvents(ignore, options || {});
+        } else if (onboardingWindow && !onboardingWindow.isDestroyed() && onboardingWindow.webContents === senderContents) {
+            onboardingWindow.setIgnoreMouseEvents(ignore, options || {});
         }
     });
 
