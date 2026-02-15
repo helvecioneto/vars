@@ -144,6 +144,14 @@ export async function finalizeLinuxSystemAudio() {
     if (state.fullTranscription) {
         showTranscription(state.fullTranscription);
 
+        // When Smart Listener is active, skip the final AI response.
+        // Smart Listener already provides incremental responses for detected questions,
+        // so sending the entire transcription again would be redundant.
+        if (state.smartListenerEnabled) {
+            updateStatus('Done', 'idle');
+            return;
+        }
+
         // Get AI response if we have transcription
         showResponse(''); // Clear previous response
         updateStatus('Getting AI response...', 'processing');

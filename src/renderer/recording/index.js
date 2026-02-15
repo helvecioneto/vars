@@ -247,6 +247,14 @@ export async function finalizeRecording() {
         setFullTranscription(transcriptionResult.text);
         showTranscription(state.fullTranscription);
 
+        // When Smart Listener is active, skip the final AI response.
+        // Smart Listener already provides incremental responses for detected questions,
+        // so sending the entire transcription again would be redundant.
+        if (state.smartListenerEnabled) {
+            updateStatus('Done', 'idle');
+            return;
+        }
+
         // Get AI response
         showResponse(''); // Clear previous response so it doesn't persist while loading
         updateStatus('Getting AI response...', 'processing');

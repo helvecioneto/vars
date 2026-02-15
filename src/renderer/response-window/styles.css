@@ -510,8 +510,8 @@ body {
     display: flex;
     align-items: center;
     gap: 3px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: hidden;
     max-width: 50%;
     -webkit-app-region: no-drag;
 }
