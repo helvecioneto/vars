@@ -61,79 +61,60 @@ Download the latest version for your operating system from the [Releases page](h
 - **Smart Retry**: Automatic model fallback with exponential backoff (free tier)
 
 ### 🎙️ Transcription Engine
-- **Local Whisper (Free, Offline)**: Built-in whisper.cpp via `@napi-rs/whisper` — no internet required
-  - Models: Tiny (75 MB), Base (142 MB), Small (466 MB, recommended), Medium (1.5 GB)
-  - Download and manage models directly from settings
-  - Automatic audio conversion via ffmpeg
-- **Cloud OpenAI**: Whisper-1 API for high-accuracy transcription
-- **Cloud Gemini**: Google Gemini models for transcription
-- **Real-time Transcription**: Live audio streaming via OpenAI Realtime API or Gemini Live API
+- **Local Whisper (Free, Offline)**: Multiple models (Tiny to Medium) — no internet required
+- **Cloud OpenAI/Gemini**: High-accuracy cloud transcription
+- **Real-time Transcription**: Live audio streaming support
+
+### 🧠 Smart Listener
+- **Auto-detect questions** from live transcription and generate instant AI answers
+- **Question queue** with visual tabs and status indicators (unviewed, generating, ready)
+- **Non-blocking analysis** every 5 seconds with smart deduplication
+- **Perfect for**: Long meetings, interviews, lectures with multiple questions
 
 ### 🎧 Audio Capture Modes
-- **System Audio**: Capture audio from calls, meetings, and any application
-  - macOS/Windows: Electron loopback capture
-  - Linux: PulseAudio/PipeWire via `parec`
-- **Microphone Input**: Direct microphone recording with device selection
-- Toggle between modes with a keyboard shortcut
+- **System Audio**: Capture from calls, meetings, and applications (cross-platform)
+- **Microphone Input**: Direct recording with device selection
+- **Quick Toggle**: Switch modes via keyboard shortcut
 
 ### 📸 Screen Capture & Analysis
-- Captures the **foreground application window** (not the VARS window)
-- Cross-platform: Windows (Win32 API), macOS (Core Graphics), Linux (auto-detects `gnome-screenshot`, `spectacle`, `scrot`)
-- Quick actions after capture:
-  - **Answers** — Find and answer questions visible on screen
-  - **Code** — Analyze and explain code
-  - **Summary** — Summarize visible content
-  - **Custom Question** — Ask anything about the captured image
-- AI-powered image analysis via OpenAI Vision or Google Gemini Vision
+- **Captures foreground window** with cross-platform support
+- **Quick actions**: Answers, Code analysis, Summary, Custom questions
+- **AI-powered** image analysis via OpenAI Vision or Gemini Vision
 
 ### 📚 Knowledge Base
-- Upload documents: `.pdf`, `.txt`, `.docx`, `.md`
-- AI uses your files to provide contextual, grounded answers
-- **OpenAI**: Powered by Assistants API with Vector Store
-- **Google**: Powered by File Search Store
-- Add, index ("Fit"), and clear files from the settings UI
+- **Upload documents** (PDF, TXT, DOCX, MD) for contextual AI answers
+- **Vector Store** integration (OpenAI Assistants API / Google File Search)
+- **Manage files** directly from settings UI
 
 ### 👻 Privacy & Stealth
-- **Invisible to Screen Sharing**: Content protection on macOS and Windows (`setContentProtection`)
-- **Always-on-Top**: Floats above other windows without interfering
-- **System Tray**: Runs quietly in background with Show/Hide toggle
-- **Frameless Design**: Minimal, non-intrusive transparent window
-- **Toggleable Visibility**: Switch content protection on/off as needed
+- **Invisible to screen sharing** (macOS/Windows content protection)
+- **Always-on-top** frameless window with adjustable opacity
+- **System tray** integration with Show/Hide toggle
 
 ### 🖱️ Click-Through Mode
-- **Pass-Through Interaction**: Enable click-through to interact with applications behind VARS while keeping it visible
-- **Global Hotkey**: Toggle instantly with keyboard shortcut (macOS: `⌥+T`, Windows/Linux: `Ctrl+Alt+T`)
-- **Toolbar Button**: Quick access via dedicated button next to History
-- **Smart Control**: Hold `Ctrl` to temporarily interact with VARS while in click-through mode (macOS/Windows)
-- **Visual Feedback**: Elegant purple glow indicates when click-through is active
-- **Multi-Window Support**: Works on both main and response windows
-- **Perfect for Overlays**: Keep VARS visible at the top of your screen while working on other tasks
+- **Interact with apps behind VARS** while keeping window visible
+- **Global hotkey** (⌥+T / Ctrl+Alt+T) and toolbar toggle
+- **Smart control**: Hold Ctrl to temporarily interact with VARS
+- **Perfect for overlays** on top of your workflow
 
 ### ✨ AI Prompt Tools
-- **Custom System Prompt**: Define how the AI responds
-- **Prompt Optimizer**: AI-powered tool that transforms your instructions into a professional, well-structured system prompt
-- **Brief Mode**: Ultra-short responses (1-2 sentences) — ideal for live situations
+- **Custom system prompt** with AI-powered optimizer
+- **Brief Mode**: Ultra-short responses for live situations
 
 ### 🌍 Multi-Language Support
-- Interface and responses in **English**, **Português (BR)**, and **Español**
-- Language-aware transcription and AI responses
-- Multilingual system prompts and onboarding
+- **English, Português (BR), Español** interface and responses
+- Language-aware transcription and prompts
 
 ### 🎓 Guided Onboarding
-- 8-step interactive tutorial on first launch
-- Auto-navigates through settings tabs
-- Highlights each configuration area with clear instructions
+- **8-step interactive tutorial** on first launch with auto-navigation
 
 ### ⌨️ Keyboard-First Design
-- Global hotkeys work even when VARS is in background
-- Text input for keyboard-only workflow
-- Conversation history navigation with arrow keys
-- Zoom controls (70%–130%)
+- **Global hotkeys** work in background
+- **Text input** mode and history navigation
+- **Zoom controls** (70%–130%)
 
 ### 🔄 Auto-Update
-- Automatic check for new versions on startup
-- Manual check via "About" tab
-- Direct link to download new releases from GitHub
+- **Automatic version check** on startup with GitHub releases integration
 
 ---
 
@@ -245,6 +226,24 @@ sudo pacman -S xdotool pulseaudio
 2. Press `Ctrl+Shift+S` (or `⌥+Shift+S` on Mac)
 3. Select an action: **Answers**, **Code**, **Summary**, or type a **Custom Question**
 4. VARS captures the window and analyzes it with AI
+
+### Smart Listener Workflow
+
+1. Click the **Smart Listener button** (brain icon) in the toolbar to enable
+2. Start recording (`Ctrl+Space` or `⌥+Space`)
+3. As you speak or audio plays, VARS automatically:
+   - Detects questions and important points every 5 seconds
+   - Generates AI responses for each detected question
+   - Shows question tabs in the response window with notification badges
+4. Click any question tab to view its AI-generated answer
+5. When you stop recording, no final response is sent (Smart Listener already provided incremental answers)
+6. Disable Smart Listener to return to standard mode (single response after recording stops)
+
+**Best For:**
+- Long meetings with multiple topics
+- Job interviews with various questions
+- Lectures or presentations with Q&A segments
+- Extended conversations where context evolves
 
 ### Click-Through Mode Workflow
 
