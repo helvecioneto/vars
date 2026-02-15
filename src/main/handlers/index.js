@@ -9,6 +9,7 @@ const { setupAIHandlers } = require('./ai');
 const { setupWindowHandlers } = require('./window');
 const { setupMediaHandlers } = require('./media');
 const { setupMiscHandlers } = require('./misc');
+const { setupSmartListenerHandlers } = require('./smart-listener');
 
 /**
  * Setup all IPC handlers by delegating to modular handlers
@@ -21,6 +22,7 @@ function setupAllHandlers(context) {
     setupWindowHandlers(context);
     setupMediaHandlers(context);
     setupMiscHandlers(context);
+    setupSmartListenerHandlers(context);
 }
 
 module.exports = { setupAllHandlers };

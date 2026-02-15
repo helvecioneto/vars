@@ -1,10 +1,14 @@
 /**
  * VARS - Response Window Main Script
  * Handles display of AI responses in the independent window
+ * Unified queue system for both normal and Smart Listener responses
  */
 
-// Current state
+// Unified queue state
+let queue = [];            // All questions/responses (normal + smart listener)
+let activeTabId = null;    // Currently viewed tab
 let lastPrompt = '';
+let queueCounter = 0;      // Global counter for unique IDs
 
 // Wait for DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const responseModel = document.getElementById('response-model');
     const questionSection = document.getElementById('question-section');
     const questionText = document.getElementById('question-text');
+    const slQueueTabs = document.getElementById('sl-queue-tabs');
     const copyBtn = document.getElementById('copy-response-btn');
     const regenBtn = document.getElementById('regen-response-btn');
     const closeBtn = document.getElementById('close-btn');
@@ -43,7 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousedown', (e) => {
         // Don't drag from buttons
         if (e.target.closest('.win-btn') || e.target.closest('.copy-btn') ||
-            e.target.closest('.regen-btn') || e.target.closest('.code-copy-btn')) {
+            e.target.closest('.regen-btn') || e.target.closest('.code-copy-btn') ||
+            e.target.closest('.sl-queue-tab')) {
             return;
         }
         if (e.button !== 0) return;
@@ -70,29 +76,290 @@ document.addEventListener('DOMContentLoaded', () => {
     // Receive response from main process
     window.responseAPI.onDisplayResponse((data) => {
         if (data.html) {
-            // Show user's question
-            if (data.prompt && data.prompt.trim()) {
-                questionText.textContent = data.prompt;
-                questionSection.classList.remove('hidden');
-            } else {
-                questionSection.classList.add('hidden');
+            // Smart listener response — add to queue but don't auto-focus
+            if (data.smartListener && data.queueItem) {
+                handleSmartListenerResponse(data);
+                return;
             }
 
-            responseContent.innerHTML = data.html;
-            responseTimestamp.textContent = data.timestamp || '';
-            if (data.model) {
-                responseModel.textContent = data.model;
-                responseModel.classList.remove('hidden');
-            }
-            lastPrompt = data.prompt || '';
-
-            // Setup code block copy buttons
-            setupCodeBlockCopyButtons();
-
-            // Auto-resize window to fit content
-            resizeToContent();
+            // Normal response — add to queue AND auto-focus immediately
+            handleNormalResponse(data);
         }
     });
+
+    /**
+     * Handle a normal (user-asked) AI response.
+     * Creates a queue item, adds it, and immediately selects it.
+     */
+    function handleNormalResponse(data) {
+        queueCounter++;
+        const item = {
+            id: `normal-${queueCounter}-${Date.now()}`,
+            source: 'normal',
+            question: data.prompt || '',
+            response: data.html,       // already formatted HTML
+            rawResponse: null,
+            status: 'ready',
+            viewed: true,              // auto-viewed since user asked
+            timestamp: Date.now(),
+            model: data.model || ''
+        };
+
+        queue.push(item);
+
+        // Show tabs (always visible once we have items)
+        slQueueTabs.classList.remove('hidden');
+        renderQueueTabs();
+
+        // Always focus on the new normal response
+        selectQueueTab(item.id);
+    }
+
+    /**
+     * Handle a smart listener response — add to queue but don't auto-focus.
+     * Only auto-selects if it's the very first item in the queue.
+     */
+    function handleSmartListenerResponse(data) {
+        const qi = data.queueItem;
+
+        queueCounter++;
+        const item = {
+            id: qi.id || `sl-${queueCounter}-${Date.now()}`,
+            source: 'smart-listener',
+            question: qi.question || '',
+            response: qi.response || null,
+            rawResponse: qi.response || null,
+            status: qi.status || 'generating',
+            viewed: false,             // NOT auto-viewed — user must click
+            timestamp: qi.timestamp || Date.now(),
+            model: 'Smart Listener'
+        };
+
+        // Check if already exists (update)
+        const existingIdx = queue.findIndex(q => q.id === item.id);
+        if (existingIdx !== -1) {
+            queue[existingIdx] = { ...queue[existingIdx], ...item };
+        } else {
+            queue.push(item);
+        }
+
+        // Show tabs
+        slQueueTabs.classList.remove('hidden');
+        renderQueueTabs();
+
+        // Only auto-select if no tab is active yet (first item ever)
+        if (activeTabId === null && queue.length === 1) {
+            selectQueueTab(item.id);
+        }
+
+        resizeToContent();
+    }
+
+    /**
+     * Render queue tabs in the footer bar
+     */
+    function renderQueueTabs() {
+        slQueueTabs.innerHTML = '';
+
+        queue.forEach((item, index) => {
+            const tab = document.createElement('button');
+            tab.className = 'sl-queue-tab';
+            tab.textContent = `Q${index + 1}`;
+            tab.setAttribute('data-tooltip', truncateText(item.question, 50));
+
+            // State classes
+            if (item.id === activeTabId) tab.classList.add('active');
+
+            if (item.source === 'smart-listener') {
+                // Smart Listener items: show viewed/unviewed state
+                if (item.viewed) {
+                    tab.classList.add('viewed');
+                } else if (item.status === 'ready') {
+                    tab.classList.add('unviewed');
+                }
+                if (item.status === 'generating') tab.classList.add('generating');
+                if (item.status === 'error') tab.classList.add('error');
+            } else {
+                // Normal items: always "viewed", just dim non-active
+                if (item.id !== activeTabId) {
+                    tab.classList.add('viewed');
+                }
+            }
+
+            tab.addEventListener('click', () => {
+                selectQueueTab(item.id);
+            });
+
+            slQueueTabs.appendChild(tab);
+        });
+    }
+
+    /**
+     * Select and display a queue tab
+     */
+    function selectQueueTab(itemId) {
+        activeTabId = itemId;
+        const item = queue.find(q => q.id === itemId);
+
+        if (!item) return;
+
+        // Mark as viewed (only matters for smart-listener items)
+        if (!item.viewed && item.source === 'smart-listener') {
+            item.viewed = true;
+            if (window.responseAPI.smartListener) {
+                window.responseAPI.smartListener.markViewed(itemId);
+            }
+        }
+
+        // Display question
+        if (item.question && item.question.trim()) {
+            questionText.textContent = item.question;
+            questionSection.classList.remove('hidden');
+        } else {
+            questionSection.classList.add('hidden');
+        }
+
+        // Display response content
+        if (item.status === 'ready' && (item.response || item.rawResponse)) {
+            if (item.source === 'normal') {
+                // Normal: response is already formatted HTML
+                responseContent.innerHTML = item.response;
+            } else {
+                // Smart Listener: raw text needs formatting
+                responseContent.innerHTML = item.rawResponse ? formatResponse(item.rawResponse) : (item.response || '');
+            }
+        } else if (item.status === 'generating') {
+            responseContent.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Generating response...</p>';
+        } else if (item.status === 'error') {
+            responseContent.innerHTML = `<p style="color: var(--error);">${escapeHtml(item.response || 'Error generating response')}</p>`;
+        } else {
+            responseContent.innerHTML = '<p style="color: var(--text-secondary);">Waiting...</p>';
+        }
+
+        // Update metadata
+        const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        responseTimestamp.textContent = time;
+        responseModel.textContent = item.model || '';
+        if (item.model) {
+            responseModel.classList.remove('hidden');
+        }
+
+        lastPrompt = item.question || '';
+
+        setupCodeBlockCopyButtons();
+        renderQueueTabs();
+        resizeToContent();
+    }
+
+    /**
+     * Truncate text for tooltip
+     */
+    function truncateText(text, maxLen) {
+        if (!text) return '';
+        return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
+    }
+
+    // Smart Listener IPC listeners
+    if (window.responseAPI.smartListener) {
+        // New question detected by smart listener
+        window.responseAPI.smartListener.onNewQuestion((queueItem) => {
+            const existingIdx = queue.findIndex(q => q.id === queueItem.id);
+            if (existingIdx === -1) {
+                queueCounter++;
+                queue.push({
+                    id: queueItem.id,
+                    source: 'smart-listener',
+                    question: queueItem.question || '',
+                    response: queueItem.response || null,
+                    rawResponse: queueItem.response || null,
+                    status: queueItem.status || 'generating',
+                    viewed: false,
+                    timestamp: queueItem.timestamp || Date.now(),
+                    model: 'Smart Listener'
+                });
+            } else {
+                queue[existingIdx] = { ...queue[existingIdx], ...queueItem };
+            }
+
+            slQueueTabs.classList.remove('hidden');
+            renderQueueTabs();
+            resizeToContent();
+        });
+
+        // Response ready for a smart listener question
+        window.responseAPI.smartListener.onResponseReady((queueItem) => {
+            const existingIdx = queue.findIndex(q => q.id === queueItem.id);
+            if (existingIdx !== -1) {
+                queue[existingIdx].status = queueItem.status;
+                queue[existingIdx].response = queueItem.response;
+                queue[existingIdx].rawResponse = queueItem.response;
+            } else {
+                queueCounter++;
+                queue.push({
+                    id: queueItem.id,
+                    source: 'smart-listener',
+                    question: queueItem.question || '',
+                    response: queueItem.response || null,
+                    rawResponse: queueItem.response || null,
+                    status: queueItem.status || 'ready',
+                    viewed: false,
+                    timestamp: queueItem.timestamp || Date.now(),
+                    model: 'Smart Listener'
+                });
+            }
+
+            renderQueueTabs();
+
+            // If this tab is currently active, refresh the view
+            if (activeTabId === queueItem.id) {
+                selectQueueTab(queueItem.id);
+            }
+
+            // If no tab is active yet, auto-select the first ready item
+            if (activeTabId === null && queueItem.status === 'ready') {
+                selectQueueTab(queueItem.id);
+            }
+
+            resizeToContent();
+        });
+
+        // Navigate between queue items via keyboard shortcut (global)
+        window.responseAPI.smartListener.onNavigate((direction) => {
+            navigateQueue(direction);
+        });
+    }
+
+    // Local keyboard navigation when response window is focused
+    document.addEventListener('keydown', (e) => {
+        if (queue.length === 0) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'ArrowLeft') {
+            navigateQueue('prev');
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            navigateQueue('next');
+            e.preventDefault();
+        }
+    });
+
+    /**
+     * Navigate to the previous or next tab in the queue
+     */
+    function navigateQueue(direction) {
+        if (queue.length === 0) return;
+
+        const currentIdx = queue.findIndex(q => q.id === activeTabId);
+        let nextIdx;
+
+        if (direction === 'next') {
+            nextIdx = currentIdx < queue.length - 1 ? currentIdx + 1 : 0;
+        } else {
+            nextIdx = currentIdx > 0 ? currentIdx - 1 : queue.length - 1;
+        }
+
+        selectQueueTab(queue[nextIdx].id);
+    }
 
     /**
      * Measure actual content height and resize the BrowserWindow to fit.
@@ -198,12 +465,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aiResult.error) {
                 responseContent.innerHTML = `<p style="color: var(--error);">Error: ${aiResult.error}</p>`;
             } else if (aiResult.response) {
-                // The main window will send us the formatted response via IPC
-                // But since we're calling directly, we need to format here too
-                responseContent.innerHTML = formatResponse(aiResult.response);
+                const html = formatResponse(aiResult.response);
+                responseContent.innerHTML = html;
                 responseTimestamp.textContent = formatTimestamp();
-                setupCodeBlockCopyButtons();
 
+                // Update the active queue item with regenerated response
+                const activeItem = queue.find(q => q.id === activeTabId);
+                if (activeItem) {
+                    activeItem.response = html;
+                    activeItem.rawResponse = aiResult.response;
+                    activeItem.timestamp = Date.now();
+                }
+
+                setupCodeBlockCopyButtons();
                 resizeToContent();
             }
         } catch (error) {

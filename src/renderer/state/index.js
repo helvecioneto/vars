@@ -70,7 +70,12 @@ export const state = {
 
     // Onboarding
     currentOnboardingStep: 0,
-    onboardingActive: false
+    onboardingActive: false,
+
+    // Smart Listener
+    smartListenerEnabled: false,       // Toggle state
+    smartListenerQueue: [],            // Local mirror of question queue
+    smartListenerAnalysisInterval: null // Periodic analysis timer
 };
 
 // Constants
@@ -258,4 +263,16 @@ export function clearPcmChunks() {
 
 export function setOpacity(value) {
     state.opacity = value;
+}
+
+export function setSmartListenerEnabled(value) {
+    state.smartListenerEnabled = value;
+}
+
+export function setSmartListenerQueue(queue) {
+    state.smartListenerQueue = queue;
+}
+
+export function setSmartListenerAnalysisInterval(interval) {
+    state.smartListenerAnalysisInterval = interval;
 }

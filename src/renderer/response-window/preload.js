@@ -34,4 +34,21 @@ contextBridge.exposeInMainWorld('responseAPI', {
 
     // Context menu
     showContextMenu: () => ipcRenderer.invoke('show-context-menu'),
+
+    // Smart Listener
+    smartListener: {
+        getQueue: () => ipcRenderer.invoke('smart-listener:get-queue'),
+        markViewed: (questionId) => ipcRenderer.invoke('smart-listener:mark-viewed', questionId),
+        markAllViewed: () => ipcRenderer.invoke('smart-listener:mark-all-viewed'),
+        getUnviewedCount: () => ipcRenderer.invoke('smart-listener:unviewed-count'),
+        onNewQuestion: (callback) => {
+            ipcRenderer.on('smart-listener:new-question', (event, data) => callback(data));
+        },
+        onResponseReady: (callback) => {
+            ipcRenderer.on('smart-listener:response-ready', (event, data) => callback(data));
+        },
+        onNavigate: (callback) => {
+            ipcRenderer.on('smart-listener:navigate', (event, direction) => callback(direction));
+        }
+    }
 });

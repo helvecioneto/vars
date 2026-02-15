@@ -381,6 +381,23 @@ function registerGlobalShortcut() {
     if (!clickthroughRet) {
         console.error('Failed to register global shortcut for clickthrough');
     }
+
+    // Smart Listener navigation shortcuts
+    // macOS: Option+Left/Right, Others: Ctrl+Alt+Left/Right
+    const slPrevKey = isMac ? 'Alt+Left' : 'CommandOrControl+Alt+Left';
+    const slNextKey = isMac ? 'Alt+Right' : 'CommandOrControl+Alt+Right';
+
+    globalShortcut.register(slPrevKey, () => {
+        if (responseWindow && !responseWindow.isDestroyed()) {
+            responseWindow.webContents.send('smart-listener:navigate', 'prev');
+        }
+    });
+
+    globalShortcut.register(slNextKey, () => {
+        if (responseWindow && !responseWindow.isDestroyed()) {
+            responseWindow.webContents.send('smart-listener:navigate', 'next');
+        }
+    });
 }
 
 

@@ -68,6 +68,57 @@
     stroke: white;
 }
 
+/* Smart Listener Button */
+#smart-listener-btn {
+    position: relative;
+}
+
+#smart-listener-btn.active {
+    background: var(--accent);
+    color: white;
+    animation: smart-listener-pulse 2s ease-in-out infinite;
+}
+
+@keyframes smart-listener-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0);
+    }
+}
+
+/* Smart Listener Notification Badge */
+.smart-listener-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: var(--error);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    animation: badge-pop 0.3s ease;
+    pointer-events: none;
+}
+
+.smart-listener-badge.hidden {
+    display: none !important;
+}
+
+@keyframes badge-pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
 /* Disabled State */
 .icon-btn.disabled {
     opacity: 0.3;

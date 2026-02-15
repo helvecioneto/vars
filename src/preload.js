@@ -158,5 +158,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
         checkMicrophone: () => ipcRenderer.invoke('check-microphone-permission'),
         requestMicrophone: () => ipcRenderer.invoke('request-microphone-permission'),
         openSystemPreferences: (panel) => ipcRenderer.invoke('open-system-preferences', panel)
+    },
+
+    // Smart Listener (auto-detect questions from transcription)
+    smartListener: {
+        analyze: (transcriptionText) => ipcRenderer.invoke('smart-listener:analyze', transcriptionText),
+        getQueue: () => ipcRenderer.invoke('smart-listener:get-queue'),
+        markViewed: (questionId) => ipcRenderer.invoke('smart-listener:mark-viewed', questionId),
+        markAllViewed: () => ipcRenderer.invoke('smart-listener:mark-all-viewed'),
+        getUnviewedCount: () => ipcRenderer.invoke('smart-listener:unviewed-count'),
+        clear: () => ipcRenderer.invoke('smart-listener:clear'),
+        reset: () => ipcRenderer.invoke('smart-listener:reset'),
+        onNewQuestion: (callback) => {
+            ipcRenderer.on('smart-listener:new-question', (event, data) => callback(data));
+        },
+        onResponseReady: (callback) => {
+            ipcRenderer.on('smart-listener:response-ready', (event, data) => callback(data));
+        }
     }
 });

@@ -501,3 +501,118 @@ body {
 .opacity-btn svg {
     opacity: 0.8;
 }
+
+/* ==========================================
+   Smart Listener Queue Tabs (inline in footer)
+   ========================================== */
+
+.sl-queue-tabs {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 50%;
+    -webkit-app-region: no-drag;
+}
+
+.sl-queue-tabs.hidden {
+    display: none !important;
+}
+
+/* Scrollbar for queue tabs */
+.sl-queue-tabs::-webkit-scrollbar {
+    height: 2px;
+}
+
+.sl-queue-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sl-queue-tabs::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+/* Individual queue tab */
+.sl-queue-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sl-queue-tab:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* Active tab (currently viewing) */
+.sl-queue-tab.active {
+    background: rgba(139, 92, 246, 0.25);
+    border-color: var(--accent);
+    color: var(--accent-light);
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.3);
+}
+
+/* Viewed tab */
+.sl-queue-tab.viewed {
+    opacity: 0.6;
+}
+
+/* Unviewed tab with ready response - notification dot */
+.sl-queue-tab.unviewed::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 7px;
+    height: 7px;
+    background: var(--error);
+    border-radius: 50%;
+    animation: sl-dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sl-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* Generating tab (loading) */
+.sl-queue-tab.generating {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.sl-queue-tab.generating::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--warning);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 4px;
+}
+
+/* Error tab */
+.sl-queue-tab.error {
+    border-color: var(--error);
+    color: var(--error);
+    opacity: 0.7;
+}

@@ -11,8 +11,8 @@ import { handleFileSelection, handleTrainKB, handleResetKB, updateFileList } fro
 import { handleKeyboardSubmit, handleInputModeChange, handleInputSubmit } from '../input/index.js';
 import { handleRecordingToggle, startRecording, stopRecording } from '../recording/index.js';
 import { zoomIn, zoomOut, resetZoom, handleZoomShortcut } from '../ui/zoom.js';
-import { navigateHistory, clearHistory } from '../history/index.js';
 import { captureAndAnalyzeScreen, processScreenshotAction } from '../screenshot/index.js';
+import { toggleSmartListener, setupSmartListenerEvents } from '../smart-listener/index.js';
 import { nextOnboardingStep, skipOnboarding } from '../onboarding/index.js';
 import { updateButtonTooltips } from '../ui/tooltips.js';
 import { autoSaveConfig, setupAutoSave } from '../settings/auto-save.js';
@@ -145,10 +145,10 @@ export function setupEventListeners() {
         });
     }
 
-    // History Navigation
-    if (elements.historyBtn) {
-        elements.historyBtn.addEventListener('click', () => {
-            navigateHistory('up');
+    // Smart Listener Toggle
+    if (elements.smartListenerBtn) {
+        elements.smartListenerBtn.addEventListener('click', () => {
+            toggleSmartListener();
         });
     }
 
@@ -159,14 +159,8 @@ export function setupEventListeners() {
         });
     }
 
-    // Delegated listener for dynamic content in status bar (Clear History)
-    if (elements.statusBar) {
-        elements.statusBar.addEventListener('click', (e) => {
-            if (e.target.id === 'clear-history-btn' || e.target.closest('#clear-history-btn')) {
-                clearHistory();
-            }
-        });
-    }
+    // Setup Smart Listener IPC events
+    setupSmartListenerEvents();
 
     // Screenshot
     if (elements.screenshotBtn) {

@@ -28,10 +28,10 @@ export function updateButtonTooltips() {
 
     // Mode switch button (handled by updateInputModeUI for dynamic text)
 
-    // History button (uses same modifier as other shortcuts)
-    if (elements.historyBtn) {
-        elements.historyBtn.setAttribute('data-tooltip', `${mod}+↑/↓: History`);
-        elements.historyBtn.removeAttribute('title');
+    // Smart Listener button
+    if (elements.smartListenerBtn) {
+        elements.smartListenerBtn.setAttribute('data-tooltip', 'Smart Listener: Auto-detect questions');
+        elements.smartListenerBtn.removeAttribute('title');
     }
 
     // Clickthrough button
