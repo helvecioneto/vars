@@ -531,21 +531,60 @@ body {
 }
 
 /* ==========================================
-   Smart Listener Queue Tabs (inline in footer)
+   Smart Listener Queue Tabs + Nav Arrows (inline in footer)
    ========================================== */
+
+.sl-nav-group {
+    display: flex;
+    align-items: flex-start; /* nav arrows align with first row of tabs */
+    gap: 3px;
+}
+
+.sl-nav-group.hidden {
+    display: none !important;
+}
+
+.sl-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-secondary);
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.sl-nav-btn svg {
+    width: 10px;
+    height: 10px;
+}
+
+.sl-nav-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: var(--accent);
+    color: var(--accent-light);
+    opacity: 1;
+}
+
+.sl-nav-btn:active {
+    transform: scale(0.9);
+}
 
 .sl-queue-tabs {
     display: flex;
     align-items: center;
     gap: 3px;
     flex-wrap: wrap;
-    overflow-x: hidden;
-    max-width: 50%;
+    /* ~10 tabs × 28px + 9 gaps × 3px ≈ 307px */
+    max-width: 315px;
     -webkit-app-region: no-drag;
-}
-
-.sl-queue-tabs.hidden {
-    display: none !important;
 }
 
 /* Scrollbar for queue tabs */
@@ -568,14 +607,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
-    height: 22px;
+    min-width: 26px;
+    height: 26px;
     padding: 0 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.07);
     color: var(--text-secondary);
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;

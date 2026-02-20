@@ -164,6 +164,9 @@ function setupWindowHandlers(context) {
 
     // Response window bounds (auto-height)
     ipcMain.on('update-response-bounds', (event, bounds) => {
+        // Never resize while dragging — setSize() conflicts with the setPosition() loop
+        if (isResponseDragging) return;
+
         const responseWindow = getResponseWindow();
         if (responseWindow && bounds.height > 0) {
             const { screen } = require('electron');

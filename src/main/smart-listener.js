@@ -7,12 +7,18 @@
 const { getTierConfig, getModelForTier, getModelListForTier, getRetryConfig, getPromptForLanguage } = require('./config');
 const { getValidAccessToken } = require('./providers/openai/codex-auth');
 
+const MAX_CONCURRENT_RESPONSES = 2;   // Máximo de respostas geradas em paralelo
+const QUESTION_COOLDOWN_MS = 120000;  // 2 min cooldown para considerar duplicata
+const ANALYSIS_DELTA_CHARS = 30;      // Novo limiar de delta (era 20)
+
 // Queue state
 let questionQueue = [];       // Array of { id, question, status, response, timestamp, viewed }
 let lastAnalyzedText = '';     // Last transcription text that was analyzed
 let isAnalyzing = false;       // Prevent concurrent analysis
 let questionIdCounter = 0;     // Auto-increment ID
 let activeResponsePromises = new Map(); // Track in-flight response generation
+let pendingResponseQueue = [];  // Perguntas aguardando slot de geração
+let activeResponseCount = 0;    // Quantas gerações estão em andamento
 
 /**
  * Resolve the API key for the current provider
@@ -36,120 +42,46 @@ async function resolveApiKey(config) {
     return config.apiKey || null;
 }
 
+// Padrões interrogativos para PT-BR, EN e ES
+const QUESTION_PATTERNS = {
+    'pt-br': /^(quem|o que|que|qual|quais|quando|onde|como|por que|por quê|pode|poderia|você|é que|será|tem|há|existe|consegue|deveria|devo|devemos|preciso|precisamos|é possível|vale a pena)\b/i,
+    'en':    /^(who|what|which|when|where|why|how|can|could|would|should|will|is|are|do|does|did|has|have|may|might|shall|am|isn't|aren't|don't|doesn't|won't|wouldn't|haven't)\b/i,
+    'es':    /^(quién|qué|cuál|cuáles|cuándo|dónde|cómo|por qué|puede|podría|es|son|hay|tiene|debería|será|existe|se puede)\b/i
+};
+
 /**
- * Analyze transcription text and extract questions/interesting points
- * @param {string} transcriptionText - The current transcription text
- * @param {object} config - App configuration
- * @returns {Promise<string[]>} Array of detected questions
+ * Detect questions locally using regex — synchronous, no network, < 1ms
  */
-async function detectQuestions(transcriptionText, config) {
+function detectQuestionsLocally(transcriptionText, language) {
     if (!transcriptionText || transcriptionText.trim().length < 15) return [];
 
-    const provider = config.provider || 'openai';
-    const apiKey = await resolveApiKey(config);
-    if (!apiKey) return [];
+    const lang = (language || 'en').toLowerCase();
+    const pattern = QUESTION_PATTERNS[lang] || QUESTION_PATTERNS['en'];
 
-    const language = config.language || 'en';
-    const tier = config.tier || 'balanced';
-    const tierConfig = getTierConfig(provider, tier);
-    const model = getModelForTier(provider, tier, 'analyze');
+    // Split into sentences by . ! ? ; or newline
+    const sentences = transcriptionText
+        .split(/(?<=[.!?;])\s+|\n+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 8);
 
-    // Build the detection prompt
-    const detectPrompt = buildDetectionPrompt(transcriptionText, language);
+    const questions = [];
 
-    try {
-        let responseText;
+    for (const sentence of sentences) {
+        const clean = sentence.replace(/^["""''`\-–—]+|["""''`\-–—]+$/g, '').trim();
+        if (!clean) continue;
 
-        if (provider === 'google') {
-            const { getGoogleAIResponse } = require('./providers/google');
-            const result = await getGoogleAIResponse({
-                transcription: detectPrompt,
-                params: {
-                    apiKey, model,
-                    systemPrompt: '',
-                    language,
-                    history: [],
-                    tierConfig,
-                    briefMode: true
-                }
-            });
-            responseText = result.response;
-        } else {
-            const { getChatCompletionResponse } = require('./providers/openai/chat');
-            responseText = await getChatCompletionResponse(
-                detectPrompt,
-                apiKey,
-                model,
-                '', // no system prompt
-                language,
-                [], // no history
-                tierConfig,
-                true // brief mode
-            );
-        }
+        const endsWithQuestion = clean.endsWith('?');
+        const startsWithInterrogative = pattern.test(clean);
 
-        // Parse the response - expect JSON array of strings
-        return parseDetectedQuestions(responseText);
-    } catch (error) {
-        console.error('[SmartListener] Detection error:', error.message);
-        return [];
-    }
-}
-
-/**
- * Build the question detection prompt
- */
-function buildDetectionPrompt(text, language) {
-    const prompts = {
-        'en': `Analyze the following transcription and extract ONLY the questions or key points that would benefit from an AI answer. Return ONLY a JSON array of strings. If there are no questions, return an empty array []. Do not include greetings, filler words, or non-questions. Each item should be a clear, self-contained question.
-
-Transcription:
-"${text}"
-
-Return ONLY the JSON array, nothing else. Example: ["What is X?", "How does Y work?"]`,
-
-        'pt-br': `Analise a seguinte transcrição e extraia APENAS as perguntas ou pontos-chave que se beneficiariam de uma resposta de IA. Retorne APENAS um array JSON de strings. Se não houver perguntas, retorne um array vazio []. Não inclua cumprimentos, palavras de preenchimento ou não-perguntas. Cada item deve ser uma pergunta clara e autossuficiente.
-
-Transcrição:
-"${text}"
-
-Retorne APENAS o array JSON, nada mais. Exemplo: ["O que é X?", "Como Y funciona?"]`,
-
-        'es': `Analiza la siguiente transcripción y extrae SOLO las preguntas o puntos clave que se beneficiarían de una respuesta de IA. Devuelve SOLO un array JSON de strings. Si no hay preguntas, devuelve un array vacío []. No incluyas saludos, palabras de relleno o no-preguntas. Cada elemento debe ser una pregunta clara y autosuficiente.
-
-Transcripción:
-"${text}"
-
-Devuelve SOLO el array JSON, nada más. Ejemplo: ["¿Qué es X?", "¿Cómo funciona Y?"]`
-    };
-
-    return prompts[language] || prompts['en'];
-}
-
-/**
- * Parse the AI response to extract questions
- */
-function parseDetectedQuestions(responseText) {
-    if (!responseText) return [];
-
-    try {
-        // Try to find JSON array in the response
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(parsed)) {
-                return parsed.filter(q => typeof q === 'string' && q.trim().length > 0);
+        if (endsWithQuestion || startsWithInterrogative) {
+            const question = endsWithQuestion ? clean : clean + '?';
+            if (question.split(/\s+/).length >= 3) {  // Pelo menos 3 palavras
+                questions.push(question);
             }
         }
-    } catch (e) {
-        console.warn('[SmartListener] Failed to parse JSON response:', e.message);
     }
 
-    // Fallback: try to extract questions line by line
-    const lines = responseText.split('\n').filter(l => l.trim().length > 0);
-    return lines
-        .map(l => l.replace(/^[\d\-\.\*\)]+\s*/, '').replace(/^["']|["']$/g, '').trim())
-        .filter(l => l.length > 5 && (l.includes('?') || l.length > 10));
+    return questions;
 }
 
 /**
@@ -222,15 +154,15 @@ async function analyzeTranscription(transcriptionText, config, onNewQuestion, on
 
     if (normalizedText === normalizedLast) return;
 
-    // Only re-analyze if there's at least 20 new characters
+    // Only re-analyze if there's at least ANALYSIS_DELTA_CHARS new characters
     if (normalizedText.startsWith(normalizedLast) &&
-        normalizedText.length - normalizedLast.length < 20) return;
+        normalizedText.length - normalizedLast.length < ANALYSIS_DELTA_CHARS) return;
 
     isAnalyzing = true;
     lastAnalyzedText = transcriptionText;
 
     try {
-        const questions = await detectQuestions(transcriptionText, config);
+        const questions = detectQuestionsLocally(transcriptionText, config.language);
 
         if (questions.length === 0) {
             return;
@@ -254,14 +186,29 @@ async function analyzeTranscription(transcriptionText, config, onNewQuestion, on
             // Notify about new question
             if (onNewQuestion) onNewQuestion(queueItem);
 
-            // Generate response in parallel (fire and forget)
-            const responsePromise = generateResponseForItem(queueItem, config, onResponseReady);
-            activeResponsePromises.set(queueItem.id, responsePromise);
+            pendingResponseQueue.push({ item: queueItem, config, callback: onResponseReady });
+            processResponseQueue();
         }
     } catch (error) {
         console.error('[SmartListener] Analysis error:', error.message);
     } finally {
         isAnalyzing = false;
+    }
+}
+
+/**
+ * Process the pending response queue, respecting MAX_CONCURRENT_RESPONSES
+ */
+function processResponseQueue() {
+    while (activeResponseCount < MAX_CONCURRENT_RESPONSES && pendingResponseQueue.length > 0) {
+        const next = pendingResponseQueue.shift();
+        activeResponseCount++;
+        generateResponseForItem(next.item, next.config, next.callback)
+            .finally(() => {
+                activeResponseCount--;
+                activeResponsePromises.delete(next.item.id);
+                processResponseQueue();
+            });
     }
 }
 
@@ -288,24 +235,46 @@ async function generateResponseForItem(queueItem, config, onResponseReady) {
     }
 }
 
+const STOPWORDS = new Set([
+    'o','a','os','as','um','uma','de','do','da','dos','das','em','no','na',
+    'por','para','com','que','se','é','e','ou','mas','como','isso','esse',
+    'essa','este','esta','the','an','is','are','was','were','of','in',
+    'to','for','with','that','this','it','be','as','at','by','we','he','she'
+]);
+
+function normalizeForSimilarity(text) {
+    return text.trim().toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !STOPWORDS.has(w))
+        .join(' ');
+}
+
 /**
- * Check if a question is similar to one already in the queue
+ * Check if a question is similar to one already in the queue,
+ * using stopword-filtered word overlap and a time-based cooldown.
  */
 function isQuestionDuplicate(newQuestion) {
-    const normalized = newQuestion.trim().toLowerCase();
+    const normalized = normalizeForSimilarity(newQuestion);
+    const now = Date.now();
 
     return questionQueue.some(item => {
-        const existing = item.question.trim().toLowerCase();
-        // Exact match
+        const itemAge = now - new Date(item.timestamp).getTime();
+        if (itemAge > QUESTION_COOLDOWN_MS) return false;
+
+        const existing = normalizeForSimilarity(item.question);
+        if (!existing || !normalized) return false;
+
         if (existing === normalized) return true;
-        // High similarity (one contains the other)
         if (existing.includes(normalized) || normalized.includes(existing)) return true;
-        // Simple word overlap check
-        const newWords = new Set(normalized.split(/\s+/));
-        const existingWords = new Set(existing.split(/\s+/));
+
+        const newWords = new Set(normalized.split(/\s+/).filter(Boolean));
+        const existingWords = new Set(existing.split(/\s+/).filter(Boolean));
+        if (newWords.size === 0 || existingWords.size === 0) return false;
+
         const overlap = [...newWords].filter(w => existingWords.has(w)).length;
         const similarity = overlap / Math.max(newWords.size, existingWords.size);
-        return similarity > 0.7;
+        return similarity > 0.65;
     });
 }
 
@@ -346,6 +315,8 @@ function clearQueue() {
     lastAnalyzedText = '';
     questionIdCounter = 0;
     activeResponsePromises.clear();
+    pendingResponseQueue = [];
+    activeResponseCount = 0;
 }
 
 /**
@@ -364,6 +335,5 @@ module.exports = {
     getUnviewedCount,
     clearQueue,
     resetAnalysis,
-    detectQuestions,
     generateResponse
 };

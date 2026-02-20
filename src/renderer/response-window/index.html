@@ -88,9 +88,23 @@
             <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
           </svg>
         </button>
-        <!-- Smart Listener Queue Tabs (inline) -->
-        <div class="sl-queue-tabs hidden" id="sl-queue-tabs">
-          <!-- Tabs dynamically added here -->
+        <!-- Smart Listener Queue Tabs + Nav Arrows (inline) -->
+        <div class="sl-nav-group hidden" id="sl-nav-group">
+          <button class="sl-nav-btn" id="nav-prev-btn" data-tooltip="Alt + ←">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <div class="sl-queue-tabs" id="sl-queue-tabs">
+            <!-- Tabs dynamically added here -->
+          </div>
+          <button class="sl-nav-btn" id="nav-next-btn" data-tooltip="Alt + →">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
         </div>
         <span class="footer-spacer"></span>
         <div class="opacity-controls">

@@ -11,7 +11,7 @@ const smartListener = require('../smart-listener');
  * @param {object} context - Context with getMainWindow, getResponseWindow, getConfig, setConfig
  */
 function setupSmartListenerHandlers(context) {
-    const { getMainWindow, getResponseWindow, getConfig } = context;
+    const { getMainWindow, getResponseWindow, getConfig, showResponseWindow } = context;
 
     // Analyze transcription for questions (called from renderer periodically)
     ipcMain.handle('smart-listener:analyze', async (event, transcriptionText) => {
@@ -27,6 +27,8 @@ function setupSmartListenerHandlers(context) {
                     if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('smart-listener:new-question', queueItem);
                     }
+                    // Show response window (and re-apply clickthrough) if hidden
+                    if (showResponseWindow) showResponseWindow();
                     const responseWindow = getResponseWindow();
                     if (responseWindow && !responseWindow.isDestroyed()) {
                         responseWindow.webContents.send('smart-listener:new-question', queueItem);

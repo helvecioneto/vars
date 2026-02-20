@@ -597,7 +597,23 @@ app.whenReady().then(async () => {
         getOnboardingWindow: () => onboardingWindow,
         getConfig: () => config,
         setConfig: (newConfig) => { config = newConfig; },
-        toggleRecording: toggleRecordingState
+        toggleRecording: toggleRecordingState,
+        // Shows the response window the first time Smart Listener detects a question.
+        // No-op when the window is already visible — never disturbs an active drag or
+        // the current clickthrough/interaction state.
+        showResponseWindow: () => {
+            if (!responseWindow || responseWindow.isDestroyed()) return;
+            if (responseWindow.isVisible()) return; // already visible — do nothing
+            responseWindow.show();
+            if (isClickthroughEnabled) {
+                if (process.platform === 'linux') {
+                    responseWindow.setIgnoreMouseEvents(true);
+                } else {
+                    responseWindow.setIgnoreMouseEvents(true, { forward: true });
+                }
+                responseWindow.webContents.send('clickthrough-changed', true);
+            }
+        }
     });
 
     // Handle content protection toggle (visibility mode)

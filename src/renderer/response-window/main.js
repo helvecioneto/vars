@@ -9,6 +9,8 @@ let queue = [];            // All questions/responses (normal + smart listener)
 let activeTabId = null;    // Currently viewed tab
 let lastPrompt = '';
 let queueCounter = 0;      // Global counter for unique IDs
+let renderTabsTimer = null; // Debounce timer for renderQueueTabs
+let isDraggingForClickthrough = false; // Shared with setupClickthroughHandlers to avoid killing drag on mouseleave
 
 // Wait for DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const questionSection = document.getElementById('question-section');
     const questionText = document.getElementById('question-text');
     const slQueueTabs = document.getElementById('sl-queue-tabs');
+    const slNavGroup = document.getElementById('sl-nav-group');
+    const navPrevBtn = document.getElementById('nav-prev-btn');
+    const navNextBtn = document.getElementById('nav-next-btn');
     const copyBtn = document.getElementById('copy-response-btn');
     const regenBtn = document.getElementById('regen-response-btn');
     const clearReadBtn = document.getElementById('clear-read-btn');
@@ -33,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     minimizeBtn.addEventListener('click', () => {
         window.responseAPI.minimizeWindow();
     });
+
+    // Nav arrow buttons (also serve as keyboard shortcut hint via tooltip)
+    navPrevBtn.addEventListener('click', () => navigateQueue('prev'));
+    navNextBtn.addEventListener('click', () => navigateQueue('next'));
 
     // Context menu on right-click
     document.addEventListener('contextmenu', (e) => {
@@ -50,12 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Don't drag from buttons
         if (e.target.closest('.win-btn') || e.target.closest('.copy-btn') ||
             e.target.closest('.regen-btn') || e.target.closest('.code-copy-btn') ||
-            e.target.closest('.sl-queue-tab') || e.target.closest('.clear-read-btn')) {
+            e.target.closest('.sl-queue-tab') || e.target.closest('.clear-read-btn') ||
+            e.target.closest('.sl-nav-btn')) {
             return;
         }
         if (e.button !== 0) return;
         dragStartPos = { x: e.screenX, y: e.screenY };
         hasDragged = false;
+        isDraggingForClickthrough = true;
         window.responseAPI.setDragging(true);
     });
 
@@ -70,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('mouseup', () => {
+        isDraggingForClickthrough = false;
         window.responseAPI.setDragging(false);
         dragStartPos = null;
     });
@@ -109,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         queue.push(item);
 
         // Show tabs (always visible once we have items)
-        slQueueTabs.classList.remove('hidden');
+        slNavGroup.classList.remove('hidden');
         renderQueueTabs();
 
         // Always focus on the new normal response
@@ -146,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Show tabs
-        slQueueTabs.classList.remove('hidden');
+        slNavGroup.classList.remove('hidden');
         renderQueueTabs();
 
         // Only auto-select if no tab is active yet (first item ever)
@@ -176,13 +188,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = document.createElement('button');
             tab.className = 'sl-queue-tab';
             tab.textContent = `Q${index + 1}`;
+            tab.setAttribute('data-id', String(item.id));
             tab.setAttribute('data-tooltip', truncateText(item.question, 50));
 
             // State classes
-            if (item.id === activeTabId) tab.classList.add('active');
+            const isActive = item.id === activeTabId;
+            if (isActive) tab.classList.add('active');
 
             if (item.source === 'smart-listener') {
-                // Smart Listener items: show viewed/unviewed state
                 if (item.viewed) {
                     tab.classList.add('viewed');
                 } else if (item.status === 'ready') {
@@ -191,10 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (item.status === 'generating') tab.classList.add('generating');
                 if (item.status === 'error') tab.classList.add('error');
             } else {
-                // Normal items: always "viewed", just dim non-active
-                if (item.id !== activeTabId) {
-                    tab.classList.add('viewed');
-                }
+                if (!isActive) tab.classList.add('viewed');
             }
 
             tab.addEventListener('click', () => {
@@ -205,6 +215,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateClearReadButton();
+    }
+
+    /**
+     * Update only CSS classes on existing tab buttons — no DOM destruction.
+     * Used by selectQueueTab to avoid destroying the clicked button mid-event.
+     */
+    function refreshTabClasses() {
+        const tabs = slQueueTabs.querySelectorAll('.sl-queue-tab');
+        tabs.forEach(tab => {
+            const tabId = tab.getAttribute('data-id');
+            const item = queue.find(q => String(q.id) === tabId);
+            if (!item) return;
+
+            const isActive = item.id === activeTabId;
+            tab.classList.toggle('active', isActive);
+
+            if (item.source === 'smart-listener') {
+                tab.classList.toggle('viewed', item.viewed);
+                tab.classList.toggle('unviewed', !item.viewed && item.status === 'ready');
+                tab.classList.toggle('generating', item.status === 'generating');
+                tab.classList.toggle('error', item.status === 'error');
+            } else {
+                tab.classList.toggle('viewed', !isActive);
+            }
+        });
+    }
+
+    /**
+     * Debounced wrapper for renderQueueTabs — used in IPC handlers to avoid
+     * destroying/recreating DOM during rapid events (prevents click jank).
+     */
+    function scheduleRenderTabs() {
+        if (renderTabsTimer) clearTimeout(renderTabsTimer);
+        renderTabsTimer = setTimeout(() => {
+            renderTabsTimer = null;
+            renderQueueTabs();
+        }, 150);
     }
 
     /**
@@ -238,8 +285,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Normal: response is already formatted HTML
                 responseContent.innerHTML = item.response;
             } else {
-                // Smart Listener: raw text needs formatting
-                responseContent.innerHTML = item.rawResponse ? formatResponse(item.rawResponse) : (item.response || '');
+                // Smart Listener: cache formatted HTML to avoid re-running regexes on every click
+                if (!item.formattedHtml && item.rawResponse) {
+                    item.formattedHtml = formatResponse(item.rawResponse);
+                }
+                responseContent.innerHTML = item.formattedHtml || item.response || '';
             }
         } else if (item.status === 'generating') {
             responseContent.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Generating response...</p>';
@@ -260,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastPrompt = item.question || '';
 
         setupCodeBlockCopyButtons();
-        renderQueueTabs();
+        refreshTabClasses();
         updateClearReadButton();
         resizeToContent();
     }
@@ -295,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 queue[existingIdx] = { ...queue[existingIdx], ...queueItem };
             }
 
-            slQueueTabs.classList.remove('hidden');
-            renderQueueTabs();
+            slNavGroup.classList.remove('hidden');
+            scheduleRenderTabs();
             resizeToContent();
         });
 
@@ -307,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 queue[existingIdx].status = queueItem.status;
                 queue[existingIdx].response = queueItem.response;
                 queue[existingIdx].rawResponse = queueItem.response;
+                queue[existingIdx].formattedHtml = null; // Invalida cache — será regenerado no próximo selectQueueTab
             } else {
                 queueCounter++;
                 queue.push({
@@ -322,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            renderQueueTabs();
+            scheduleRenderTabs();
 
             // If this tab is currently active, refresh the view
             if (activeTabId === queueItem.id) {
@@ -509,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (queue.length === 0) {
             // Queue is empty: reset state
             activeTabId = null;
-            slQueueTabs.classList.add('hidden');
+            slNavGroup.classList.add('hidden');
             responseContent.innerHTML = '';
             questionSection.classList.add('hidden');
             responseTimestamp.textContent = '';
@@ -660,6 +711,15 @@ function setupClickthroughHandlers() {
                 container.classList.remove('clickthrough-active');
             }
         }
+        // Stop any active drag loop in the main process when going transparent —
+        // mouseup will never fire once the window ignores mouse events.
+        if (enabled) {
+            isDraggingForClickthrough = false;
+            window.responseAPI.setDragging(false);
+        }
+        // Always restore native drag region when clickthrough state changes
+        const toolbar = document.getElementById('response-toolbar');
+        if (toolbar) toolbar.style.webkitAppRegion = '';
     });
 
     // CTRL key detection (only useful on macOS/Windows)
@@ -669,29 +729,67 @@ function setupClickthroughHandlers() {
 
     let isInteracting = false;
 
+    function enableInteraction() {
+        if (isInteracting) return;
+        isInteracting = true;
+        // Disable native OS drag so it doesn't conflict with the polling drag loop
+        const toolbar = document.getElementById('response-toolbar');
+        if (toolbar) toolbar.style.webkitAppRegion = 'no-drag';
+        window.responseAPI.setIgnoreMouseEvents(false);
+    }
+
+    function disableInteraction() {
+        if (!isInteracting) return;
+        isInteracting = false;
+        isDraggingForClickthrough = false;
+        window.responseAPI.setDragging(false);
+        // Restore native drag region
+        const toolbar = document.getElementById('response-toolbar');
+        if (toolbar) toolbar.style.webkitAppRegion = '';
+        window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+    }
+
+    // mouseenter: detect CTRL when the cursor enters the window while already holding it.
+    // This covers the case where the user presses CTRL before moving toward the window.
+    document.addEventListener('mouseenter', (e) => {
+        if (!isClickthroughActive) return;
+        if (e.ctrlKey) enableInteraction();
+    });
+
+    // mousemove: detect CTRL being pressed/released while already inside the window
     document.addEventListener('mousemove', (e) => {
         if (!isClickthroughActive) return;
-        if (e.ctrlKey && !isInteracting) {
-            isInteracting = true;
-            window.responseAPI.setIgnoreMouseEvents(false);
-        } else if (!e.ctrlKey && isInteracting) {
-            isInteracting = false;
-            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+        if (e.ctrlKey) {
+            enableInteraction();
+        } else if (isInteracting && !isDraggingForClickthrough) {
+            // Only disengage if we're NOT mid-drag — dragging moves the cursor outside
+            // the window boundary, which would otherwise kill the drag via mouseleave too
+            disableInteraction();
         }
     });
 
+    // keyup: disengage when CTRL is released (works when window has keyboard focus)
     document.addEventListener('keyup', (e) => {
         if (!isClickthroughActive) return;
-        if (e.key === 'Control' && isInteracting) {
-            isInteracting = false;
-            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+        if (e.key === 'Control') disableInteraction();
+    });
+
+    // mouseleave: disengage only when NOT actively dragging.
+    // During a CTRL+drag the cursor will leave the window bounds as it moves,
+    // so we must not kill the interactive state mid-drag.
+    document.addEventListener('mouseleave', () => {
+        if (!isClickthroughActive || !isInteracting) return;
+        if (!isDraggingForClickthrough) {
+            disableInteraction();
         }
     });
 
-    document.addEventListener('mouseleave', () => {
+    // mouseup fires on window (not document) — ensures drag cleanup even when
+    // the button is released outside the window.
+    window.addEventListener('mouseup', () => {
         if (isClickthroughActive && isInteracting) {
-            isInteracting = false;
-            window.responseAPI.setIgnoreMouseEvents(true, { forward: true });
+            // Drag ended — now safe to check if CTRL is still held via next mousemove
+            isDraggingForClickthrough = false;
         }
     });
 }
