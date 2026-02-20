@@ -28,16 +28,17 @@ function createWindow() {
 
     const windowOptions = {
         width: windowWidth,
-        height: 60,  // Start small, will expand when settings/content opens
+        height: 110,  // Start small, will expand when settings/content opens
         title: 'VARS',
         frame: false,
         transparent: true,
+        hasShadow: false,
         alwaysOnTop: true,
         skipTaskbar: true,
         resizable: true,
         maximizable: false,
         minWidth: Math.round(windowWidth * 0.75),
-        minHeight: 50,
+        minHeight: 90,
         useContentSize: true,  // Window size = content size, not including frame
         webPreferences: {
             preload: path.join(__dirname, '..', 'preload.js'),
@@ -116,6 +117,7 @@ function createResponseWindow() {
         title: 'VARS Response',
         frame: false,
         transparent: true,
+        hasShadow: false,
         alwaysOnTop: true,
         skipTaskbar: true,
         resizable: true,
@@ -142,7 +144,7 @@ function createResponseWindow() {
     responseWindow.setMovable(true);
 
     // Always position below the main window, horizontally centered
-    const GAP = 12;
+    const GAP = 36; // Increased to ensure it doesn't overlap the main window due to CSS padding
     if (mainWindow && !mainWindow.isDestroyed()) {
         const mb = mainWindow.getBounds();
         const x = mb.x + Math.round((mb.width - windowWidth) / 2);
