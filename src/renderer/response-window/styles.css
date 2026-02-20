@@ -296,6 +296,34 @@ body {
     }
 }
 
+/* Clear Read Responses Button */
+.clear-read-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.clear-read-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+    opacity: 1;
+}
+
+.clear-read-btn:active {
+    transform: scale(0.95);
+}
+
 /* Copy Button */
 .copy-btn {
     display: flex;

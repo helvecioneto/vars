@@ -214,14 +214,6 @@ function setupWindowHandlers(context) {
             trackMouse();
         } else if (!dragging) {
             isResponseDragging = false;
-            // Save position to config for persistence
-            const pos = responseWindow.getPosition();
-            const currentConfig = getConfig();
-            if (currentConfig) {
-                currentConfig.responseWindowPosition = { x: pos[0], y: pos[1] };
-                setConfig(currentConfig);
-                saveConfig(currentConfig);
-            }
         }
     });
 

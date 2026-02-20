@@ -141,24 +141,18 @@ function createResponseWindow() {
     responseWindow.loadFile(path.join(__dirname, '..', 'renderer', 'response-window', 'index.html'));
     responseWindow.setMovable(true);
 
-    // Position: restore saved position or center on screen
-    const savedPos = config?.responseWindowPosition;
-    if (savedPos && typeof savedPos.x === 'number' && typeof savedPos.y === 'number') {
-        // Validate saved position is still within screen bounds
-        if (savedPos.x >= 0 && savedPos.x < workArea.width &&
-            savedPos.y >= 0 && savedPos.y < workArea.height) {
-            responseWindow.setPosition(savedPos.x, savedPos.y);
-        } else {
-            // Saved position out of bounds, center instead
-            const x = Math.round((workArea.width - windowWidth) / 2);
-            const y = Math.round((workArea.height - initialHeight) / 2);
-            responseWindow.setPosition(x, y);
-        }
+    // Always position below the main window, horizontally centered
+    const GAP = 12;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        const mb = mainWindow.getBounds();
+        const x = mb.x + Math.round((mb.width - windowWidth) / 2);
+        const y = mb.y + mb.height + GAP;
+        const clampedX = Math.max(0, Math.min(x, workArea.width - windowWidth));
+        const clampedY = Math.max(0, Math.min(y, workArea.height - initialHeight));
+        responseWindow.setPosition(clampedX, clampedY);
     } else {
-        // First time: center on screen
-        const x = Math.round((workArea.width - windowWidth) / 2);
-        const y = Math.round((workArea.height - initialHeight) / 2);
-        responseWindow.setPosition(x, y);
+        // Fallback: top-center
+        responseWindow.setPosition(Math.round((workArea.width - windowWidth) / 2), 80);
     }
 
     responseWindow.on('closed', () => {

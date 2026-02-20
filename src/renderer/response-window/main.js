@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const slQueueTabs = document.getElementById('sl-queue-tabs');
     const copyBtn = document.getElementById('copy-response-btn');
     const regenBtn = document.getElementById('regen-response-btn');
+    const clearReadBtn = document.getElementById('clear-read-btn');
     const closeBtn = document.getElementById('close-btn');
     const minimizeBtn = document.getElementById('minimize-btn');
     const responseBody = document.getElementById('response-body');
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Don't drag from buttons
         if (e.target.closest('.win-btn') || e.target.closest('.copy-btn') ||
             e.target.closest('.regen-btn') || e.target.closest('.code-copy-btn') ||
-            e.target.closest('.sl-queue-tab')) {
+            e.target.closest('.sl-queue-tab') || e.target.closest('.clear-read-btn')) {
             return;
         }
         if (e.button !== 0) return;
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Always focus on the new normal response
         selectQueueTab(item.id);
+        updateClearReadButton();
     }
 
     /**
@@ -152,7 +154,16 @@ document.addEventListener('DOMContentLoaded', () => {
             selectQueueTab(item.id);
         }
 
+        updateClearReadButton();
         resizeToContent();
+    }
+
+    /**
+     * Show/hide the clear-read button based on whether there are viewed items
+     * (excluding the currently active tab).
+     */
+    function updateClearReadButton() {
+        clearReadBtn.classList.toggle('hidden', queue.length === 0);
     }
 
     /**
@@ -192,6 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             slQueueTabs.appendChild(tab);
         });
+
+        updateClearReadButton();
     }
 
     /**
@@ -248,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setupCodeBlockCopyButtons();
         renderQueueTabs();
+        updateClearReadButton();
         resizeToContent();
     }
 
@@ -487,6 +501,29 @@ document.addEventListener('DOMContentLoaded', () => {
             regenBtn.classList.remove('loading');
         }
     });
+    // Clear read responses button
+    clearReadBtn.addEventListener('click', () => {
+        // Remove all viewed items (including the active one if it's viewed)
+        queue = queue.filter(item => !item.viewed);
+
+        if (queue.length === 0) {
+            // Queue is empty: reset state
+            activeTabId = null;
+            slQueueTabs.classList.add('hidden');
+            responseContent.innerHTML = '';
+            questionSection.classList.add('hidden');
+            responseTimestamp.textContent = '';
+            responseModel.textContent = '';
+            lastPrompt = '';
+        } else {
+            // Remaining items are unread — select the first one
+            selectQueueTab(queue[0].id);
+        }
+
+        updateClearReadButton();
+        resizeToContent();
+    });
+
     // Clickthrough CTRL key handlers (macOS/Windows)
     setupClickthroughHandlers();
 
