@@ -2,19 +2,19 @@
     "providers": {
         "openai": {
             "fast": {
-                "analyze": "gpt-4o-mini",
+                "analyze": "gpt-5.4-mini",
                 "transcribe": "whisper-1",
                 "temperature": 0.5,
                 "maxOutputTokens": 1024
             },
             "balanced": {
-                "analyze": "gpt-4o",
+                "analyze": "gpt-5.4",
                 "transcribe": "whisper-1",
                 "temperature": 0.5,
                 "maxOutputTokens": 4096
             },
             "quality": {
-                "analyze": "gpt-5.2",
+                "analyze": "gpt-5.4",
                 "transcribe": "whisper-1",
                 "temperature": 1,
                 "maxOutputTokens": 16384,

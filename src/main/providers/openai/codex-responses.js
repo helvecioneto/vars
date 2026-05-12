@@ -15,18 +15,30 @@ const os = require('os');
 const CODEX_URL = 'https://chatgpt.com/backend-api/codex/responses';
 const JWT_CLAIM_PATH = 'https://api.openai.com/auth';
 
-// Model mapping: standard OpenAI models → Codex-compatible equivalents
-// Codex OAuth only supports GPT-5.x models through the ChatGPT backend
+// Model mapping: any model name → currently accepted ChatGPT/Codex OAuth model.
+// As of 2026-05, the ChatGPT subscription backend only accepts the gpt-5.4 family
+// (universal) and gpt-5.5 (OAuth-exclusive default). Older 5.x and 4.x names are
+// remapped here so existing user configs continue to work after the gpt-5.1
+// removal in March 2026.
 const MODEL_MAP = {
-    'gpt-4o-mini': 'gpt-5.1-codex-mini',
-    'gpt-4o': 'gpt-5.1',
-    'gpt-4': 'gpt-5.1',
-    'gpt-4-turbo': 'gpt-5.1',
-    'gpt-4-turbo-preview': 'gpt-5.1',
-    'gpt-4o-2024-05-13': 'gpt-5.1',
-    'gpt-4o-2024-08-06': 'gpt-5.1',
-    'gpt-4o-2024-11-20': 'gpt-5.1',
-    'gpt-4o-mini-2024-07-18': 'gpt-5.1-codex-mini',
+    // Legacy GPT-4 family (pre-gpt-5 rollout)
+    'gpt-4o-mini': 'gpt-5.4-mini',
+    'gpt-4o': 'gpt-5.4',
+    'gpt-4': 'gpt-5.4',
+    'gpt-4-turbo': 'gpt-5.4',
+    'gpt-4-turbo-preview': 'gpt-5.4',
+    'gpt-4o-2024-05-13': 'gpt-5.4',
+    'gpt-4o-2024-08-06': 'gpt-5.4',
+    'gpt-4o-2024-11-20': 'gpt-5.4',
+    'gpt-4o-mini-2024-07-18': 'gpt-5.4-mini',
+    // GPT-5.x names that the ChatGPT backend now rejects
+    'gpt-5.1': 'gpt-5.5',
+    'gpt-5.1-codex-mini': 'gpt-5.4-mini',
+    'gpt-5.1-codex-max': 'gpt-5.5',
+    'gpt-5.2': 'gpt-5.5',
+    'gpt-5.2-codex': 'gpt-5.5',
+    'gpt-5.3-codex': 'gpt-5.5',
+    'gpt-5.3-codex-spark': 'gpt-5.5',
 };
 
 /**
@@ -54,6 +66,67 @@ function extractAccountId(token) {
  */
 function resolveCodexModel(model) {
     return MODEL_MAP[model] || model;
+}
+
+/**
+ * Ordered fallback list used when the configured model is rejected with
+ * "model is not supported". Ordered best → safest so newer accounts that
+ * have access to gpt-5.5 try it first, but anyone falls through to the
+ * universally-accepted gpt-5.4 family. Update when OpenAI ships new models.
+ */
+const CODEX_FALLBACK_CHAIN = [
+    'gpt-5.5',
+    'gpt-5.4',
+    'gpt-5.4-mini',
+    'gpt-5.4-nano',
+];
+
+// Same chain biased toward speed (used by audio transcription).
+const CODEX_TRANSCRIPTION_FALLBACK_CHAIN = [
+    'gpt-5.4-mini',
+    'gpt-5.4-nano',
+    'gpt-5.4',
+    'gpt-5.5',
+];
+
+/**
+ * Detect whether a backend error message indicates the model is no longer
+ * accepted by the ChatGPT/Codex backend (vs. a transient/auth/server error).
+ */
+function isModelNotSupportedError(text) {
+    if (!text || typeof text !== 'string') return false;
+    return /model is not supported when using Codex/i.test(text)
+        || /not supported.*ChatGPT account/i.test(text)
+        || /model.*not (yet )?available/i.test(text)
+        || /unknown model/i.test(text)
+        || /invalid model/i.test(text);
+}
+
+/**
+ * Build the ordered list of models to attempt: the requested model first,
+ * then every fallback that hasn't been requested yet.
+ */
+function buildAttemptList(requestedModel, chain) {
+    const seen = new Set();
+    const attempts = [];
+    for (const m of [requestedModel, ...chain]) {
+        if (!m || seen.has(m)) continue;
+        seen.add(m);
+        attempts.push(m);
+    }
+    return attempts;
+}
+
+/**
+ * Parse a Codex backend error response (best-effort JSON, falls back to raw).
+ */
+function parseCodexError(errorText) {
+    try {
+        const errorJson = JSON.parse(errorText);
+        return errorJson.detail?.message || errorJson.detail || errorJson.message || errorText;
+    } catch {
+        return errorText;
+    }
 }
 
 /**
@@ -201,63 +274,72 @@ async function getCodexResponse(token, model, systemPrompt, messages, maxOutputT
     const resolvedModel = resolveCodexModel(model);
     const input = convertToResponsesInput(messages);
     const headers = buildHeaders(accountId, token);
-    const body = buildRequestBody(resolvedModel, systemPrompt, input, maxOutputTokens);
+    const attempts = buildAttemptList(resolvedModel, CODEX_FALLBACK_CHAIN);
 
     if (model !== resolvedModel) {
         console.log(`[Codex Responses] Model mapped: ${model} → ${resolvedModel}`);
     }
-    console.log(`[Codex Responses] Calling ${CODEX_URL} with model ${resolvedModel}`);
 
-    const response = await fetch(CODEX_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-    });
+    let lastError;
+    for (let i = 0; i < attempts.length; i++) {
+        const attemptModel = attempts[i];
+        const body = buildRequestBody(attemptModel, systemPrompt, input, maxOutputTokens);
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Codex Responses] Error ${response.status}:`, errorText);
-
-        let errorMessage;
-        try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.detail?.message || errorJson.detail || errorJson.message || errorText;
-        } catch {
-            errorMessage = errorText;
+        if (i === 0) {
+            console.log(`[Codex Responses] Calling ${CODEX_URL} with model ${attemptModel}`);
+        } else {
+            console.warn(`[Codex Responses] Retrying with fallback model: ${attemptModel}`);
         }
 
-        throw new Error(`Codex API error (${response.status}): ${errorMessage}`);
+        const response = await fetch(CODEX_URL, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        if (response.ok) {
+            const result = await parseSSEResponse(response);
+            if (!result) throw new Error('Codex API returned empty response');
+            console.log(`[Codex Responses] Success with ${attemptModel}, response length: ${result.length} chars`);
+            return result;
+        }
+
+        const errorText = await response.text();
+        const errorMessage = parseCodexError(errorText);
+        lastError = new Error(`Codex API error (${response.status}): ${errorMessage}`);
+
+        // Only roll forward in the chain on "model not supported" 400s.
+        // Auth/quota/network/server errors abort immediately so we don't mask them.
+        if (response.status === 400 && isModelNotSupportedError(errorMessage)) {
+            console.warn(`[Codex Responses] Model ${attemptModel} rejected: ${errorMessage}`);
+            continue;
+        }
+
+        console.error(`[Codex Responses] Error ${response.status}:`, errorText);
+        throw lastError;
     }
 
-    const result = await parseSSEResponse(response);
-
-    if (!result) {
-        throw new Error('Codex API returned empty response');
-    }
-
-    console.log(`[Codex Responses] Success, response length: ${result.length} chars`);
-    return result;
+    throw new Error(
+        `Codex backend rejected every model in the fallback chain (tried: ${attempts.join(', ')}). ` +
+        `Last error: ${lastError?.message || 'unknown'}. ` +
+        `The available model list may have changed — please update VARS.`
+    );
 }
 
 /**
- * List of Codex-compatible models available through chatgpt.com
+ * Models currently accepted by chatgpt.com/backend-api/codex/responses
+ * when authenticated via a ChatGPT subscription (May 2026).
+ * gpt-5.5 is OAuth-exclusive; the gpt-5.4 family works on both OAuth and API keys.
  */
 const CODEX_MODELS = [
-    'gpt-5.1',
-    'gpt-5.1-codex-mini',
-    'gpt-5.1-codex-max',
-    'gpt-5.2',
-    'gpt-5.2-codex',
-    'gpt-5.3-codex',
+    'gpt-5.5',
+    'gpt-5.4',
+    'gpt-5.4-mini',
+    'gpt-5.4-nano',
 ];
 
-/**
- * Check if a model name is Codex-compatible (GPT-5.x family)
- * @param {string} model - Model name
- * @returns {boolean}
- */
 function isCodexCompatibleModel(model) {
-    return CODEX_MODELS.includes(model) || model.startsWith('gpt-5');
+    return CODEX_MODELS.includes(model);
 }
 
 /**
@@ -287,7 +369,6 @@ async function transcribeWithCodex(token, audioBuffer, language = 'pt') {
     }
 
     const base64Audio = buffer.toString('base64');
-    const model = 'gpt-5.1-codex-mini'; // Use mini for speed
 
     const languageNames = {
         'pt': 'Portuguese',
@@ -321,45 +402,58 @@ async function transcribeWithCodex(token, audioBuffer, language = 'pt') {
     ];
 
     const headers = buildHeaders(accountId, token);
-    const body = {
-        model: model,
-        store: false,
-        stream: true,
-        instructions: 'You are a transcription assistant. Output only the exact transcribed text from the audio, nothing else.',
-        input: input,
-    };
+    const instructions = 'You are a transcription assistant. Output only the exact transcribed text from the audio, nothing else.';
+    const attempts = buildAttemptList(null, CODEX_TRANSCRIPTION_FALLBACK_CHAIN);
 
-    console.log(`[Codex Transcription] Transcribing audio (${buffer.length} bytes, format: ${format}) with ${model}`);
+    console.log(`[Codex Transcription] Transcribing audio (${buffer.length} bytes, format: ${format})`);
 
-    const response = await fetch(CODEX_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-    });
+    let lastError;
+    for (let i = 0; i < attempts.length; i++) {
+        const attemptModel = attempts[i];
+        const body = {
+            model: attemptModel,
+            store: false,
+            stream: true,
+            instructions,
+            input,
+        };
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Codex Transcription] Error ${response.status}:`, errorText);
-
-        let errorMessage;
-        try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.detail?.message || errorJson.detail || errorJson.message || errorText;
-        } catch {
-            errorMessage = errorText;
+        if (i === 0) {
+            console.log(`[Codex Transcription] Using model ${attemptModel}`);
+        } else {
+            console.warn(`[Codex Transcription] Retrying with fallback model: ${attemptModel}`);
         }
 
-        throw new Error(`Codex transcription error (${response.status}): ${errorMessage}`);
+        const response = await fetch(CODEX_URL, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        if (response.ok) {
+            const result = await parseSSEResponse(response);
+            if (!result) throw new Error('Codex transcription returned empty response');
+            console.log(`[Codex Transcription] Success with ${attemptModel}, length: ${result.length} chars`);
+            return result;
+        }
+
+        const errorText = await response.text();
+        const errorMessage = parseCodexError(errorText);
+        lastError = new Error(`Codex transcription error (${response.status}): ${errorMessage}`);
+
+        if (response.status === 400 && isModelNotSupportedError(errorMessage)) {
+            console.warn(`[Codex Transcription] Model ${attemptModel} rejected: ${errorMessage}`);
+            continue;
+        }
+
+        console.error(`[Codex Transcription] Error ${response.status}:`, errorText);
+        throw lastError;
     }
 
-    const result = await parseSSEResponse(response);
-
-    if (!result) {
-        throw new Error('Codex transcription returned empty response');
-    }
-
-    console.log(`[Codex Transcription] Success, transcription length: ${result.length} chars`);
-    return result;
+    throw new Error(
+        `Codex backend rejected every transcription model in the fallback chain (tried: ${attempts.join(', ')}). ` +
+        `Last error: ${lastError?.message || 'unknown'}.`
+    );
 }
 
 module.exports = {

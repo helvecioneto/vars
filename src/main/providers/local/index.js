@@ -1,6 +1,6 @@
 /**
  * VARS - Local Providers Index
- * Exports local speech-to-text providers (whisper.cpp via @napi-rs/whisper)
+ * Exports local speech-to-text providers (whisper.cpp via @kutalia/whisper-node-addon)
  */
 
 const { isLocalWhisperAvailable, loadModel, unloadModel, transcribeLocal, getLoadedModelInfo } = require('./whisper');

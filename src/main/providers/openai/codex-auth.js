@@ -456,27 +456,42 @@ async function loginWithOAuth(openUrl) {
     }
 }
 
+// Tracks the last logged credential source so we emit the "found credentials"
+// line once per source change instead of on every refresh/AI call.
+let lastLoggedSource = undefined;
+
+function logSourceOnce(source) {
+    if (source === lastLoggedSource) return;
+    lastLoggedSource = source;
+    if (source === 'keychain') {
+        console.log('[Codex Auth] Found credentials in macOS Keychain');
+    } else if (source === 'file') {
+        console.log('[Codex Auth] Found credentials in ~/.codex/auth.json');
+    } else {
+        console.log('[Codex Auth] No Codex credentials found');
+    }
+}
+
 /**
- * Read Codex CLI credentials from all available sources
- * Priority: macOS Keychain > File
+ * Read OAuth credentials from all available sources.
+ * Priority: macOS Keychain > ~/.codex/auth.json
+ * Logs the source once per process (and again only if it changes).
  * @returns {object|null} Credentials object or null
  */
 function readCodexCredentials() {
-    // Try macOS Keychain first (most secure)
     const keychainCreds = readKeychainCredentials();
     if (keychainCreds) {
-        console.log('[Codex Auth] Found credentials in macOS Keychain');
+        logSourceOnce('keychain');
         return keychainCreds;
     }
 
-    // Fall back to file
     const fileCreds = readFileCredentials();
     if (fileCreds) {
-        console.log('[Codex Auth] Found credentials in ~/.codex/auth.json');
+        logSourceOnce('file');
         return fileCreds;
     }
 
-    console.log('[Codex Auth] No Codex CLI credentials found');
+    logSourceOnce('none');
     return null;
 }
 
@@ -689,6 +704,9 @@ async function checkCodexAuthStatus() {
  */
 function disconnectCodexAuth() {
     try {
+        // Reset the source-log cache so the next login emits a fresh log line.
+        lastLoggedSource = undefined;
+
         // Delete ~/.codex/auth.json
         const authPath = resolveCodexAuthPath();
         if (fs.existsSync(authPath)) {

@@ -5,7 +5,7 @@
 
 const { ipcMain, shell } = require('electron');
 const { saveConfig, getModels, getModelForTier } = require('../config');
-const { checkCodexAuthStatus, disconnectCodexAuth, readCodexCredentials, getValidAccessToken, loginWithOAuth } = require('../providers/openai/codex-auth');
+const { checkCodexAuthStatus, disconnectCodexAuth, getValidAccessToken, loginWithOAuth } = require('../providers/openai/codex-auth');
 
 /**
  * Setup configuration-related IPC handlers
@@ -90,22 +90,20 @@ function setupConfigHandlers(context) {
     // Login with OpenAI OAuth (PKCE flow via browser)
     ipcMain.handle('codex-auth:login', async () => {
         try {
-            // First check if credentials already exist and are valid
-            const creds = readCodexCredentials();
-            if (creds) {
-                const status = await checkCodexAuthStatus();
-                if (status.authenticated) {
-                    // Already authenticated — just enable codex auth mode
-                    const config = getConfig();
-                    config.useCodexAuth = true;
-                    setConfig(config);
-                    await saveConfig(config);
-                    return {
-                        success: true,
-                        message: 'Connected! Using your OpenAI credits.',
-                        status,
-                    };
-                }
+            // Reuse an existing valid session if one is already cached.
+            // checkCodexAuthStatus internally reads credentials and validates the JWT,
+            // so we don't pre-read credentials separately.
+            const status = await checkCodexAuthStatus();
+            if (status.authenticated) {
+                const config = getConfig();
+                config.useCodexAuth = true;
+                setConfig(config);
+                await saveConfig(config);
+                return {
+                    success: true,
+                    message: 'Connected! Using your OpenAI credits.',
+                    status,
+                };
             }
 
             // Run the full OAuth PKCE login flow

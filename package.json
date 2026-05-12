@@ -1,6 +1,6 @@
 {
   "name": "vars",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "VARS (Virtual Agent for Real-time Support) - AI assistant that listens to calls and provides knowledge-based answers, invisible to screen sharing",
   "main": "src/main/index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux",
-    "convert-icon": "node scripts/convert-icon.js"
+    "convert-icon": "node scripts/convert-icon.js",
+    "postinstall": "node scripts/postinstall-whisper.js"
   },
   "build": {
     "appId": "com.vars.app",
@@ -18,6 +19,10 @@
     "directories": {
       "output": "dist"
     },
+    "asarUnpack": [
+      "node_modules/@kutalia/whisper-node-addon/dist/**/*",
+      "node_modules/ffmpeg-static/**/*"
+    ],
     "mac": {
       "target": "dmg",
       "icon": "src/assets/icon.png",
@@ -89,7 +94,7 @@
   "dependencies": {
     "@google/genai": "^1.37.0",
     "@google/generative-ai": "^0.24.1",
-    "@napi-rs/whisper": "^0.0.4",
+    "@kutalia/whisper-node-addon": "^1.1.0",
     "ffmpeg-static": "^5.3.0",
     "mic": "^2.1.2",
     "openai": "^4.52.0",
