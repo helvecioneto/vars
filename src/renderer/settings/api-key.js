@@ -121,6 +121,43 @@ export async function testAPIKey(providerType) {
 // --- Codex CLI Authentication ---
 
 /**
+ * Show which model OAuth mode will actually use.
+ * The model is discovered from the signed-in account, so it follows OpenAI's
+ * releases instead of a name frozen at build time.
+ * @param {boolean} force - Re-query the backend instead of using the cache
+ */
+export async function updateCodexModelInfo(force = false) {
+    const container = document.getElementById('codex-model-info');
+    const nameEl = document.getElementById('codex-model-name');
+    const refreshBtn = document.getElementById('codex-model-refresh');
+    if (!container || !nameEl) return;
+
+    if (refreshBtn && force) refreshBtn.classList.add('loading');
+
+    try {
+        const info = force
+            ? await window.electronAPI.codexModels.refresh()
+            : await window.electronAPI.codexModels.get();
+
+        if (!info || info.error || !info.model) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+        nameEl.textContent = info.model;
+        nameEl.title = info.models?.length
+            ? `Available to this account: ${info.models.join(', ')}`
+            : '';
+    } catch (error) {
+        console.error('[Codex Models] Could not read model info:', error);
+        container.classList.add('hidden');
+    } finally {
+        if (refreshBtn) refreshBtn.classList.remove('loading');
+    }
+}
+
+/**
  * Check and display Codex CLI authentication status
  */
 export async function checkCodexAuthStatus() {
@@ -155,9 +192,12 @@ export async function checkCodexAuthStatus() {
                     apiKeyInput.classList.add('codex-active');
                 }
             }
+
+            updateCodexModelInfo();
         } else {
             statusDot.className = 'codex-status-dot disconnected';
             statusText.textContent = status.message || 'Not connected';
+            document.getElementById('codex-model-info')?.classList.add('hidden');
 
             // Show login, hide logout
             if (loginBtn) loginBtn.classList.remove('hidden');
@@ -205,6 +245,8 @@ export async function handleCodexLogin() {
 
             // Refresh full status
             await checkCodexAuthStatus();
+            // A fresh login may unlock newer models — discover them now
+            await updateCodexModelInfo(true);
         } else if (result.needsSetup) {
             if (statusText) statusText.textContent = 'Install Codex CLI first (see browser)';
             if (statusDot) statusDot.className = 'codex-status-dot disconnected';
@@ -264,6 +306,11 @@ export function initCodexAuth() {
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleCodexDisconnect);
+    }
+
+    const modelRefreshBtn = document.getElementById('codex-model-refresh');
+    if (modelRefreshBtn) {
+        modelRefreshBtn.addEventListener('click', () => updateCodexModelInfo(true));
     }
 
     // OpenAI API test button

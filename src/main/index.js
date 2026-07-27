@@ -487,6 +487,23 @@ function applyClickthrough() {
     }
 }
 
+/**
+ * Refresh the list of models the signed-in ChatGPT account can serve.
+ * Fire-and-forget: startup must never wait on (or fail because of) the network.
+ */
+async function warmUpCodexModels() {
+    try {
+        const { getValidAccessToken } = require('./providers/openai/codex-auth');
+        const { refreshCodexModelsInBackground } = require('./providers/openai/codex-models');
+        const tokenData = await getValidAccessToken();
+        if (tokenData?.accessToken) {
+            refreshCodexModelsInBackground(tokenData.accessToken);
+        }
+    } catch (err) {
+        console.warn('[Codex Models] Startup refresh skipped:', err.message);
+    }
+}
+
 // App lifecycle
 app.whenReady().then(async () => {
     // Microphone permission handling
@@ -586,6 +603,12 @@ app.whenReady().then(async () => {
 
     // Load config
     config = await loadConfig();
+
+    // In OAuth mode, refresh the account's model list in the background so the
+    // first response of the session already uses the newest available model.
+    if (config.useCodexAuth) {
+        warmUpCodexModels();
+    }
 
     createWindow();
     createResponseWindow();

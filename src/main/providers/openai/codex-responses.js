@@ -11,35 +11,15 @@
  */
 
 const os = require('os');
+const {
+    getCodexModelChain,
+    getCodexModelSnapshot,
+    markCodexModelUnsupported,
+    markCodexModelWorking,
+} = require('./codex-models');
 
 const CODEX_URL = 'https://chatgpt.com/backend-api/codex/responses';
 const JWT_CLAIM_PATH = 'https://api.openai.com/auth';
-
-// Model mapping: any model name → currently accepted ChatGPT/Codex OAuth model.
-// As of 2026-05, the ChatGPT subscription backend only accepts the gpt-5.4 family
-// (universal) and gpt-5.5 (OAuth-exclusive default). Older 5.x and 4.x names are
-// remapped here so existing user configs continue to work after the gpt-5.1
-// removal in March 2026.
-const MODEL_MAP = {
-    // Legacy GPT-4 family (pre-gpt-5 rollout)
-    'gpt-4o-mini': 'gpt-5.4-mini',
-    'gpt-4o': 'gpt-5.4',
-    'gpt-4': 'gpt-5.4',
-    'gpt-4-turbo': 'gpt-5.4',
-    'gpt-4-turbo-preview': 'gpt-5.4',
-    'gpt-4o-2024-05-13': 'gpt-5.4',
-    'gpt-4o-2024-08-06': 'gpt-5.4',
-    'gpt-4o-2024-11-20': 'gpt-5.4',
-    'gpt-4o-mini-2024-07-18': 'gpt-5.4-mini',
-    // GPT-5.x names that the ChatGPT backend now rejects
-    'gpt-5.1': 'gpt-5.5',
-    'gpt-5.1-codex-mini': 'gpt-5.4-mini',
-    'gpt-5.1-codex-max': 'gpt-5.5',
-    'gpt-5.2': 'gpt-5.5',
-    'gpt-5.2-codex': 'gpt-5.5',
-    'gpt-5.3-codex': 'gpt-5.5',
-    'gpt-5.3-codex-spark': 'gpt-5.5',
-};
 
 /**
  * Extract ChatGPT Account ID from a JWT token
@@ -60,34 +40,20 @@ function extractAccountId(token) {
 }
 
 /**
- * Map standard model names to Codex-compatible equivalents
- * @param {string} model - Model name
- * @returns {string} Codex-compatible model name
+ * Resolve a model name to the one this account should actually use.
+ *
+ * OAuth mode never honours a stored/configured model name: the ChatGPT backend
+ * rotates its accepted list and any pinned name goes stale. We always take the
+ * newest model discovered for the account (see codex-models.js) and only fall
+ * back to the requested name if nothing is known yet.
+ *
+ * @param {string} model - Model name requested by the caller (usually a tier default)
+ * @param {string} purpose - 'analyze' or 'transcribe'
+ * @returns {string} Model name to use
  */
-function resolveCodexModel(model) {
-    return MODEL_MAP[model] || model;
+function resolveCodexModel(model, purpose = 'analyze') {
+    return getCodexModelSnapshot(purpose).model || model;
 }
-
-/**
- * Ordered fallback list used when the configured model is rejected with
- * "model is not supported". Ordered best → safest so newer accounts that
- * have access to gpt-5.5 try it first, but anyone falls through to the
- * universally-accepted gpt-5.4 family. Update when OpenAI ships new models.
- */
-const CODEX_FALLBACK_CHAIN = [
-    'gpt-5.5',
-    'gpt-5.4',
-    'gpt-5.4-mini',
-    'gpt-5.4-nano',
-];
-
-// Same chain biased toward speed (used by audio transcription).
-const CODEX_TRANSCRIPTION_FALLBACK_CHAIN = [
-    'gpt-5.4-mini',
-    'gpt-5.4-nano',
-    'gpt-5.4',
-    'gpt-5.5',
-];
 
 /**
  * Detect whether a backend error message indicates the model is no longer
@@ -103,18 +69,13 @@ function isModelNotSupportedError(text) {
 }
 
 /**
- * Build the ordered list of models to attempt: the requested model first,
- * then every fallback that hasn't been requested yet.
+ * Ordered list of models to attempt, newest first, for the signed-in account.
+ * Falls back to the requested model if discovery and the cache are both empty.
  */
-function buildAttemptList(requestedModel, chain) {
-    const seen = new Set();
-    const attempts = [];
-    for (const m of [requestedModel, ...chain]) {
-        if (!m || seen.has(m)) continue;
-        seen.add(m);
-        attempts.push(m);
-    }
-    return attempts;
+async function buildAttemptList(token, purpose, requestedModel) {
+    const chain = await getCodexModelChain(token, purpose);
+    if (chain.length > 0) return chain;
+    return requestedModel ? [requestedModel] : [];
 }
 
 /**
@@ -271,13 +232,16 @@ async function getCodexResponse(token, model, systemPrompt, messages, maxOutputT
         throw new Error('Failed to extract account ID from OAuth token. Please re-login with Codex CLI.');
     }
 
-    const resolvedModel = resolveCodexModel(model);
     const input = convertToResponsesInput(messages);
     const headers = buildHeaders(accountId, token);
-    const attempts = buildAttemptList(resolvedModel, CODEX_FALLBACK_CHAIN);
+    const attempts = await buildAttemptList(token, 'analyze', model);
 
-    if (model !== resolvedModel) {
-        console.log(`[Codex Responses] Model mapped: ${model} → ${resolvedModel}`);
+    if (attempts.length === 0) {
+        throw new Error('No Codex model available for this ChatGPT account. Please re-login.');
+    }
+
+    if (model && model !== attempts[0]) {
+        console.log(`[Codex Responses] Using latest available model for this account: ${attempts[0]} (config asked for ${model})`);
     }
 
     let lastError;
@@ -300,6 +264,7 @@ async function getCodexResponse(token, model, systemPrompt, messages, maxOutputT
         if (response.ok) {
             const result = await parseSSEResponse(response);
             if (!result) throw new Error('Codex API returned empty response');
+            markCodexModelWorking(attemptModel, 'analyze');
             console.log(`[Codex Responses] Success with ${attemptModel}, response length: ${result.length} chars`);
             return result;
         }
@@ -312,6 +277,7 @@ async function getCodexResponse(token, model, systemPrompt, messages, maxOutputT
         // Auth/quota/network/server errors abort immediately so we don't mask them.
         if (response.status === 400 && isModelNotSupportedError(errorMessage)) {
             console.warn(`[Codex Responses] Model ${attemptModel} rejected: ${errorMessage}`);
+            markCodexModelUnsupported(attemptModel);
             continue;
         }
 
@@ -327,19 +293,17 @@ async function getCodexResponse(token, model, systemPrompt, messages, maxOutputT
 }
 
 /**
- * Models currently accepted by chatgpt.com/backend-api/codex/responses
- * when authenticated via a ChatGPT subscription (May 2026).
- * gpt-5.5 is OAuth-exclusive; the gpt-5.4 family works on both OAuth and API keys.
+ * Models currently accepted by chatgpt.com/backend-api/codex/responses for the
+ * signed-in ChatGPT account. Read from the discovery cache — the accepted list
+ * changes whenever OpenAI ships or retires a model, so it is never hardcoded.
+ * @returns {string[]} Ranked model ids (newest first), empty before first discovery
  */
-const CODEX_MODELS = [
-    'gpt-5.5',
-    'gpt-5.4',
-    'gpt-5.4-mini',
-    'gpt-5.4-nano',
-];
+function getCodexModels(purpose = 'analyze') {
+    return getCodexModelSnapshot(purpose).models;
+}
 
-function isCodexCompatibleModel(model) {
-    return CODEX_MODELS.includes(model);
+function isCodexCompatibleModel(model, purpose = 'analyze') {
+    return getCodexModels(purpose).includes(model);
 }
 
 /**
@@ -403,7 +367,11 @@ async function transcribeWithCodex(token, audioBuffer, language = 'pt') {
 
     const headers = buildHeaders(accountId, token);
     const instructions = 'You are a transcription assistant. Output only the exact transcribed text from the audio, nothing else.';
-    const attempts = buildAttemptList(null, CODEX_TRANSCRIPTION_FALLBACK_CHAIN);
+    const attempts = await buildAttemptList(token, 'transcribe', null);
+
+    if (attempts.length === 0) {
+        throw new Error('No Codex model available for this ChatGPT account. Please re-login.');
+    }
 
     console.log(`[Codex Transcription] Transcribing audio (${buffer.length} bytes, format: ${format})`);
 
@@ -433,6 +401,7 @@ async function transcribeWithCodex(token, audioBuffer, language = 'pt') {
         if (response.ok) {
             const result = await parseSSEResponse(response);
             if (!result) throw new Error('Codex transcription returned empty response');
+            markCodexModelWorking(attemptModel, 'transcribe');
             console.log(`[Codex Transcription] Success with ${attemptModel}, length: ${result.length} chars`);
             return result;
         }
@@ -443,6 +412,7 @@ async function transcribeWithCodex(token, audioBuffer, language = 'pt') {
 
         if (response.status === 400 && isModelNotSupportedError(errorMessage)) {
             console.warn(`[Codex Transcription] Model ${attemptModel} rejected: ${errorMessage}`);
+            markCodexModelUnsupported(attemptModel);
             continue;
         }
 
@@ -462,5 +432,5 @@ module.exports = {
     resolveCodexModel,
     extractAccountId,
     isCodexCompatibleModel,
-    CODEX_MODELS,
+    getCodexModels,
 };

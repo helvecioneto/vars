@@ -59,6 +59,15 @@ Handlers receive a shared `context` object (`{ getMainWindow, getConfig, setConf
 
 Each provider folder has an `index.js` that re-exports the public surface. The AI handler in [src/main/handlers/ai.js](src/main/handlers/ai.js) branches on `config.provider` (`openai` | `google`) and resolves the API key — preferring the Codex OAuth token when `config.useCodexAuth` is set (and never falling back to a stored API key in OAuth mode).
 
+### OAuth model selection
+
+In OAuth mode the model is **never** taken from the tier config — a pinned name goes stale every time OpenAI rotates its line-up. [src/main/providers/openai/codex-models.js](src/main/providers/openai/codex-models.js) asks the account-aware endpoint `chatgpt.com/backend-api/codex/models` which models the signed-in ChatGPT account can serve, ranks them newest-first (version, then variant weight), and hands the ordered chain to [codex-responses.js](src/main/providers/openai/codex-responses.js). Whatever model the caller passed in is ignored on this path.
+
+- Discovery is cached in `~/.vars/codex-models.json` (TTL + last-known-good), refreshed at startup, after login, and via the ↻ button in the OAuth settings section.
+- Models the backend rejects with "model is not supported" are remembered as unsupported and skipped on later calls; a model that answers clears that mark.
+- The lists under `providers.openai.oauth` in [models.json](src/config/models.json) are only an **offline seed/fallback** — they are appended after the discovered list, never in front of it. Ranking weights, exclusion patterns (`-pro` etc., which OAuth accounts cannot serve) and cache TTLs live in the same block, so no model knowledge belongs in code.
+- Adding a new model family requires no code change: a higher version number automatically outranks everything older, and unknown variants fall back to a neutral weight.
+
 ### Config-driven models and prompts
 
 Models, tiers, and per-tier parameters (temperature, maxOutputTokens, topK/topP, retryConfig) are declared centrally in [src/config/models.json](src/config/models.json). Code should not hardcode model names — go through `getModelForTier(provider, tier, type)`, `getTierConfig(...)`, `getModelListForTier(...)`, or `getRetryConfig(...)` from [src/main/config.js](src/main/config.js).

@@ -19,6 +19,76 @@
                 "temperature": 1,
                 "maxOutputTokens": 16384,
                 "topP": 1
+            },
+            "oauth": {
+                "_comment": "ChatGPT subscription (OAuth) mode. The real model list is discovered at runtime from the account-aware Codex endpoint; the lists below are only the offline fallback / seed used when discovery fails. They are unioned with whatever discovery returns and re-ranked, so a newer model always wins.",
+                "analyze": [
+                    "gpt-5.6-sol",
+                    "gpt-5.6-terra",
+                    "gpt-5.5",
+                    "gpt-5.4",
+                    "gpt-5.4-mini"
+                ],
+                "transcribe": [
+                    "gpt-5.6-luna",
+                    "gpt-5.6-terra",
+                    "gpt-5.4-mini",
+                    "gpt-5.5",
+                    "gpt-5.4"
+                ],
+                "discovery": {
+                    "endpoint": "https://chatgpt.com/backend-api/codex/models",
+                    "originator": "vars",
+                    "clientVersion": "0.144.0",
+                    "timeoutMs": 8000,
+                    "cacheTtlMinutes": 360,
+                    "failureBackoffMinutes": 10,
+                    "unsupportedTtlHours": 24,
+                    "exclude": [
+                        "-pro",
+                        "-image",
+                        "image-",
+                        "-audio",
+                        "-tts",
+                        "-transcribe",
+                        "-realtime",
+                        "-embedding",
+                        "-moderation",
+                        "-search",
+                        "auto-review",
+                        "sora",
+                        "dall-e",
+                        "whisper"
+                    ],
+                    "variantPriority": {
+                        "quality": {
+                            "sol": 100,
+                            "terra": 85,
+                            "": 80,
+                            "codex": 72,
+                            "luna": 60,
+                            "chat": 50,
+                            "instant": 45,
+                            "mini": 40,
+                            "spark": 30,
+                            "nano": 20,
+                            "default": 65
+                        },
+                        "speed": {
+                            "luna": 100,
+                            "mini": 92,
+                            "nano": 88,
+                            "spark": 80,
+                            "terra": 70,
+                            "instant": 68,
+                            "chat": 60,
+                            "": 50,
+                            "codex": 45,
+                            "sol": 40,
+                            "default": 55
+                        }
+                    }
+                }
             }
         },
         "google": {

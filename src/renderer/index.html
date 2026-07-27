@@ -250,6 +250,18 @@
             <span class="codex-status-dot" id="codex-status-dot"></span>
             <span class="codex-status-text" id="codex-status-text">Checking...</span>
           </div>
+          <div class="codex-model-info hidden" id="codex-model-info">
+            <span class="codex-model-label">Model</span>
+            <span class="codex-model-name" id="codex-model-name">—</span>
+            <button type="button" id="codex-model-refresh" class="codex-model-refresh"
+              data-tooltip="Check for newer models available to your account">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+            </button>
+          </div>
           <div class="codex-auth-actions" id="codex-auth-actions">
             <button type="button" id="codex-login-btn" class="codex-login-btn"
               data-tooltip="Login with your OpenAI account">

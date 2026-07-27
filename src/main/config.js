@@ -112,6 +112,35 @@ function getRetryConfig(provider = 'google', tier = 'free') {
     };
 }
 
+/**
+ * Get the OAuth (ChatGPT subscription) block for OpenAI.
+ * Holds the offline fallback model lists plus the runtime discovery settings.
+ * @returns {object}
+ */
+function getCodexOAuthConfig() {
+    return models.providers?.openai?.oauth || {};
+}
+
+/**
+ * Get the runtime model-discovery settings for OAuth mode
+ * @returns {object}
+ */
+function getCodexDiscoveryConfig() {
+    return getCodexOAuthConfig().discovery || {};
+}
+
+/**
+ * Get the offline fallback model list for OAuth mode.
+ * Used to seed/complete the list discovered from the Codex backend.
+ * @param {string} purpose - 'analyze' or 'transcribe'
+ * @returns {string[]} Models in priority order
+ */
+function getCodexFallbackModels(purpose = 'analyze') {
+    const oauth = getCodexOAuthConfig();
+    const list = oauth[purpose] ?? oauth.analyze ?? [];
+    return Array.isArray(list) ? [...list] : [list];
+}
+
 function getPromptForLanguage(promptPath, language = 'en') {
     // Navigate the prompt path (e.g., 'defaults.systemPrompt')
     const parts = promptPath.split('.');
@@ -271,6 +300,9 @@ module.exports = {
     getTierConfig,
     getRetryConfig,
     getSpecialModel,
+    getCodexOAuthConfig,
+    getCodexDiscoveryConfig,
+    getCodexFallbackModels,
     CONFIG_DIR,
     CONFIG_FILE
 };

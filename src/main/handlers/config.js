@@ -6,6 +6,27 @@
 const { ipcMain, shell } = require('electron');
 const { saveConfig, getModels, getModelForTier } = require('../config');
 const { checkCodexAuthStatus, disconnectCodexAuth, getValidAccessToken, loginWithOAuth } = require('../providers/openai/codex-auth');
+const {
+    getCodexModels,
+    getCodexModelSnapshot,
+    invalidateCodexModelCache,
+    refreshCodexModelsInBackground,
+} = require('../providers/openai/codex-models');
+
+/**
+ * Re-discover which models the signed-in ChatGPT account can serve.
+ * Fire-and-forget: OAuth mode must never block on it.
+ */
+async function refreshCodexModels() {
+    try {
+        const tokenData = await getValidAccessToken();
+        if (tokenData?.accessToken) {
+            refreshCodexModelsInBackground(tokenData.accessToken);
+        }
+    } catch (err) {
+        console.warn('[Codex Models] Could not refresh after login:', err.message);
+    }
+}
 
 /**
  * Setup configuration-related IPC handlers
@@ -99,6 +120,7 @@ function setupConfigHandlers(context) {
                 config.useCodexAuth = true;
                 setConfig(config);
                 await saveConfig(config);
+                refreshCodexModels();
                 return {
                     success: true,
                     message: 'Connected! Using your OpenAI credits.',
@@ -115,6 +137,9 @@ function setupConfigHandlers(context) {
                 config.useCodexAuth = true;
                 setConfig(config);
                 await saveConfig(config);
+                // New account may have a different model line-up — discover it now.
+                invalidateCodexModelCache();
+                refreshCodexModelsInBackground(result.accessToken);
                 return {
                     success: true,
                     message: 'Successfully logged in! Using your OpenAI credits.',
@@ -141,9 +166,31 @@ function setupConfigHandlers(context) {
             config.useCodexAuth = false;
             setConfig(config);
             await saveConfig(config);
+            invalidateCodexModelCache();
             return disconnectCodexAuth();
         } catch (error) {
             return { success: false, message: error.message };
+        }
+    });
+
+    // --- Codex model discovery ---
+
+    // Which model OAuth mode will use right now (cached, no network call)
+    ipcMain.handle('codex-models:get', async (event, purpose = 'analyze') => {
+        return getCodexModelSnapshot(purpose);
+    });
+
+    // Force a re-discovery against the ChatGPT backend
+    ipcMain.handle('codex-models:refresh', async (event, purpose = 'analyze') => {
+        try {
+            const tokenData = await getValidAccessToken();
+            if (!tokenData?.accessToken) {
+                return { error: 'Not authenticated with OpenAI' };
+            }
+            await getCodexModels(tokenData.accessToken, { force: true });
+            return getCodexModelSnapshot(purpose);
+        } catch (error) {
+            return { error: error.message };
         }
     });
 

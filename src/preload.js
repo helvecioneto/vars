@@ -84,6 +84,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getToken: () => ipcRenderer.invoke('codex-auth:get-token'),
     },
 
+    // Codex model discovery (which model OAuth mode is using)
+    codexModels: {
+        get: (purpose) => ipcRenderer.invoke('codex-models:get', purpose),
+        refresh: (purpose) => ipcRenderer.invoke('codex-models:refresh', purpose),
+    },
+
     // Prompt Optimization
     optimizePrompt: (userInput) => ipcRenderer.invoke('optimize-prompt', userInput),
 

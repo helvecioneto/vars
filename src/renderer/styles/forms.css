@@ -299,6 +299,53 @@
     color: var(--text-secondary);
 }
 
+.codex-model-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 0 0 0 14px;
+}
+
+.codex-model-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.codex-model-name {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono, monospace);
+}
+
+.codex-model-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all var(--transition-normal);
+}
+
+.codex-model-refresh:hover {
+    color: var(--accent);
+}
+
+.codex-model-refresh.loading svg {
+    animation: codex-model-spin 0.9s linear infinite;
+}
+
+@keyframes codex-model-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .codex-auth-actions {
     display: flex;
     gap: 6px;
